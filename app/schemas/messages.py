@@ -1,0 +1,54 @@
+from datetime import datetime
+import re
+from pydantic import BaseModel, Field, field_validator
+from markupsafe import escape
+
+class BaseMessageSchema(BaseModel):
+    user_name: str = Field(
+        min_length=2,
+        max_length=50,
+        title="Name of the user",
+        example="Іван",
+    )
+    phone_number: str = Field(
+        min_length=9,
+        max_length=11,
+        title="Phone number of the user",
+        example="0991234567",
+    )
+    message: str = Field(
+        max_length=1000,
+        title="Message from the user",
+        example="Привіт!",
+    )
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone_number(cls, value: str):
+        if not value.isdigit():
+            raise ValueError("Phone number must contain only digits")
+        return value
+
+    @field_validator("user_name")
+    @classmethod
+    def validate_user_name(cls, value: str):
+        allowed_pattern = r"^[a-zA-Zа-яА-ЯїЇіІєЄґҐ'`\s-]+$"
+        if not re.match(allowed_pattern, value):
+            raise ValueError(
+                "Name can only contain letters, spaces, apostrophes, and hyphens"
+            )
+        return value
+    
+    @field_validator("message")
+    @classmethod
+    def escape_html(cls, value):
+        return escape(value)
+
+
+class ReadMessageSchema(BaseMessageSchema):
+    id: int  # noqa
+    created_at: datetime = Field(None, title="Timestamp when the message was created")
+
+
+class CreateMessageSchema(BaseMessageSchema):
+    pass

@@ -1,0 +1,7 @@
+.git
+__pycache__
+.env
+*.pyc
+docker_compose/
+.pytest_cache/
+.sconsign.dblite
