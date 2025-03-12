@@ -17,7 +17,7 @@ class AbstractCategoryService(ABC):
         self,
         category_in: CreateCategorySchema,
         uow: AbstractUnitOfWork,
-    ): ...
+    ) -> list[ReadCategorySchema]: ...
 
     @abstractmethod
     async def update(
@@ -25,7 +25,14 @@ class AbstractCategoryService(ABC):
         category_id: int,
         category_in: UpdateCategorySchema,
         uow: AbstractUnitOfWork,
-    ): ...
+    ) -> list[ReadCategorySchema]: ...
+
+    @abstractmethod
+    async def delete(
+        self,
+        category_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> None: ...
 
 
 class CategoryService(AbstractCategoryService):
@@ -40,7 +47,7 @@ class CategoryService(AbstractCategoryService):
         self,
         category_in: CreateCategorySchema,
         uow: AbstractUnitOfWork,
-    ):
+    ) -> list[ReadCategorySchema]:
         return await uow.categories.create(item_in=category_in)
 
     async def update(
@@ -48,8 +55,15 @@ class CategoryService(AbstractCategoryService):
         category_id: int,
         category_in: UpdateCategorySchema,
         uow: AbstractUnitOfWork,
-    ):
+    ) -> list[ReadCategorySchema]:
         return await uow.categories.update_by_id(
             item_id=category_id,
             item_in=category_in,
         )
+
+    async def delete(
+        self,
+        category_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> None:
+        return await uow.categories.remove_by_id(item_id=category_id)

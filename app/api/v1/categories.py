@@ -6,6 +6,7 @@ from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.categories import CreateCategorySchema, ReadCategorySchema, UpdateCategorySchema
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase
+from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase
 from app.use_cases.categories.update import AbstractUpdateCategoryUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -59,3 +60,15 @@ async def update_category(
             uow=uow,
         ),
     )
+
+
+@router.delete("/{category_id}", response_model=None)
+async def delete_category(
+    category_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractDeleteCategoryUseCase,
+        Depends(lambda: get_container().resolve(AbstractDeleteCategoryUseCase)),
+    ],
+):
+    await use_case.execute(category_id=category_id, uow=uow)

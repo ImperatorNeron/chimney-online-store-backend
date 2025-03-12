@@ -15,8 +15,8 @@ class AbstractFetchCategoriesUseCase(ABC):
 @dataclass
 class FetchCategoriesUseCase(AbstractFetchCategoriesUseCase):
 
-    categoty_service: AbstractCategoryService
+    category_service: AbstractCategoryService
 
     async def execute(self, uow: AbstractUnitOfWork):
         async with uow:
-            return await self.categoty_service.list_all(uow=uow)
+            return await self.category_service.list_all(uow=uow)

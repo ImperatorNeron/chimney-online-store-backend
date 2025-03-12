@@ -20,7 +20,7 @@ class AbstractUpdateCategoryUseCase(ABC):
 @dataclass
 class UpdateCategoryUseCase(AbstractUpdateCategoryUseCase):
 
-    categoty_service: AbstractCategoryService
+    category_service: AbstractCategoryService
 
     async def execute(
         self,
@@ -29,7 +29,7 @@ class UpdateCategoryUseCase(AbstractUpdateCategoryUseCase):
         uow: AbstractUnitOfWork,
     ):
         async with uow:
-            return await self.categoty_service.update(
+            return await self.category_service.update(
                 category_id=category_id,
                 category_in=category_in,
                 uow=uow,

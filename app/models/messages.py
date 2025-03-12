@@ -1,9 +1,8 @@
-from app.models.base import BaseModel
-from app.models.mixins import CreateDateTimeMixin, IdIntPkMixin
-
-from sqlalchemy import Integer, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.models.base import BaseModel
+from app.models.mixins import CreateDateTimeMixin, IdIntPkMixin
 from app.schemas.messages import ReadMessageSchema
 
 

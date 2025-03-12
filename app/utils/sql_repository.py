@@ -229,7 +229,6 @@ class SQLAlchemyRepository(AbstractRepository):
         )
 
         result: Result = await self.session.execute(stmt)
-        await self.session.commit()
         updated_item: Model = result.scalars().first()
         return updated_item.to_read_model() if updated_item else None
 
@@ -237,7 +236,6 @@ class SQLAlchemyRepository(AbstractRepository):
         await self.check_existence(item_id=item_id)
         stmt = delete(self.model).where(self.model.id == item_id)
         result = await self.session.execute(stmt)
-        await self.session.commit()
         if not result.rowcount:
             raise ItemNotDeletedException(
                 item_id=item_id,

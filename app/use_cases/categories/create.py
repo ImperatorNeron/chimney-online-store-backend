@@ -19,7 +19,7 @@ class AbstractCreateCategoryUseCase(ABC):
 @dataclass
 class CreateCategoryUseCase(AbstractCreateCategoryUseCase):
 
-    categoty_service: AbstractCategoryService
+    category_service: AbstractCategoryService
 
     async def execute(
         self,
@@ -27,7 +27,7 @@ class CreateCategoryUseCase(AbstractCreateCategoryUseCase):
         uow: AbstractUnitOfWork,
     ):
         async with uow:
-            return await self.categoty_service.create(
+            return await self.category_service.create(
                 category_in=category_in,
                 uow=uow,
             )
