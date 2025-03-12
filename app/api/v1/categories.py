@@ -1,0 +1,61 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+
+from app.core.containers import get_container
+from app.schemas.api_response import ApiResponseSchema
+from app.schemas.categories import CreateCategorySchema, ReadCategorySchema, UpdateCategorySchema
+from app.use_cases.categories.create import AbstractCreateCategoryUseCase
+from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase
+from app.use_cases.categories.update import AbstractUpdateCategoryUseCase
+from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
+
+
+router = APIRouter(prefix="/categories", tags=["Categories"])
+
+
+@router.get("", response_model=ApiResponseSchema[list[ReadCategorySchema]])
+async def get_categories_list(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchCategoriesUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchCategoriesUseCase)),
+    ],
+):
+    return ApiResponseSchema(data=await use_case.execute(uow=uow))
+
+
+@router.post("", response_model=ApiResponseSchema[ReadCategorySchema])
+async def create_category(
+    category_in: CreateCategorySchema,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractCreateCategoryUseCase,
+        Depends(lambda: get_container().resolve(AbstractCreateCategoryUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            category_in=category_in,
+            uow=uow,
+        ),
+    )
+
+
+@router.patch("/{category_id}", response_model=ApiResponseSchema[ReadCategorySchema])
+async def update_category(
+    category_id: int,
+    category_in: UpdateCategorySchema,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractUpdateCategoryUseCase,
+        Depends(lambda: get_container().resolve(AbstractUpdateCategoryUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            category_id=category_id,
+            category_in=category_in,
+            uow=uow,
+        ),
+    )

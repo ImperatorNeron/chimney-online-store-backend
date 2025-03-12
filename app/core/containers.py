@@ -2,34 +2,20 @@ from functools import lru_cache
 
 import punq
 
-from app.services.auth import (
-    AbstractAuthService,
-    AuthService,
-)
+from app.services.auth import AbstractAuthService, AuthService
+from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.messages import AbstractMessageService, MessageService
-from app.services.tokens import (
-    AbstractJWTTokenService,
-    JWTTokenService,
-)
-from app.services.users import (
-    AbstractUserService,
-    UserService,
-)
+from app.services.tokens import AbstractJWTTokenService, JWTTokenService
+from app.services.users import AbstractUserService, UserService
 from app.use_cases.auth.login import LoginUserUseCase
 from app.use_cases.auth.refresh import RefreshTokenUseCase
 from app.use_cases.auth.registration import RegisterUserUseCase
-from app.use_cases.messages.create_messages import (
-    AbstractCreateMessageUseCase,
-    CreateMessageUseCase,
-)
-from app.use_cases.messages.fetch_message import (
-    AbstractFetchMessageUseCase,
-    FetchMessageUseCase,
-)
-from app.use_cases.messages.fetch_messages import (
-    AbstractFetchMessagesUseCase,
-    FetchMessagesUseCase,
-)
+from app.use_cases.categories.create import AbstractCreateCategoryUseCase, CreateCategoryUseCase
+from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase, FetchCategoriesUseCase
+from app.use_cases.categories.update import AbstractUpdateCategoryUseCase, UpdateCategoryUseCase
+from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
+from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
+from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
 
 
 @lru_cache(1)
@@ -45,6 +31,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractUserService, UserService)
     container.register(AbstractJWTTokenService, JWTTokenService)
     container.register(AbstractMessageService, MessageService)
+    container.register(AbstractCategoryService, CategoryService)
 
     # Use cases
     container.register(RegisterUserUseCase)
@@ -53,5 +40,8 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCreateMessageUseCase, CreateMessageUseCase)
     container.register(AbstractFetchMessagesUseCase, FetchMessagesUseCase)
     container.register(AbstractFetchMessageUseCase, FetchMessageUseCase)
+    container.register(AbstractFetchCategoriesUseCase, FetchCategoriesUseCase)
+    container.register(AbstractCreateCategoryUseCase, CreateCategoryUseCase)
+    container.register(AbstractUpdateCategoryUseCase, UpdateCategoryUseCase)
 
     return container

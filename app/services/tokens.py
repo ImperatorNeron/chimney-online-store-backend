@@ -1,12 +1,5 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
@@ -18,7 +11,7 @@ from app.exceptions.auth import InvalidJWTTokenError
 class AbstractJWTTokenService(ABC):
 
     @abstractmethod
-    def encode_jwt(
+    async def encode_jwt(
         payload: dict,
         secret_key: str,
         algorithm: str,
@@ -27,7 +20,7 @@ class AbstractJWTTokenService(ABC):
     ) -> str: ...
 
     @abstractmethod
-    def decode_jwt(
+    async def decode_jwt(
         token: str | bytes,
         public_key: str,
         algorithm: str,
@@ -48,7 +41,7 @@ class AbstractJWTTokenService(ABC):
 class JWTTokenService:
 
     @staticmethod
-    def encode_jwt(
+    async def encode_jwt(
         payload: dict,
         secret_key: str = settings.auth_jwt.private_key_path.read_text(),
         algorithm: str = settings.auth_jwt.algorithm,
@@ -68,7 +61,7 @@ class JWTTokenService:
         return jwt.encode(to_encode, secret_key, algorithm)
 
     @staticmethod
-    def decode_jwt(
+    async def decode_jwt(
         token: str | bytes,
         public_key: str = settings.auth_jwt.public_key_path.read_text(),
         algorithm: str = settings.auth_jwt.algorithm,

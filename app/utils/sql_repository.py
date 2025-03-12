@@ -1,24 +1,11 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC, abstractmethod
+from typing import Optional
 
 from pydantic import BaseModel
-from sqlalchemy import (
-    delete,
-    exists,
-    insert,
-    Result,
-    select,
-    update,
-)
+from sqlalchemy import delete, exists, insert, Result, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions.common import (
-    FieldNotFoundException,
-    ItemNotDeletedException,
-    ItemNotFoundException,
-)
+from app.core.exceptions.common import FieldNotFoundException, ItemNotDeletedException, ItemNotFoundException
 from app.models.base import BaseModel as Model
 
 
@@ -179,13 +166,15 @@ class SQLAlchemyRepository(AbstractRepository):
         if not is_item:
             raise ItemNotFoundException(model=self.model, item_id=item_id)
 
-    async def fetch_all(self, pagination_in: BaseModel) -> list[BaseModel]:
-        stmt = (
-            select(self.model)
-            .order_by(self.model.id)
-            .limit(pagination_in.limit)
-            .offset(pagination_in.offset)
-        )
+    async def fetch_all(
+        self,
+        pagination_in: Optional[BaseModel] = None,
+    ) -> list[BaseModel]:
+        stmt = select(self.model).order_by(self.model.id)
+
+        if pagination_in is not None:
+            stmt = stmt.limit(pagination_in.limit).offset(pagination_in.offset)
+
         result: Result = await self.session.execute(stmt)
         return [item.to_read_model() for item in list(result.scalars().all())]
 

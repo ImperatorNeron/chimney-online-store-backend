@@ -1,13 +1,8 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC, abstractmethod
 from typing import Type
 
-from app.db.db import (
-    database_helper,
-    test_database_helper,
-)
+from app.db.db import database_helper, test_database_helper
+from app.repositories.categories import CategoryRepository
 from app.repositories.messages import MessageRepository
 from app.repositories.users import UserRepository
 
@@ -18,6 +13,7 @@ class AbstractUnitOfWork(ABC):
 
     users: Type[UserRepository]
     messages: Type[MessageRepository]
+    categories: Type[CategoryRepository]
 
     @abstractmethod
     async def __aenter__(self): ...
@@ -37,6 +33,7 @@ class BaseUnitOfWork(AbstractUnitOfWork):
         self.session = await self._get_session()
         self.users = UserRepository(session=self.session)
         self.messages = MessageRepository(session=self.session)
+        self.categories = CategoryRepository(session=self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
