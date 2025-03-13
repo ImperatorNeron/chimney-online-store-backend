@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
-from app.schemas.products import ProductImageRead, ReadPreviewProductSchema, ReadProductSchema
+from app.schemas.products import ProductImageRead, ReadFullProductSchema, ReadPreviewProductSchema, ReadProductSchema
 
 
 if TYPE_CHECKING:
@@ -78,6 +78,20 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             price=self.price,
             category_id=self.category_id,
             preview=preview_image,
+        )
+
+    def to_read_full_model(self):
+        images_schemas = [image.to_read_model() for image in self.images]
+        return ReadFullProductSchema(
+            id=self.id,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            name=self.name,
+            slug=self.slug,
+            description=self.description,
+            price=self.price,
+            category_id=self.category_id,
+            images=images_schemas,
         )
 
     def __repr__(self):

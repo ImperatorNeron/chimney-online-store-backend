@@ -13,6 +13,22 @@ class ProductRepository(SQLAlchemyRepository):
 
     model = Product
 
+    async def fetch_full_one_by_id(
+        self,
+        product_id: int,
+    ):
+        await self.check_existence(item_id=product_id)
+
+        stmt = (
+            select(self.model)
+            .options(selectinload(self.model.images))
+            .where(self.model.id == product_id)
+        )
+
+        result: Result = await self.session.execute(stmt)
+        product = result.scalars().first()
+        return product.to_read_full_model()
+
     async def fetch_all_with_preview(
         self,
         pagination_in: Optional[ReadPreviewProductSchema] = None,

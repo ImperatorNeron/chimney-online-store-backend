@@ -19,6 +19,7 @@ from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase,
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
+from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
 
 
 @lru_cache(1)
@@ -49,5 +50,6 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractUpdateCategoryUseCase, UpdateCategoryUseCase)
     container.register(AbstractDeleteCategoryUseCase, DeleteCategoryUseCase)
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
+    container.register(AbstractFetchProductUseCase, FetchProductUseCase)
 
     return container

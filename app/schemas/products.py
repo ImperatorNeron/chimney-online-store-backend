@@ -49,3 +49,7 @@ class ReadProductSchema(BaseProductSchema):
 
 class ReadPreviewProductSchema(ReadProductSchema):
     preview: Optional[ProductImageRead]
+
+
+class ReadFullProductSchema(ReadProductSchema):
+    images: list[ProductImageRead]
