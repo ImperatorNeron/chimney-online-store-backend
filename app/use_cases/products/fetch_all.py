@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.schemas.filters import PaginationIn
-from app.schemas.products import ReadProductSchema
+from app.schemas.products import ReadPreviewProductSchema
 from app.services.products import AbstractProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
@@ -14,7 +14,7 @@ class AbstractFetchProductsUseCase(ABC):
         self,
         uow: AbstractUnitOfWork,
         pagination_in: PaginationIn,
-    ) -> list[ReadProductSchema]: ...
+    ) -> list[ReadPreviewProductSchema]: ...
 
 
 @dataclass
@@ -26,7 +26,7 @@ class FetchProductsUseCase(AbstractFetchProductsUseCase):
         self,
         uow: AbstractUnitOfWork,
         pagination_in: PaginationIn,
-    ) -> list[ReadProductSchema]:
+    ) -> list[ReadPreviewProductSchema]:
         async with uow:
             return await self.product_service.list_all(
                 pagination_in=pagination_in,

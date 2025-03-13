@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, PaginationOut
-from app.schemas.products import ReadProductSchema
+from app.schemas.products import ReadPreviewProductSchema
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/products", tags=["Products"])
 
 @router.get(
     "",
-    response_model=ApiResponseSchema[ListPaginatedResponse[ReadProductSchema]],
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
 )
 async def get_products_list(
     pagination_in: Annotated[PaginationIn, Depends()],

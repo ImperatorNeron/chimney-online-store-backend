@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
-from app.schemas.products import ReadProductSchema
+from app.schemas.products import ProductImageRead, ReadPreviewProductSchema, ReadProductSchema
 
 
 if TYPE_CHECKING:
@@ -25,6 +25,14 @@ class ProductImage(BaseModel, IdIntPkMixin):
 
     product: Mapped["Product"] = relationship(back_populates="images")
 
+    def to_read_model(self):
+        return ProductImageRead(
+            id=self.id,
+            alt=self.alt,
+            file_path=self.file_path,
+            product_id=self.product_id,
+        )
+
     def __repr__(self):
         return f"<ProductImage(id={self.id}, file_path='{self.file_path}', product_id={self.product_id})>"
 
@@ -42,9 +50,6 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         cascade="all, delete-orphan",
     )
 
-    def __repr__(self):
-        return f"<Product(id={self.id}, name='{self.name}', price={self.price})>"
-
     def to_read_model(self):
         return ReadProductSchema(
             id=self.id,
@@ -56,3 +61,24 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             price=self.price,
             category_id=self.category_id,
         )
+
+    def to_read_model_with_preview(self):
+
+        preview_image = None
+        if self.images:
+            preview_image = self.images[0].to_read_model()
+
+        return ReadPreviewProductSchema(
+            id=self.id,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            name=self.name,
+            slug=self.slug,
+            description=self.description,
+            price=self.price,
+            category_id=self.category_id,
+            preview=preview_image,
+        )
+
+    def __repr__(self):
+        return f"<Product(id={self.id}, name='{self.name}', price={self.price})>"
