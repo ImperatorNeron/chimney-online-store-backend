@@ -5,6 +5,7 @@ import punq
 from app.services.auth import AbstractAuthService, AuthService
 from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.messages import AbstractMessageService, MessageService
+from app.services.product_images import AbstractProductImageService, ProductImageService
 from app.services.products import AbstractProductService, ProductService
 from app.services.tokens import AbstractJWTTokenService, JWTTokenService
 from app.services.users import AbstractUserService, UserService
@@ -18,6 +19,7 @@ from app.use_cases.categories.update import AbstractUpdateCategoryUseCase, Updat
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
+from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
 
@@ -37,6 +39,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractMessageService, MessageService)
     container.register(AbstractCategoryService, CategoryService)
     container.register(AbstractProductService, ProductService)
+    container.register(AbstractProductImageService, ProductImageService)
 
     # Use cases
     container.register(RegisterUserUseCase)
@@ -51,5 +54,6 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractDeleteCategoryUseCase, DeleteCategoryUseCase)
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
     container.register(AbstractFetchProductUseCase, FetchProductUseCase)
+    container.register(AbstractCreateProductUseCase, CreateProductUseCase)
 
     return container

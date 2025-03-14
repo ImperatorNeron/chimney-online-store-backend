@@ -1,11 +1,12 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, PaginationOut
-from app.schemas.products import ReadFullProductSchema, ReadPreviewProductSchema
+from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema
+from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -58,12 +59,31 @@ async def fetch_product(
 
 @router.post(
     "",
-    response_model=ApiResponseSchema[ReadPreviewProductSchema],
+    response_model=ApiResponseSchema[ReadFullProductSchema],
 )
 async def create_product(
+    images: Annotated[list[UploadFile], File(...)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
-        AbstractFetchProductsUseCase,
-        Depends(lambda: get_container().resolve(AbstractFetchProductsUseCase)),
+        AbstractCreateProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractCreateProductUseCase)),
     ],
-): ...
+    name: str = Form(...),
+    slug: str = Form(...),
+    description: Optional[str] = Form(None),
+    price: float = Form(...),
+    category_id: int = Form(...),
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            product_in=CreateProductSchema(
+                name=name,
+                slug=slug,
+                description=description,
+                price=price,
+                category_id=category_id,
+            ),
+            images=images,
+            uow=uow,
+        ),
+    )

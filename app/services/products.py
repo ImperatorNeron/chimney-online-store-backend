@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.schemas.filters import PaginationIn
-from app.schemas.products import ReadFullProductSchema, ReadPreviewProductSchema
+from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema, ReadProductSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -21,6 +21,13 @@ class AbstractProductService(ABC):
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema: ...
 
+    @abstractmethod
+    async def create(
+        self,
+        product_in: CreateProductSchema,
+        uow: AbstractUnitOfWork,
+    ) -> ReadProductSchema: ...
+
 
 class ProductService(AbstractProductService):
     async def list_all(
@@ -36,3 +43,10 @@ class ProductService(AbstractProductService):
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema:
         return await uow.products.fetch_full_one_by_id(product_id=product_id)
+
+    async def create(
+        self,
+        product_in: CreateProductSchema,
+        uow: AbstractUnitOfWork,
+    ) -> ReadProductSchema:
+        return await uow.products.create(item_in=product_in)

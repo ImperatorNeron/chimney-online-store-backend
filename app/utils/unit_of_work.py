@@ -4,6 +4,7 @@ from typing import Type
 from app.db.db import database_helper, test_database_helper
 from app.repositories.categories import CategoryRepository
 from app.repositories.messages import MessageRepository
+from app.repositories.product_images import ProductImageRepository
 from app.repositories.products import ProductRepository
 from app.repositories.users import UserRepository
 
@@ -16,6 +17,7 @@ class AbstractUnitOfWork(ABC):
     messages: Type[MessageRepository]
     categories: Type[CategoryRepository]
     products: Type[ProductRepository]
+    products_images: Type[ProductImageRepository]
 
     @abstractmethod
     async def __aenter__(self): ...
@@ -37,6 +39,7 @@ class BaseUnitOfWork(AbstractUnitOfWork):
         self.messages = MessageRepository(session=self.session)
         self.categories = CategoryRepository(session=self.session)
         self.products = ProductRepository(session=self.session)
+        self.products_images = ProductImageRepository(session=self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
