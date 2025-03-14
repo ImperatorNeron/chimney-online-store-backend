@@ -19,7 +19,9 @@ dependencies = [
     "bcrypt (>=4.3.0,<5.0.0)",
     "python-multipart (>=0.0.20,<0.0.21)",
     "markupsafe (>=3.0.2,<4.0.0)",
-    "python-dotenv (>=1.0.1,<2.0.0)"
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "python-magic (>=0.4.27,<0.5.0)",
+    "aiofiles (>=24.1.0,<25.0.0)"
 ]
 
 

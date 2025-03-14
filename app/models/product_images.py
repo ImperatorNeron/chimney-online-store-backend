@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin
-from app.schemas.products import ProductImageRead
+from app.schemas.products import ReadProductImageSchema
 
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class ProductImage(BaseModel, IdIntPkMixin):
     product: Mapped["Product"] = relationship(back_populates="images")
 
     def to_read_model(self):
-        return ProductImageRead(
+        return ReadProductImageSchema(
             id=self.id,
             alt=self.alt,
             file_path=self.file_path,

@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class ProductImageBase(BaseModel):
+class BaseProductImageSchema(BaseModel):
     file_path: str = Field(
         ...,
         min_length=2,
@@ -19,9 +19,9 @@ class ProductImageBase(BaseModel):
     product_id: int = Field(..., ge=0, example=1)
 
 
-class ProductImageCreate(ProductImageBase):
+class CreateProductImageSchema(BaseProductImageSchema):
     pass
 
 
-class ProductImageRead(ProductImageBase):
+class ReadProductImageSchema(BaseProductImageSchema):
     id: int = Field(ge=0)  # noqa

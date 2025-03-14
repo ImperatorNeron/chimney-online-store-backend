@@ -163,3 +163,4 @@ cython_debug/
 .sconsign.dblite
 certificates/
 poetry.lock
+images/

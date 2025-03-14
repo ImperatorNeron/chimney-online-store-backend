@@ -4,9 +4,11 @@ WORKDIR /app
 
 RUN apk update && \
     apk add --no-cache python3-dev \
+    python3-dev \
     gcc \
     musl-dev \
     libpq-dev \
+    file-dev \
     nmap 
     
 COPY pyproject.toml poetry.lock* /app/

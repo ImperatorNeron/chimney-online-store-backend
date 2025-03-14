@@ -14,6 +14,15 @@ class ItemNotFoundException(BaseAppException):
         )
 
 
+class UniqueConstraintViolationsException(BaseAppException):
+
+    def __init__(self, violations: list):
+        super().__init__(
+            detail=violations,
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
 class FieldNotFoundException(BaseAppException):
     """Custom exception for handling non-existent fields in the model."""
 
@@ -27,6 +36,30 @@ class FieldNotFoundException(BaseAppException):
 class ItemNotDeletedException(BaseAppException):
     def __init__(self, item_id: int, model_name: str):
         super().__init__(
-            f"Item with ID '{item_id}' wasn`t deleted in the model '{model_name}'.",
+            detail=f"Item with ID '{item_id}' wasn`t deleted in the model '{model_name}'.",
             status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class UnsupportedMediaTypeException(BaseAppException):
+    def __init__(self, media_type: str):
+        super().__init__(
+            detail=f"Invalid file type: {media_type}",
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        )
+
+
+class UnsupportedMediaExtensionException(BaseAppException):
+    def __init__(self, media_extension: str):
+        super().__init__(
+            detail=f"Invalid file extension: {media_extension}",
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        )
+
+
+class VerificationFileException(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            detail="Error validating file",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

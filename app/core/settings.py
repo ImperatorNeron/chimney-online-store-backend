@@ -2,10 +2,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 load_dotenv()
@@ -54,6 +51,13 @@ class AuthJWT(BaseModel):
     refresh_token_expire_days: int = 30
 
 
+class ImageSettings(BaseModel):
+    upload_dir: Path = BASE_DIR / "images"
+    max_size: int = 10 * 1024 * 1024
+    allowed_mime_types: set = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+    allowed_extensions: set = {".jpg", ".jpeg", ".png", ".webp"}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -65,6 +69,7 @@ class Settings(BaseSettings):
     database: DatabaseSettings
     test_database: TestDatabaseSettings
     auth_jwt: AuthJWT = AuthJWT()
+    images: ImageSettings = ImageSettings()
 
 
 settings = Settings()

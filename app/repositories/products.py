@@ -4,7 +4,7 @@ from sqlalchemy import Result, select
 from sqlalchemy.orm import selectinload
 
 from app.models.products import Product
-from app.schemas.products import ReadPreviewProductSchema
+from app.schemas.products import CreateProductSchema, ReadPreviewProductSchema
 from app.utils.sql_repository import SQLAlchemyRepository
 
 
@@ -13,11 +13,19 @@ class ProductRepository(SQLAlchemyRepository):
 
     model = Product
 
+    async def create(self, item_in: CreateProductSchema):
+        await self.raise_if_exists(
+            {
+                "slug": item_in.slug,
+            },
+        )
+        return await super().create(item_in=item_in)
+
     async def fetch_full_one_by_id(
         self,
         product_id: int,
     ):
-        await self.check_existence(item_id=product_id)
+        await self.raise_if_not_exists(item_id=product_id)
 
         stmt = (
             select(self.model)

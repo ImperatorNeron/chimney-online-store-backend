@@ -4,6 +4,7 @@ import punq
 
 from app.services.auth import AbstractAuthService, AuthService
 from app.services.categories import AbstractCategoryService, CategoryService
+from app.services.files import AbstractFileUploadService, FileUploadService
 from app.services.messages import AbstractMessageService, MessageService
 from app.services.product_images import AbstractProductImageService, ProductImageService
 from app.services.products import AbstractProductService, ProductService
@@ -40,6 +41,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCategoryService, CategoryService)
     container.register(AbstractProductService, ProductService)
     container.register(AbstractProductImageService, ProductImageService)
+    container.register(AbstractFileUploadService, FileUploadService)
 
     # Use cases
     container.register(RegisterUserUseCase)

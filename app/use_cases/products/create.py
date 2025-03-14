@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from app.schemas.product_images import CreateProductImageSchema
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema
+from app.services.files import AbstractFileUploadService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
@@ -23,6 +25,7 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
 
     product_service: AbstractProductService
     product_image_service: AbstractProductImageService
+    file_service: AbstractFileUploadService
 
     async def execute(
         self,
@@ -30,22 +33,33 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
         images: list,
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema:
-        async with uow:
-            product = await self.product_service.create(
-                product_in=product_in,
-                uow=uow,
-            )
-
-            # TODO: create fileservice and cover it in schema
-            image_data = []
-            for img in images:
-                image_data.append(
-                    {
-                        "file_path": img.filename,
-                        "product_id": product.id,
-                        "alt": product.name,
-                    },
+        image_data = []
+        try:
+            async with uow:
+                product = await self.product_service.create(
+                    product_in=product_in,
+                    uow=uow,
                 )
 
-            await self.product_image_service.bulk_add(images=image_data, uow=uow)
-            return ReadFullProductSchema(**product.model_dump(), images=[])
+                for img in images:
+                    await self.file_service.verify_file(img)
+                    metadata = self.file_service.get_metadata(img)
+                    await self.file_service.bwrite_file(img, metadata["path"])
+                    image_data.append(
+                        CreateProductImageSchema(
+                            file_path=metadata["path"],
+                            alt=product.name,
+                            product_id=product.id,
+                        ),
+                    )
+
+                return ReadFullProductSchema(
+                    **product.model_dump(),
+                    images=await self.product_image_service.bulk_add(
+                        images=image_data,
+                        uow=uow,
+                    ),
+                )
+        except Exception as e:
+            await self.file_service.cleanup_files(image_data)
+            raise e

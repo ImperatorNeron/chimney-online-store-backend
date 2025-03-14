@@ -1,11 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import delete, exists, insert, Result, select, update
+from sqlalchemy import delete, insert, or_, Result, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions.common import FieldNotFoundException, ItemNotDeletedException, ItemNotFoundException
+from app.core.exceptions.common import (
+    FieldNotFoundException,
+    ItemNotDeletedException,
+    ItemNotFoundException,
+    UniqueConstraintViolationsException,
+)
 from app.models.base import BaseModel as Model
 
 
@@ -17,7 +22,7 @@ class AbstractRepository(ABC):
     """
 
     @abstractmethod
-    async def check_existence(self, item_id: int) -> bool:
+    async def raise_if_not_exists(self, item_id: int) -> bool:
         """Check if data exists in database.
 
         Args:
@@ -158,13 +163,36 @@ class SQLAlchemyRepository(AbstractRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def check_existence(self, item_id: int) -> None:
-        stmt = select(exists().where(self.model.id == item_id))
-        result = await self.session.execute(stmt)
-        is_item = result.scalar()
+    async def is_exist(self, fields: dict[str, Any]):
+        conditions = or_(
+            getattr(self.model, field) == value for field, value in fields.items()
+        )
 
-        if not is_item:
+        stmt = select(self.model).where(conditions)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def raise_if_not_exists(self, item_id: int) -> None:
+        item = await self.session.get(self.model, item_id)
+
+        if not item:
             raise ItemNotFoundException(model=self.model, item_id=item_id)
+
+    async def raise_if_exists(self, fields: dict[str, Any]) -> None:
+        existing_items = await self.is_exist(fields)
+
+        if not existing_items:
+            return
+
+        violations = []
+
+        for item in existing_items:
+            for field, value in fields.items():
+                if getattr(item, field) == value:
+                    violations.append({"field": field, "value": value})
+
+        if existing_items:
+            raise UniqueConstraintViolationsException(violations=violations)
 
     async def fetch_all(
         self,
@@ -179,7 +207,7 @@ class SQLAlchemyRepository(AbstractRepository):
         return [item.to_read_model() for item in list(result.scalars().all())]
 
     async def fetch_by_id(self, item_id: int) -> BaseModel | None:
-        await self.check_existence(item_id=item_id)
+        await self.raise_if_not_exists(item_id=item_id)
         item: Model = await self.session.get(self.model, item_id)
         return item.to_read_model() if item else None
 
@@ -220,7 +248,7 @@ class SQLAlchemyRepository(AbstractRepository):
         item_id: int,
         item_in: BaseModel,
     ) -> BaseModel | None:
-        await self.check_existence(item_id=item_id)
+        await self.raise_if_not_exists(item_id=item_id)
         stmt = (
             update(self.model)
             .where(self.model.id == item_id)
@@ -233,7 +261,7 @@ class SQLAlchemyRepository(AbstractRepository):
         return updated_item.to_read_model() if updated_item else None
 
     async def remove_by_id(self, item_id: int) -> None:
-        await self.check_existence(item_id=item_id)
+        await self.raise_if_not_exists(item_id=item_id)
         stmt = delete(self.model).where(self.model.id == item_id)
         result = await self.session.execute(stmt)
         if not result.rowcount:

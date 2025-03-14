@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.schemas.product_images import ProductImageCreate
+from app.schemas.product_images import CreateProductImageSchema, ReadProductImageSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -9,16 +9,16 @@ class AbstractProductImageService(ABC):
     @abstractmethod
     async def bulk_add(
         self,
-        images: list[ProductImageCreate],
+        images: list[CreateProductImageSchema],
         uow: AbstractUnitOfWork,
-    ) -> None: ...
+    ) -> list[ReadProductImageSchema]: ...
 
 
 class ProductImageService(AbstractProductImageService):
 
     async def bulk_add(
         self,
-        images: list[ProductImageCreate],
+        images: list[CreateProductImageSchema],
         uow: AbstractUnitOfWork,
-    ) -> None:
-        await uow.products_images.bulk_add(images=images)
+    ) -> list[ReadProductImageSchema]:
+        return await uow.products_images.bulk_add(images=images)

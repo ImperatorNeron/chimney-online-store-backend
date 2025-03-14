@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.schemas.product_images import ProductImageRead
+from app.schemas.product_images import ReadProductImageSchema
 from app.schemas.validators import SlugValidatorMixin
 
 
@@ -29,8 +29,8 @@ class CreateProductSchema(BaseProductSchema):
 
 
 class ReadPreviewProductSchema(ReadProductSchema):
-    preview: Optional[ProductImageRead]
+    preview: Optional[ReadProductImageSchema]
 
 
 class ReadFullProductSchema(ReadProductSchema):
-    images: list[ProductImageRead]
+    images: list[ReadProductImageSchema]
