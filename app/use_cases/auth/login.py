@@ -1,11 +1,18 @@
-from app.exceptions.auth import InvalidCredentialsError
+from dataclasses import dataclass
+
+from app.core.exceptions.common import InvalidCredentialsException
 from app.schemas.tokens import TokenInfoSchema
 from app.schemas.users import LoginUserSchema
-from app.use_cases.auth.common import BaseAuthUseCase
+from app.services.tokens import AbstractJWTTokenService
+from app.services.users import AbstractUserService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
-class LoginUserUseCase(BaseAuthUseCase):
+@dataclass
+class LoginUserUseCase:
+
+    token_service: AbstractJWTTokenService
+    user_service: AbstractUserService
 
     async def execute(
         self,
@@ -13,18 +20,23 @@ class LoginUserUseCase(BaseAuthUseCase):
         user_in: LoginUserSchema,
     ) -> TokenInfoSchema:
         async with uow:
-            user = await self._fetch_user_by_username(
-                uow=uow,
-                username=user_in.username,
-            )
+            user = await self.user_service.get_user_by_username(uow, user_in.username)
 
-            if not self._is_valid_password(
+            if not user:
+                raise InvalidCredentialsException()
+
+            if not self.token_service.validate_password(
                 user_in.password,
                 user.hashed_password,
             ):
-                raise InvalidCredentialsError()
+                raise InvalidCredentialsException()
 
-            return await self._generate_tokens_info(
-                pk=user.id,
-                username=user.username,
+            return TokenInfoSchema(
+                access_token=await self.token_service.create_access_token(
+                    pk=user.id,
+                    username=user.username,
+                ),
+                refresh_token=await self.token_service.create_refresh_token(
+                    pk=user.id,
+                ),
             )

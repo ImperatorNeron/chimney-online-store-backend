@@ -2,10 +2,12 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
+from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, PaginationOut
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema
+from app.schemas.users import ReadUserSchema
 from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
@@ -62,12 +64,13 @@ async def fetch_product(
     response_model=ApiResponseSchema[ReadFullProductSchema],
 )
 async def create_product(
-    images: Annotated[list[UploadFile], File(...)],
+    user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractCreateProductUseCase,
         Depends(lambda: get_container().resolve(AbstractCreateProductUseCase)),
     ],
+    images: list[UploadFile] = File(...),
     name: str = Form(...),
     slug: str = Form(...),
     description: Optional[str] = Form(None),

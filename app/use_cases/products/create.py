@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from app.core.exceptions.base import BaseAppException
+from app.core.exceptions.common import ProductCreationError
 from app.schemas.product_images import CreateProductImageSchema
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema
 from app.services.files import AbstractFileUploadService
@@ -60,6 +62,9 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
                         uow=uow,
                     ),
                 )
-        except Exception as e:
+        except BaseAppException:
             await self.file_service.cleanup_files(image_data)
-            raise e
+            raise
+        except Exception:
+            await self.file_service.cleanup_files(image_data)
+            raise ProductCreationError()

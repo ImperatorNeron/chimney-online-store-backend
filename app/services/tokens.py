@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import jwt
 
+from app.core.exceptions.common import InvalidTokenException
 from app.core.settings import settings
-from app.exceptions.auth import InvalidJWTTokenError
 
 
 class AbstractJWTTokenService(ABC):
@@ -36,6 +36,19 @@ class AbstractJWTTokenService(ABC):
         password: str,
         hashed_password: bytes,
     ) -> bool: ...
+
+    @abstractmethod
+    async def create_access_token(
+        self,
+        pk: int,
+        username: str,
+    ) -> str: ...
+
+    @abstractmethod
+    async def create_refresh_token(
+        self,
+        pk: int,
+    ) -> str: ...
 
 
 class JWTTokenService:
@@ -69,8 +82,8 @@ class JWTTokenService:
         try:
             payload = jwt.decode(token, public_key, [algorithm])
             return payload
-        except jwt.InvalidTokenError as e:
-            raise InvalidJWTTokenError(e)
+        except jwt.InvalidTokenError:
+            raise InvalidTokenException()
 
     @staticmethod
     def hash_password(password: str) -> bytes:
@@ -86,4 +99,24 @@ class JWTTokenService:
         return bcrypt.checkpw(
             password=password.encode(),
             hashed_password=hashed_password,
+        )
+
+    async def create_access_token(self, pk: int, username: str) -> str:
+        payload = {
+            "sub": str(pk),
+            "username": username,
+            "token_type": "access",
+        }
+        return await self.encode_jwt(payload=payload)
+
+    async def create_refresh_token(self, pk: int) -> str:
+        payload = {
+            "sub": str(pk),
+            "token_type": "refresh",
+        }
+        return await self.encode_jwt(
+            payload=payload,
+            expire_timedelta=timedelta(
+                days=settings.auth_jwt.refresh_token_expire_days,
+            ),
         )

@@ -3,6 +3,8 @@ from typing import Optional
 from sqlalchemy import Result, select
 from sqlalchemy.orm import selectinload
 
+from app.core.exceptions.common import ItemNotFoundException
+from app.models.categories import Category
 from app.models.products import Product
 from app.schemas.products import CreateProductSchema, ReadPreviewProductSchema
 from app.utils.sql_repository import SQLAlchemyRepository
@@ -13,12 +15,16 @@ class ProductRepository(SQLAlchemyRepository):
 
     model = Product
 
+    # TODO: refactor raise_if_exists. Need except IntegrityError and parse it or just do it for one slug
+    # The problem is Race Conditions
+    # The same problem in check_existance
+
     async def create(self, item_in: CreateProductSchema):
-        await self.raise_if_exists(
-            {
-                "slug": item_in.slug,
-            },
-        )
+        await self.raise_if_exists({"slug": item_in.slug})
+        category = await self.session.get(Category, item_in.category_id)
+
+        if not category:
+            raise ItemNotFoundException(model=Category, item_id=item_in.category_id)
         return await super().create(item_in=item_in)
 
     async def fetch_full_one_by_id(

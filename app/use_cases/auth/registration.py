@@ -1,11 +1,7 @@
 from dataclasses import dataclass
 
-from app.exceptions.users import UserAlreadyExistsError
-from app.schemas.users import (
-    CreateUserSchema,
-    ReadUserSchema,
-    RegisterUserSchema,
-)
+from app.core.exceptions.common import UserAlreadyExistsException
+from app.schemas.users import CreateUserSchema, ReadUserSchema, RegisterUserSchema
 from app.services.auth import AbstractAuthService
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
@@ -30,11 +26,11 @@ class RegisterUserUseCase:
         )
 
         if user is not None:
-            raise UserAlreadyExistsError()
+            raise UserAlreadyExistsException()
 
         user_auth_in = CreateUserSchema(
             **user_in.model_dump(exclude={"password"}),
-            hashed_password=await self.token_service.hash_password(
+            hashed_password=self.token_service.hash_password(
                 user_in.password,
             ),
         )

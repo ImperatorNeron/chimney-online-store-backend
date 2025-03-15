@@ -1,14 +1,12 @@
-import asyncio
-import os
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 import aiofiles
 import magic
-from fastapi import HTTPException, status, UploadFile
+from fastapi import UploadFile
 
-from app.core.exceptions.common import UnsupportedMediaExtensionException, UnsupportedMediaTypeException
+from app.core.exceptions.common import FileTooLargeException, UnsupportedMediaException
 from app.core.settings import settings
 
 
@@ -40,23 +38,20 @@ class FileUploadService(AbstractFileUploadService):
         detected_mime = mime.from_buffer(content)
 
         if detected_mime not in settings.images.allowed_mime_types:
-            raise UnsupportedMediaTypeException(media_type=detected_mime)
+            raise UnsupportedMediaException(media_type=detected_mime)
 
     async def __size_check(self, file: UploadFile) -> None:
         file_size = 0
         while chunk := await file.read(8192):
             file_size += len(chunk)
             if file_size > settings.images.max_size:
-                raise HTTPException(
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                    detail="Файл занадто великий",
-                )
+                raise FileTooLargeException()
         await file.seek(0)
 
     async def __extension_check(self, file: UploadFile) -> None:
         file_extension = Path(file.filename).suffix.lower()
         if file_extension not in settings.images.allowed_extensions:
-            raise UnsupportedMediaExtensionException(file_extension)
+            raise UnsupportedMediaException(extension=file_extension)
 
     def __secure_filename(self, filename: str) -> str:
         ext = filename.split(".")[-1]
@@ -71,7 +66,7 @@ class FileUploadService(AbstractFileUploadService):
     async def cleanup_files(self, files: list) -> None:
         for file in files:
             try:
-                await asyncio.to_thread(os.remove, file.file_path)
+                await aiofiles.os.remove(file.file_path)
             except (FileNotFoundError, PermissionError, OSError) as e:
                 # TODO: add logging
                 print(e)

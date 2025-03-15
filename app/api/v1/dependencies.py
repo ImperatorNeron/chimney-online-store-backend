@@ -1,33 +1,22 @@
-from typing import (
-    Annotated,
-    Callable,
-)
+from typing import Annotated, Callable
 
 from fastapi import Depends
-from fastapi.security import (
-    HTTPBearer,
-    OAuth2PasswordBearer,
-)
-
+from fastapi.security import HTTPBearer, OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from punq import Container
 
 from app.core.containers import get_container
-from app.exceptions.auth import (
-    InvalidJWTTokenError,
-    InvalidJWTTokenYypeError,
-)
-from app.exceptions.users import (
-    InactiveUserError,
-    UserWasNotFoundError,
+from app.core.exceptions.common import (
+    InactiveUserException,
+    InvalidTokenException,
+    InvalidTokenTypeException,
+    UserAdminPermissionException,
+    UserNotFoundException,
 )
 from app.schemas.users import ReadUserSchema
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
-from app.utils.unit_of_work import (
-    AbstractUnitOfWork,
-    UnitOfWork,
-)
+from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
 http_bearer = HTTPBearer(auto_error=False)
@@ -43,8 +32,8 @@ async def get_current_token_payload(
     try:
         service: AbstractJWTTokenService = container.resolve(AbstractJWTTokenService)
         payload = await service.decode_jwt(token=token)
-    except InvalidTokenError as e:
-        raise InvalidJWTTokenError(detail=e)
+    except InvalidTokenError:
+        raise InvalidTokenException()
     return payload
 
 
@@ -55,18 +44,18 @@ async def validate_token_type(
     jwt_token_type = payload.get("token_type")
 
     if jwt_token_type != current_token_type:
-        raise InvalidJWTTokenYypeError(jwt_token_type, current_token_type)
+        raise InvalidTokenTypeException()
 
 
-async def get_user_bu_token_sub(
+async def get_user_by_token_sub(
     container: Container,
     uow: AbstractUnitOfWork,
     payload: dict,
 ) -> ReadUserSchema:
     service: AbstractUserService = container.resolve(AbstractUserService)
-    user = await service.get_user_by_id(uow=uow, id=payload.get("sub"))
+    user = await service.get_user_by_id(uow=uow, id=int(payload.get("sub")))
     if user is None:
-        raise UserWasNotFoundError()
+        raise UserNotFoundException()
     return ReadUserSchema(**user.model_dump(exclude="hashed_password"))
 
 
@@ -77,7 +66,7 @@ def get_auth_user_from_token_of_type(token_type: str) -> Callable:
         uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     ) -> ReadUserSchema:
         await validate_token_type(payload=payload, current_token_type=token_type)
-        return await get_user_bu_token_sub(
+        return await get_user_by_token_sub(
             container=container,
             uow=uow,
             payload=payload,
@@ -95,5 +84,13 @@ async def get_current_active_auth_user(
 ):
     if user.is_active:
         return user
-    raise InactiveUserError()
+    raise InactiveUserException()
 
+
+async def get_current_active_auth_superuser(
+    user: Annotated[ReadUserSchema, Depends(get_current_auth_user)],
+):
+    if user.is_active and user.is_superuser:
+        return user
+    # TODO: change all user errors and clearify whole users major
+    raise UserAdminPermissionException()
