@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import delete, insert, or_, Result, select, update
+from sqlalchemy import delete, insert, or_, Result, Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions.common import (
@@ -176,7 +176,7 @@ class SQLAlchemyRepository(AbstractRepository):
         item = await self.session.get(self.model, item_id)
 
         if not item:
-            raise ItemNotFoundException(model=self.model, item_id=item_id)
+            raise ItemNotFoundException(model=self.model, id=item_id)
 
     async def raise_if_exists(self, fields: dict[str, Any]) -> None:
         existing_items = await self.is_exist(fields)
@@ -207,40 +207,54 @@ class SQLAlchemyRepository(AbstractRepository):
         return [item.to_read_model() for item in list(result.scalars().all())]
 
     async def fetch_by_id(self, item_id: int) -> BaseModel | None:
-        await self.raise_if_not_exists(item_id=item_id)
         item: Model = await self.session.get(self.model, item_id)
+        if item is None:
+            raise ItemNotFoundException(model=self.model, id=item_id)
         return item.to_read_model() if item else None
 
     async def fetch_by_attributes(
         self,
-        **filters: dict,
+        **filters: Any,
     ) -> list[BaseModel]:
 
-        stmt = select(self.model)
+        stmt = self._build_filtered_query(**filters)
 
+        if hasattr(self.model, "id"):
+            stmt = stmt.order_by(self.model.id)
+
+        result = await self.session.execute(stmt)
+        return [item.to_read_model() for item in result.scalars().all()]
+
+    async def fetch_one_by_attributes(
+        self,
+        **filters: Any,
+    ) -> Optional[BaseModel]:
+
+        stmt = self._build_filtered_query(**filters)
+        stmt = stmt.limit(1)
+        result = await self.session.execute(stmt)
+        scalar_result = result.scalars().first()
+        if scalar_result is None:
+            raise ItemNotFoundException(self.model, **filters)
+        return scalar_result.to_read_model()
+
+    def _build_filtered_query(self, **filters: Any) -> Select:
+        stmt = select(self.model)
         for name, value in filters.items():
             field = getattr(self.model, name, None)
-
             if field is None:
                 raise FieldNotFoundException(
                     field_name=name,
                     model_name=self.model.__name__,
                 )
-
-            stmt = stmt.where(field == value).order_by(self.model.id)
-
-        result = await self.session.execute(stmt)
-
-        return [item.to_read_model() for item in result.scalars().all()]
-
-    async def fetch_one_by_attributes(self, **filters: dict) -> BaseModel | None:
-        results = await self.fetch_by_attributes(**filters)
-        return results[0] if results else None
+            stmt = stmt.where(field == value)
+        return stmt
 
     async def create(self, item_in: BaseModel) -> BaseModel:
         stmt = insert(self.model).values(**item_in.model_dump()).returning(self.model)
         result: Result = await self.session.execute(stmt)
         item = result.scalars().first()
+        print(item)
         return item.to_read_model()
 
     async def update_by_id(

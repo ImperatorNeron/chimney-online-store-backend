@@ -1,15 +1,9 @@
 from typing import Annotated
 
-from fastapi import (
-    APIRouter,
-    Depends,
-)
+from fastapi import APIRouter, Depends
 
-
-from app.api.v1.dependencies import get_current_active_auth_user
-from app.schemas.users import (
-    ReadUserSchema,
-)
+from app.api.v1.dependencies import get_cart, get_current_active_auth_user
+from app.schemas.users import ReadUserSchema
 
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -22,4 +16,15 @@ router = APIRouter(prefix="/users", tags=["Users"])
 async def get_authenticated_user_profile(
     user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
 ):
+    print(user)
+    return user
+
+
+@router.get(
+    "/test",
+)
+async def get_authenticated_user_profile_test(
+    user: Annotated[ReadUserSchema, Depends(get_cart)],
+):
+    print(user)
     return user

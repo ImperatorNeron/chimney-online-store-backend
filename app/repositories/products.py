@@ -24,7 +24,7 @@ class ProductRepository(SQLAlchemyRepository):
         category = await self.session.get(Category, item_in.category_id)
 
         if not category:
-            raise ItemNotFoundException(model=Category, item_id=item_in.category_id)
+            raise ItemNotFoundException(model=Category, id=item_in.category_id)
         return await super().create(item_in=item_in)
 
     async def fetch_full_one_by_id(

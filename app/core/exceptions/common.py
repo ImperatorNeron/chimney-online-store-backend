@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import status
 
 from app.core.exceptions.base import BaseAppException
@@ -7,10 +9,11 @@ from app.models.base import BaseModel
 class ItemNotFoundException(BaseAppException):
     """Raised when a database record is not found."""
 
-    def __init__(self, model: BaseModel, item_id: int):
+    def __init__(self, model: BaseModel, **kwargs: Any):
         model_name = model.__name__
+        details = ", ".join([f"{key}={value}" for key, value in kwargs.items()])
         super().__init__(
-            detail=f"{model_name} з id {item_id} не знайдено",
+            detail=f"{model_name} з наступними параметрами не знайдено: {details}",
             status_code=status.HTTP_404_NOT_FOUND,
         )
 

@@ -9,6 +9,7 @@ from app.schemas.products import ReadFullProductSchema, ReadPreviewProductSchema
 
 
 if TYPE_CHECKING:
+    from app.models.cart_item import CartItem
     from app.models.categories import Category
     from app.models.product_images import ProductImage
 
@@ -21,6 +22,7 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
 
     category: Mapped["Category"] = relationship(back_populates="products")
+    items: Mapped[list["CartItem"]] = relationship(back_populates="product")
     images: Mapped[list["ProductImage"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",

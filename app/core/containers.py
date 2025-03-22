@@ -3,6 +3,8 @@ from functools import lru_cache
 import punq
 
 from app.services.auth import AbstractAuthService, AuthService
+from app.services.cart_items import AbstractCartItemService, CartItemService
+from app.services.carts import AbstractCartService, CartService
 from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.files import AbstractFileUploadService, FileUploadService
 from app.services.messages import AbstractMessageService, MessageService
@@ -13,6 +15,9 @@ from app.services.users import AbstractUserService, UserService
 from app.use_cases.auth.login import LoginUserUseCase
 from app.use_cases.auth.refresh import RefreshTokenUseCase
 from app.use_cases.auth.registration import RegisterUserUseCase
+from app.use_cases.cart.create import AbstractCreateCartUseCase, CreateCartUseCase
+from app.use_cases.cart.fetch import AbstractFetchCartUseCase, FetchCartUseCase
+from app.use_cases.cart.merge import AbstractMergeCartsUseCase, MergeCartsUseCase
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase, CreateCategoryUseCase
 from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase, DeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase, FetchCategoriesUseCase
@@ -42,6 +47,8 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractProductService, ProductService)
     container.register(AbstractProductImageService, ProductImageService)
     container.register(AbstractFileUploadService, FileUploadService)
+    container.register(AbstractCartService, CartService)
+    container.register(AbstractCartItemService, CartItemService)
 
     # Use cases
     container.register(RegisterUserUseCase)
@@ -57,5 +64,8 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
     container.register(AbstractFetchProductUseCase, FetchProductUseCase)
     container.register(AbstractCreateProductUseCase, CreateProductUseCase)
+    container.register(AbstractFetchCartUseCase, FetchCartUseCase)
+    container.register(AbstractCreateCartUseCase, CreateCartUseCase)
+    container.register(AbstractMergeCartsUseCase, MergeCartsUseCase)
 
     return container

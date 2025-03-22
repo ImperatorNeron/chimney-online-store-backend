@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Type
 
 from app.db.db import database_helper, test_database_helper
+from app.repositories.cart_items import CartItemRepository
+from app.repositories.carts import CartRepository
 from app.repositories.categories import CategoryRepository
 from app.repositories.messages import MessageRepository
 from app.repositories.product_images import ProductImageRepository
@@ -18,6 +20,8 @@ class AbstractUnitOfWork(ABC):
     categories: Type[CategoryRepository]
     products: Type[ProductRepository]
     products_images: Type[ProductImageRepository]
+    cart: Type[CartRepository]
+    cart_item: Type[CartItemRepository]
 
     @abstractmethod
     async def __aenter__(self): ...
@@ -40,6 +44,8 @@ class BaseUnitOfWork(AbstractUnitOfWork):
         self.categories = CategoryRepository(session=self.session)
         self.products = ProductRepository(session=self.session)
         self.products_images = ProductImageRepository(session=self.session)
+        self.cart = CartRepository(session=self.session)
+        self.cart_item = CartItemRepository(session=self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
