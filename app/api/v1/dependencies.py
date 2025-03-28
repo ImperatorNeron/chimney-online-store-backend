@@ -15,6 +15,7 @@ from app.core.exceptions.common import (
     UserAdminPermissionException,
     UserNotFoundException,
 )
+from app.core.settings import settings
 from app.schemas.carts import CreateCartSchema, ReadFullCartSchema
 from app.schemas.users import ReadUserSchema
 from app.services.tokens import AbstractJWTTokenService
@@ -109,12 +110,12 @@ async def get_current_active_auth_superuser(
 
 def set_session_cookie(response: Response, session_id: str) -> None:
     response.set_cookie(
-        key="cart_session_id",
+        key=settings.session.session_key,
         value=session_id,
-        max_age=30 * 24 * 3600,
-        httponly=True,
-        secure=True,
-        samesite="Lax",
+        max_age=settings.session.session_expire_seconds,
+        httponly=settings.session.session_httponly,
+        secure=settings.session.session_secure,
+        samesite=settings.session.same_site,
     )
 
 
@@ -124,7 +125,6 @@ async def _get_user_cart_or_create_new(
     create_cart: AbstractCreateCartUseCase,
     **cart_data: Any,
 ) -> ReadFullCartSchema:
-    print(cart_data)
     try:
         return await fetch_cart.execute(uow=uow, **cart_data)
     except ItemNotFoundException:
@@ -133,7 +133,7 @@ async def _get_user_cart_or_create_new(
             cart_in=CreateCartSchema(**cart_data),
         )
         return ReadFullCartSchema(
-            **cart.model_dump(),
+            **cart.model_dump(exclude={"items"}),
             items=[],
             total_price=0,
             total_quantity=0,
@@ -144,10 +144,8 @@ async def _create_anonymous_cart(
     response: Response,
     uow: AbstractUnitOfWork,
     create_cart: AbstractCreateCartUseCase,
-    session_id: str,
 ):
-    # TODO: замінити скрізь на 32 байти = 43 символи
-    session_id = secrets.token_urlsafe(27)
+    session_id = secrets.token_urlsafe(settings.session.urlsafe_token_length)
     set_session_cookie(response=response, session_id=session_id)
     cart = await create_cart.execute(
         uow=uow,
@@ -175,7 +173,6 @@ async def handle_anonymous_cart(
             response=response,
             uow=uow,
             create_cart=create_cart,
-            session_id=session_id,
         )
     try:
         return await fetch_cart.execute(uow=uow, session_id=session_id)
@@ -185,11 +182,10 @@ async def handle_anonymous_cart(
             response=response,
             uow=uow,
             create_cart=create_cart,
-            session_id=session_id,
         )
 
 
-async def get_cart(
+async def get_user_cart(
     request: Request,
     response: Response,
     container: Annotated[Container, Depends(get_container)],
@@ -223,6 +219,7 @@ async def get_cart(
 
         if session_id:
             # TODO: додати обробку можливих помилок
+            # TODO: всередині приймати не **kwargs а нормальні значення session_id or user_id
             session_cart = await fetch_cart.execute(uow=uow, session_id=session_id)
             user_cart = await merge_carts.execute(
                 user_cart=user_cart,

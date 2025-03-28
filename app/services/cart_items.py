@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from app.core.exceptions.common import ForeignKeyConstraintViolationException
 from app.schemas.cart_items import (
     CreateCartItemSchema,
     ReadCartItemSchema,
@@ -60,4 +61,26 @@ class CartItemService(AbstractCartItemService):
         cart_item_in: CreateCartItemSchema,
         uow: AbstractUnitOfWork,
     ) -> ReadCartItemSchema:
+        if not await uow.cart.exists(id=cart_item_in.cart_id):
+            raise ForeignKeyConstraintViolationException(
+                {"cart_id": "Корзина не існує."},
+            )
+        if not await uow.products.exists(id=cart_item_in.product_id):
+            raise ForeignKeyConstraintViolationException(
+                {"product_id": "Продукт не існує."},
+            )
+        if await uow.cart_item.exists(
+            cart_id=cart_item_in.cart_id,
+            product_id=cart_item_in.product_id,
+        ):
+            cart_item = await uow.cart_item.get(
+                cart_id=cart_item_in.cart_id,
+                product_id=cart_item_in.product_id,
+            )
+            return await self.increase_cart_item_quantity(
+                quantity=cart_item_in.quantity,
+                cart_item_id=cart_item.id,
+                uow=uow,
+            )
+
         return await uow.cart_item.create(item_in=cart_item_in)

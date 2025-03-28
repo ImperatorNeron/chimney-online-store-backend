@@ -1,9 +1,11 @@
 from fastapi import FastAPI
-from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
+
 from app.api.routers import router as api_router
 from app.core.exceptions.base import BaseAppException
-from app.core.exceptions.handlers import base_exception_handler
+from app.core.exceptions.common import UniqueConstraintViolationsException
+from app.core.exceptions.handlers import base_exception_handler, unique_constraint_handler
 
 
 def create_app() -> FastAPI:
@@ -24,5 +26,9 @@ def create_app() -> FastAPI:
     )
 
     application.add_exception_handler(BaseAppException, base_exception_handler)
+    application.add_exception_handler(
+        UniqueConstraintViolationsException,
+        unique_constraint_handler,
+    )
     application.include_router(router=api_router)
     return application

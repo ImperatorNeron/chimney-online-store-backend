@@ -38,7 +38,7 @@ class FileUploadService(AbstractFileUploadService):
         detected_mime = mime.from_buffer(content)
 
         if detected_mime not in settings.images.allowed_mime_types:
-            raise UnsupportedMediaException(media_type=detected_mime)
+            raise UnsupportedMediaException()
 
     async def __size_check(self, file: UploadFile) -> None:
         file_size = 0
@@ -51,7 +51,7 @@ class FileUploadService(AbstractFileUploadService):
     async def __extension_check(self, file: UploadFile) -> None:
         file_extension = Path(file.filename).suffix.lower()
         if file_extension not in settings.images.allowed_extensions:
-            raise UnsupportedMediaException(extension=file_extension)
+            raise UnsupportedMediaException()
 
     def __secure_filename(self, filename: str) -> str:
         ext = filename.split(".")[-1]

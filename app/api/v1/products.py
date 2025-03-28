@@ -1,13 +1,13 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from pydantic import ValidationError
 
-from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
+from app.core.exceptions.common import CustomPydanticValidationException
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
-from app.schemas.filters import PaginationIn, PaginationOut
+from app.schemas.filters import PaginationIn
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema
-from app.schemas.users import ReadUserSchema
 from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
@@ -29,15 +29,10 @@ async def get_products_list(
         Depends(lambda: get_container().resolve(AbstractFetchProductsUseCase)),
     ],
 ):
-    # TODO: total should show how many rows in db
     return ApiResponseSchema(
-        data=ListPaginatedResponse(
-            items=await use_case.execute(pagination_in=pagination_in, uow=uow),
-            pagination=PaginationOut(
-                offset=pagination_in.offset,
-                limit=pagination_in.limit,
-                total=20,
-            ),
+        data=await use_case.execute(
+            uow=uow,
+            pagination_in=pagination_in,
         ),
     )
 
@@ -64,7 +59,7 @@ async def fetch_product(
     response_model=ApiResponseSchema[ReadFullProductSchema],
 )
 async def create_product(
-    user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
+    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractCreateProductUseCase,
@@ -77,15 +72,19 @@ async def create_product(
     price: float = Form(...),
     category_id: int = Form(...),
 ):
+    try:
+        product_in = CreateProductSchema(
+            name=name,
+            slug=slug,
+            description=description,
+            price=price,
+            category_id=category_id,
+        )
+    except ValidationError as e:
+        raise CustomPydanticValidationException(error=e)
     return ApiResponseSchema(
         data=await use_case.execute(
-            product_in=CreateProductSchema(
-                name=name,
-                slug=slug,
-                description=description,
-                price=price,
-                category_id=category_id,
-            ),
+            product_in=product_in,
             images=images,
             uow=uow,
         ),

@@ -48,6 +48,7 @@ class MergeCartsUseCase(AbstractMergeCartsUseCase):
                         uow=uow,
                     )
                     existing_item.quantity += session_item.quantity
+
                 else:
                     await self.cart_item_service.create_cart_item(
                         cart_item_in=CreateCartItemSchema(
@@ -58,6 +59,10 @@ class MergeCartsUseCase(AbstractMergeCartsUseCase):
                         uow=uow,
                     )
                     user_cart.items.append(session_item)
+
+                user_cart.total_quantity += session_item.quantity
+                user_cart.total_price += session_item.total_price
+
             await self.cart_service.delete_cart(cart_id=session_cart.id, uow=uow)
 
             return user_cart

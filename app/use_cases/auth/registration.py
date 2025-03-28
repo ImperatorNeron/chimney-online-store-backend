@@ -25,16 +25,15 @@ class RegisterUserUseCase:
             username=user_in.username,
         )
 
-        if user is not None:
+        if user:
             raise UserAlreadyExistsException()
 
-        user_auth_in = CreateUserSchema(
-            **user_in.model_dump(exclude={"password"}),
-            hashed_password=self.token_service.hash_password(
-                user_in.password,
-            ),
-        )
         return await self.auth_service.register(
-            uow,
-            user_auth_in,
+            uow=uow,
+            user_in=CreateUserSchema(
+                **user_in.model_dump(exclude={"password"}),
+                hashed_password=self.token_service.hash_password(
+                    user_in.password,
+                ),
+            ),
         )

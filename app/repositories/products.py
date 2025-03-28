@@ -1,64 +1,37 @@
 from typing import Optional
 
-from sqlalchemy import Result, select
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions.common import ItemNotFoundException
-from app.models.categories import Category
 from app.models.products import Product
-from app.schemas.products import CreateProductSchema, ReadPreviewProductSchema
-from app.utils.sql_repository import SQLAlchemyRepository
+from app.schemas.filters import PaginationIn
+from app.schemas.products import ReadPreviewProductSchema
+from app.utils.sql_repository import BaseRepository
 
 
-class ProductRepository(SQLAlchemyRepository):
+class ProductRepository(BaseRepository):
     """Repository for performing CRUD operations on Product data."""
 
     model = Product
+    default_preload = [selectinload(Product.images)]
+    default_order = [Product.id]
 
-    # TODO: refactor raise_if_exists. Need except IntegrityError and parse it or just do it for one slug
-    # The problem is Race Conditions
-    # The same problem in check_existance
-
-    async def create(self, item_in: CreateProductSchema):
-        await self.raise_if_exists({"slug": item_in.slug})
-        category = await self.session.get(Category, item_in.category_id)
-
-        if not category:
-            raise ItemNotFoundException(model=Category, id=item_in.category_id)
-        return await super().create(item_in=item_in)
-
-    async def fetch_full_one_by_id(
+    async def get_full(
         self,
         product_id: int,
     ):
-        await self.raise_if_not_exists(item_id=product_id)
-
-        stmt = (
-            select(self.model)
-            .options(selectinload(self.model.images))
-            .where(self.model.id == product_id)
+        product = await self._get_model(
+            id=product_id,
+            options=self.default_preload,
         )
-
-        result: Result = await self.session.execute(stmt)
-        product = result.scalars().first()
         return product.to_read_full_model()
 
-    async def fetch_all_with_preview(
+    async def list_preview(
         self,
-        pagination_in: Optional[ReadPreviewProductSchema] = None,
+        pagination_in: Optional[PaginationIn] = None,
     ) -> list[ReadPreviewProductSchema]:
-        stmt = (
-            select(self.model)
-            .options(selectinload(self.model.images))
-            .order_by(self.model.id)
+        products = await self._all_models(
+            limit=pagination_in.limit,
+            offset=pagination_in.offset,
+            options=self.default_preload,
         )
-
-        if pagination_in is not None:
-            stmt = stmt.limit(pagination_in.limit).offset(pagination_in.offset)
-
-        result: Result = await self.session.execute(stmt)
-
-        return [
-            product.to_read_model_with_preview()
-            for product in list(result.scalars().all())
-        ]
+        return [product.to_read_model_with_preview() for product in products]

@@ -2,284 +2,240 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import delete, insert, or_, Result, Select, select, update
+from sqlalchemy import func, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions.common import (
-    FieldNotFoundException,
-    ItemNotDeletedException,
-    ItemNotFoundException,
-    UniqueConstraintViolationsException,
-)
+from app.core.exceptions.base import BaseAppException
+from app.core.exceptions.common import ItemNotFoundException, MultipleResultsFound, RepositoryException
 from app.models.base import BaseModel as Model
 
 
 class AbstractRepository(ABC):
-    """Abstract repository defining essential CRUD operations.
-
-    Each method must be implemented by concrete repository classes.
-
-    """
+    """Abstract repository defining modern CRUD operations."""
 
     @abstractmethod
-    async def raise_if_not_exists(self, item_id: int) -> bool:
-        """Check if data exists in database.
-
-        Args:
-            item_id (int): The id of the item to check.
-
-        Returns:
-            bool: existance of item
-
-        """
-        ...
-
-    @abstractmethod
-    async def fetch_all(
+    async def get(
         self,
-        pagination_in: BaseModel,
-    ) -> list[BaseModel]:
-        """Retrieve all items from the repository.
+        options: Optional[list] = None,
+        **filters: Any,
+    ) -> BaseModel: ...
 
-        Returns:
-            list[BaseModel]: A list of all items in
-            the repository as a pydantic BaseModel instances.
+    @abstractmethod
+    async def all(  # noqa
+        self,
+        filters: Optional[dict] = None,
+        order_by: Optional[list[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        options: Optional[list] = None,
+    ) -> list[BaseModel]: ...
 
-        """
+    @abstractmethod
+    async def create(self, item_in: BaseModel) -> BaseModel: ...
+
+    @abstractmethod
+    async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa
+        """Update existing item."""
         ...
 
     @abstractmethod
-    async def fetch_by_id(
-        self,
-        item_id: int,
-    ) -> BaseModel | None:
-        """Fetch a single item by its id.
-
-        Args:
-            item_id (int): The id of the item to fetch.
-
-        Returns:
-            Optional[BaseModel]: The item as a pydantic BaseModel
-            instance if found; otherwise, None.
-
-        """
+    async def delete(self, id: int) -> None:  # noqa
+        """Delete item by ID."""
         ...
 
     @abstractmethod
-    async def fetch_by_attributes(
-        self,
-        filters: dict,
-    ) -> list[BaseModel]:
-        """Retrieve all items matching specific attributes.
-
-        Args:
-            filters (dict): A dictionary of attribute names and
-            values to filter the query.
-
-        Returns:
-            list[BaseModel]: A list of items as a pydantic BaseModel
-            instances that match the filters.
-
-        """
+    async def exists(self, **filters: Any) -> bool:
+        """Check if item exists."""
         ...
 
     @abstractmethod
-    async def fetch_one_by_attributes(
-        self,
-        name: str,
-        filters: dict,
-    ) -> BaseModel | None:
-        """Retrieve a single item matching specified attributes.
-
-        Args:
-            filters (dict): A dictionary of attribute
-            names and values to filter the query.
-
-        Returns:
-            Optional[BaseModel]: The first item that matches
-            the filters, as a pydantic BaseModel instance, or None if not found.
-
-        """
+    async def count(self, **filters: Any) -> int:
+        """Count items matching filters."""
         ...
 
     @abstractmethod
-    async def create(
-        self,
-        item_in: BaseModel,
-    ) -> BaseModel:
-        """Create a new item in the repository.
-
-        Args:
-            item_in (BaseModel): The data for the
-            new item as a pydantic BaseModel instance.
-
-        Returns:
-            BaseModel: The created item as a pydantic BaseModel instance.
-
-        """
+    async def get_or_none(self, **filters: Any) -> Optional[BaseModel]:
+        """Get item or None if not found."""
         ...
 
     @abstractmethod
-    async def update_by_id(
-        self,
-        item_id: int,
-        item_in: BaseModel,
-    ) -> BaseModel:
-        """Update an existing item by its id.
-
-        Args:
-            item_id (int): The id of the item to update.
-            item_in (BaseModel): The updated data for the
-            item as a pydantic BaseModel instance.
-
-        Returns:
-            BaseModel: The updated item as a pydantic BaseModel instance.
-
-        """
-        ...
-
-    @abstractmethod
-    async def remove_by_id(
-        self,
-        item_id: int,
-    ) -> None:
-        """Remove an item by its id.
-
-        Args:
-            item_id (int): The id of the item to remove.
-
-        Returns:
-            None
-
-        """
+    async def bulk_create(self, data_list: list[BaseModel]) -> list[BaseModel]:
+        """Create multiple items."""
         ...
 
 
-class SQLAlchemyRepository(AbstractRepository):
-    """SQLAlchemy-based repository."""
+class UniqueConstraintViolationError(BaseAppException):
+    def __init__(self, fields: list[str], message: str = "Unique constraint violation"):
+        self.fields = fields
+        self.message = f"{message} on fields: {', '.join(fields)}"
+        super().__init__(
+            detail=self.message,
+            status_code=400,
+        )
+
+
+class RepositoryError(Exception):
+    """Base exception for repository errors."""
+
+
+class BaseRepository:
 
     model: Model = None
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def is_exist(self, fields: dict[str, Any]):
-        conditions = or_(
-            getattr(self.model, field) == value for field, value in fields.items()
+    def _apply_filters(self, query: Select, filters: dict[str, Any]) -> Select:
+        for field, value in filters.items():
+            if "__" in field:
+                field_name, operator = field.split("__")
+                column = getattr(self.model, field_name)
+                if operator == "eq":
+                    query = query.where(column == value)
+                elif operator == "gt":
+                    query = query.where(column > value)
+                elif operator == "in":
+                    query = query.where(column.in_(value))
+            else:
+                query = query.where(getattr(self.model, field) == value)
+        return query
+
+    def _apply_ordering(self, query: Select, order_by: dict[str]) -> Select:
+        for field in order_by:
+            direction = "asc"
+            if field.startswith("-"):
+                direction = "desc"
+                field = field[1:]
+            column = getattr(self.model, field)
+            query = query.order_by(
+                column.desc() if direction == "desc" else column.asc(),
+            )
+        return query
+
+    async def _get_model(
+        self,
+        options: Optional[list] = None,
+        **filters: Any,
+    ) -> Model:
+        """Загальний метод для отримання моделі з фільтрами."""
+        query = select(self.model)
+
+        if options:
+            query = query.options(*options)
+
+        if filters:
+            query = self._apply_filters(query, filters)
+
+        result = await self.session.execute(query)
+        instances = result.scalars().all()
+
+        if len(instances) > 1:
+            raise MultipleResultsFound()
+
+        if not instances:
+            raise ItemNotFoundException()
+
+        return instances[0]
+
+    async def get(
+        self,
+        options: Optional[list] = None,
+        **filters: Any,
+    ) -> BaseModel:
+        instance = await self._get_model(options=options, **filters)
+        return instance.to_read_model()
+
+    async def _all_models(
+        self,
+        filters: Optional[dict] = None,
+        order_by: Optional[list[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        options: Optional[list] = None,
+    ) -> list[Model]:
+        """Внутрішній метод для отримання моделей."""
+        query = select(self.model)
+
+        if filters:
+            query = self._apply_filters(query, filters)
+
+        if order_by:
+            query = self._apply_ordering(query, order_by)
+
+        if limit:
+            query = query.limit(limit)
+
+        if offset:
+            query = query.offset(offset)
+
+        if options:
+            query = query.options(*options)
+
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def all(  # noqa
+        self,
+        filters: Optional[dict] = None,
+        order_by: Optional[list[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        options: Optional[list] = None,
+    ) -> list[BaseModel]:
+        models = await self._all_models(
+            filters=filters,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
+            options=options,
         )
-
-        stmt = select(self.model).where(conditions)
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
-
-    async def raise_if_not_exists(self, item_id: int) -> None:
-        item = await self.session.get(self.model, item_id)
-
-        if not item:
-            raise ItemNotFoundException(model=self.model, id=item_id)
-
-    async def raise_if_exists(self, fields: dict[str, Any]) -> None:
-        existing_items = await self.is_exist(fields)
-
-        if not existing_items:
-            return
-
-        violations = []
-
-        for item in existing_items:
-            for field, value in fields.items():
-                if getattr(item, field) == value:
-                    violations.append({"field": field, "value": value})
-
-        if existing_items:
-            raise UniqueConstraintViolationsException(violations=violations)
-
-    async def fetch_all(
-        self,
-        pagination_in: Optional[BaseModel] = None,
-    ) -> list[BaseModel]:
-        stmt = select(self.model).order_by(self.model.id)
-
-        if pagination_in is not None:
-            stmt = stmt.limit(pagination_in.limit).offset(pagination_in.offset)
-
-        result: Result = await self.session.execute(stmt)
-        return [item.to_read_model() for item in list(result.scalars().all())]
-
-    async def fetch_by_id(self, item_id: int) -> BaseModel | None:
-        item: Model = await self.session.get(self.model, item_id)
-        if item is None:
-            raise ItemNotFoundException(model=self.model, id=item_id)
-        return item.to_read_model() if item else None
-
-    async def fetch_by_attributes(
-        self,
-        **filters: Any,
-    ) -> list[BaseModel]:
-
-        stmt = self._build_filtered_query(**filters)
-
-        if hasattr(self.model, "id"):
-            stmt = stmt.order_by(self.model.id)
-
-        result = await self.session.execute(stmt)
-        return [item.to_read_model() for item in result.scalars().all()]
-
-    async def fetch_one_by_attributes(
-        self,
-        **filters: Any,
-    ) -> Optional[BaseModel]:
-
-        stmt = self._build_filtered_query(**filters)
-        stmt = stmt.limit(1)
-        result = await self.session.execute(stmt)
-        scalar_result = result.scalars().first()
-        if scalar_result is None:
-            raise ItemNotFoundException(self.model, **filters)
-        return scalar_result.to_read_model()
-
-    def _build_filtered_query(self, **filters: Any) -> Select:
-        stmt = select(self.model)
-        for name, value in filters.items():
-            field = getattr(self.model, name, None)
-            if field is None:
-                raise FieldNotFoundException(
-                    field_name=name,
-                    model_name=self.model.__name__,
-                )
-            stmt = stmt.where(field == value)
-        return stmt
+        return [model.to_read_model() for model in models]
 
     async def create(self, item_in: BaseModel) -> BaseModel:
-        stmt = insert(self.model).values(**item_in.model_dump()).returning(self.model)
-        result: Result = await self.session.execute(stmt)
-        item = result.scalars().first()
-        print(item)
-        return item.to_read_model()
+        try:
+            instance = self.model(**item_in.model_dump())
+            self.session.add(instance)
+            await self.session.flush([instance])
+            return instance.to_read_model()
+        except Exception:
+            raise RepositoryException()
 
-    async def update_by_id(
-        self,
-        item_id: int,
-        item_in: BaseModel,
-    ) -> BaseModel | None:
-        await self.raise_if_not_exists(item_id=item_id)
-        stmt = (
-            update(self.model)
-            .where(self.model.id == item_id)
-            .values(item_in.model_dump(exclude_unset=True))
-            .returning(self.model)
-        )
+    async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa
+        instance = await self._get_model(id=id)
+        try:
+            for field, value in item_in.model_dump(exclude_unset=True).items():
+                setattr(instance, field, value)
+            await self.session.flush([instance])
+            return instance.to_read_model()
+        except Exception:
+            raise RepositoryException()
 
-        result: Result = await self.session.execute(stmt)
-        updated_item: Model = result.scalars().first()
-        return updated_item.to_read_model() if updated_item else None
+    async def delete(self, id: int) -> None:  # noqa
+        instance = await self._get_model(id=id)
+        await self.session.delete(instance)
 
-    async def remove_by_id(self, item_id: int) -> None:
-        await self.raise_if_not_exists(item_id=item_id)
-        stmt = delete(self.model).where(self.model.id == item_id)
-        result = await self.session.execute(stmt)
-        if not result.rowcount:
-            raise ItemNotDeletedException(
-                item_id=item_id,
-                model_name=self.model.__name__,
-            )
+    async def exists(self, **filters: Any) -> bool:
+        query = select(1).select_from(self.model)
+        query = self._apply_filters(query, filters)
+        query = query.limit(1)
+        result = await self.session.execute(query)
+        return result.scalar() is not None
+
+    async def count(self, **filters: Any) -> int:
+        query = select(func.count()).select_from(self.model)
+        query = self._apply_filters(query, filters)
+        result = await self.session.execute(query)
+        return result.scalar()
+
+    async def get_or_none(self, **filters: Any) -> Optional[BaseModel]:
+        query = select(self.model)
+        query = self._apply_filters(query, filters)
+        result = await self.session.execute(query)
+        instance = result.scalars().first()
+        return instance.to_read_model() if instance else None
+
+    async def bulk_create(self, data_list: list[BaseModel]) -> list[BaseModel]:
+        instances = [self.model(**data.model_dump()) for data in data_list]
+        self.session.add_all(instances)
+        await self.session.flush(instances)
+        return [instance.to_read_model() for instance in instances]

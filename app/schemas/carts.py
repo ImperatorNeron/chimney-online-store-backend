@@ -1,13 +1,13 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.cart_items import ReadCartItemWithProductSchema, ReadCartItemWithTotalPriceSchema
 
 
 class BaseCartSchema(BaseModel):
     user_id: Optional[int] = Field(None, gt=0)
-    session_id: Optional[str] = Field(None, min_length=32, max_length=36)
+    session_id: Optional[str] = Field(None, min_length=32, max_length=47)
 
     @model_validator(mode="before")
     @classmethod
@@ -33,10 +33,3 @@ class ReadFullCartSchema(BaseModel):
     items: list[ReadCartItemWithTotalPriceSchema]
     total_price: float
     total_quantity: int
-
-    @field_validator("total_price")
-    @classmethod
-    def validate_total_price(cls, v, values):
-        if v < 0:
-            raise ValueError("Total price cannot be negative")
-        return v

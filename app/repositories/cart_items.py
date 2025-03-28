@@ -1,10 +1,10 @@
 from sqlalchemy import Result, update
 
 from app.models.cart_item import CartItem
-from app.utils.sql_repository import SQLAlchemyRepository
+from app.utils.sql_repository import BaseRepository
 
 
-class CartItemRepository(SQLAlchemyRepository):
+class CartItemRepository(BaseRepository):
     """Repository for performing CRUD operations on CartItem data."""
 
     model = CartItem

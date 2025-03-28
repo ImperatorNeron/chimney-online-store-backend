@@ -7,7 +7,7 @@ from app.utils.unit_of_work import AbstractUnitOfWork
 class AbstractProductImageService(ABC):
 
     @abstractmethod
-    async def bulk_add(
+    async def bulk_create(
         self,
         images: list[CreateProductImageSchema],
         uow: AbstractUnitOfWork,
@@ -16,9 +16,9 @@ class AbstractProductImageService(ABC):
 
 class ProductImageService(AbstractProductImageService):
 
-    async def bulk_add(
+    async def bulk_create(
         self,
         images: list[CreateProductImageSchema],
         uow: AbstractUnitOfWork,
     ) -> list[ReadProductImageSchema]:
-        return await uow.products_images.bulk_add(images=images)
+        return await uow.products_images.bulk_create(data_list=images)

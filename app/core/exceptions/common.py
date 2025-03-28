@@ -1,85 +1,115 @@
-from typing import Any
+from typing import Optional
 
-from fastapi import status
+from fastapi import HTTPException, status
+from pydantic import ValidationError
 
 from app.core.exceptions.base import BaseAppException
-from app.models.base import BaseModel
+from app.core.settings import settings
 
 
 class ItemNotFoundException(BaseAppException):
     """Raised when a database record is not found."""
 
-    def __init__(self, model: BaseModel, **kwargs: Any):
-        model_name = model.__name__
-        details = ", ".join([f"{key}={value}" for key, value in kwargs.items()])
+    def __init__(self, meta: Optional[dict] = None):
         super().__init__(
-            detail=f"{model_name} з наступними параметрами не знайдено: {details}",
+            error_code="not_found",
+            detail="Ресурс не знайдено",
             status_code=status.HTTP_404_NOT_FOUND,
+            meta=meta or {},
         )
 
 
 class UniqueConstraintViolationsException(BaseAppException):
     """Raised for database unique constraint violations."""
 
-    def __init__(self, violations: list):
+    def __init__(self, violations: list[dict]):
+        """
+        :param violations: List of violation details in format
+        [{"field": "email", "value": "test@example.com"}]
+        """
         super().__init__(
-            detail=violations,
+            error_code="unique_conflict",
+            detail="Конфлікт унікальних значень",
             status_code=status.HTTP_409_CONFLICT,
+            meta={"violations": violations},
         )
 
 
+class ForeignKeyConstraintViolationException(BaseAppException):
+    """Виняток для порушень зовнішніх ключів."""
+
+    def __init__(self, violations: list[dict]):
+        super().__init__(
+            error_code="foreign_key_violation",
+            detail="Посилання на неіснуючий запис",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            meta={"violations": violations},
+        )
+
+
+# ??
 class FieldNotFoundException(BaseAppException):
     """Raised when accessing non-existent model field."""
 
-    def __init__(self, field_name: str, model_name: str):
+    def __init__(self, meta: Optional[dict] = None):
         super().__init__(
-            detail=f"Поле '{field_name}' не існує в моделі '{model_name}'.",
+            error_code="invalid_field",
+            detail="Невірний параметр запиту",
             status_code=status.HTTP_400_BAD_REQUEST,
+            meta=meta or {},
         )
 
 
+# ??
 class ItemNotDeletedException(BaseAppException):
     """Raised when database record deletion fails."""
 
-    def __init__(self, item_id: int, model_name: str):
+    def __init__(self, meta: Optional[dict] = None):
         super().__init__(
-            detail=f"Елемент з ID '{item_id}' не був видалений у моделі '{model_name}'.",
+            error_code="deletion_failed",
+            detail="Не вдалося видалити ресурс",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            meta=meta or {},
         )
 
 
 class UnsupportedMediaException(BaseAppException):
     """Raised for unsupported file types/extensions."""
 
-    def __init__(self, media_type: str | None = None, extension: str | None = None):
-        detail = "Непідтримуваний файл"
-        if media_type:
-            detail += f": тип {media_type}"
-        if extension:
-            detail += f": розширення {extension}"
+    def __init__(self, meta: Optional[dict] = None):
         super().__init__(
-            detail=detail,
+            error_code="unsupported_media",
+            detail="Непідтримуваний формат файлу",
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            meta={"allowed_types": list(settings.images.allowed_mime_types), **(meta or {})},
         )
 
 
+# ??
 class VerificationFileException(BaseAppException):
     """Raised during file validation failure."""
 
-    def __init__(self):
+    def __init__(self, meta: Optional[dict] = None):
         super().__init__(
+            error_code="file_validation_failed",
             detail="Помилка перевірки файлу",
             status_code=status.HTTP_400_BAD_REQUEST,
+            meta=meta or {},
         )
 
 
 class FileTooLargeException(BaseAppException):
-    """Raised during file size too big."""
+    """Raised when file size exceeds limit."""
 
     def __init__(self):
         super().__init__(
-            detail="Файл занадто великий",
+            error_code="file_too_large",
+            detail="Перевищено максимальний розмір файлу",
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            meta={
+                "max_size": f"{settings.images.max_size // (1024**2)} MB",
+                "allowed_formats": settings.images.allowed_extensions,
+            },
         )
 
 
@@ -88,8 +118,9 @@ class InvalidCredentialsException(BaseAppException):
 
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="invalid_credentials",
             detail="Невірні облікові дані",
+            status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
 
@@ -98,8 +129,9 @@ class InvalidTokenException(BaseAppException):
 
     def __init__(self):
         super().__init__(
+            error_code="invalid_token",
+            detail="Помилка авторизації",
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Невірний токен",
         )
 
 
@@ -108,18 +140,21 @@ class InvalidTokenTypeException(BaseAppException):
 
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="invalid_token_type",
             detail="Невірний тип токена",
+            status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
 
 class UserNotFoundException(BaseAppException):
     """Raised when user is not found in database."""
 
-    def __init__(self, detail="Користувача не знайдено"):
+    def __init__(self, meta: Optional[dict] = None):
         super().__init__(
+            error_code="user_not_found",
+            detail="Користувача не знайдено",
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=detail,
+            meta=meta or {},
         )
 
 
@@ -128,8 +163,9 @@ class InactiveUserException(BaseAppException):
 
     def __init__(self):
         super().__init__(
+            error_code="inactive_user",
+            detail="Обліковий запис неактивний",
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Користувач неактивний",
         )
 
 
@@ -138,26 +174,79 @@ class UserAdminPermissionException(BaseAppException):
 
     def __init__(self):
         super().__init__(
+            error_code="admin_required",
+            detail="Недостатньо прав доступу",
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="У вас немає доступу до вмісту",
         )
 
 
 class UserAlreadyExistsException(BaseAppException):
     """Raised during duplicate user registration."""
 
-    def __init__(self, detail="Користувач вже існує"):
-        super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail,
-        )
-
-
-class ProductCreationError(BaseAppException):
-    """Raised during product creation."""
-
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Помилка створення продукту",
+            error_code="user_exists",
+            detail="Такий користувач уже існує",
+            status_code=status.HTTP_409_CONFLICT,
         )
+
+
+class ProductCreationException(BaseAppException):
+    """Raised during product creation failure."""
+
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="product_creation_failed",
+            detail="Не вдалося створити продукт",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            meta=meta or {},
+        )
+
+
+class MultipleResultsFound(BaseAppException):
+    """Raised when multiple results found instead of one."""
+
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="multiple_results",
+            detail="Знайдено кілька результатів",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            meta=meta or {},
+        )
+
+
+class RepositoryException(BaseAppException):
+    """Raised when repository operation fails."""
+
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="repository_error",
+            detail="Помилка репозиторію",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            meta=meta or {},
+        )
+
+
+class InvalidRequestParametersException(BaseAppException):
+    """Raised when missing required request parameters."""
+
+    def __init__(self, required_params: list[str]):
+        super().__init__(
+            error_code="missing_parameters",
+            detail="Необхідно вказати одне з обов'язкових полів",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            meta={
+                "required_parameters": required_params,
+                "message_hint": "Вкажіть хоча б один з параметрів",
+            },
+        )
+
+
+class CustomPydanticValidationException(HTTPException):
+
+    def __init__(self, error: ValidationError):
+        errors = []
+        for err in error.errors():
+            field = ".".join(str(loc) for loc in err["loc"])
+            errors.append({"field": field, "message": err["msg"], "type": err["type"]})
+        super().__init__(status_code=422, detail={"errors": errors})

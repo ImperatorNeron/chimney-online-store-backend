@@ -164,3 +164,4 @@ cython_debug/
 certificates/
 poetry.lock
 images/
+Emoji.md

@@ -15,6 +15,7 @@ from app.services.users import AbstractUserService, UserService
 from app.use_cases.auth.login import LoginUserUseCase
 from app.use_cases.auth.refresh import RefreshTokenUseCase
 from app.use_cases.auth.registration import RegisterUserUseCase
+from app.use_cases.cart.add_to_cart import AbstractAddToCartUseCase, AddToCartUseCase
 from app.use_cases.cart.create import AbstractCreateCartUseCase, CreateCartUseCase
 from app.use_cases.cart.fetch import AbstractFetchCartUseCase, FetchCartUseCase
 from app.use_cases.cart.merge import AbstractMergeCartsUseCase, MergeCartsUseCase
@@ -67,5 +68,6 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchCartUseCase, FetchCartUseCase)
     container.register(AbstractCreateCartUseCase, CreateCartUseCase)
     container.register(AbstractMergeCartsUseCase, MergeCartsUseCase)
+    container.register(AbstractAddToCartUseCase, AddToCartUseCase)
 
     return container

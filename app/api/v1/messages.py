@@ -1,16 +1,16 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
-from app.schemas.filters import PaginationIn, PaginationOut
+from app.schemas.filters import PaginationIn
 from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
-from app.use_cases.messages.create_messages import (
-    AbstractCreateMessageUseCase,
-)
+from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
+
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
@@ -28,16 +28,8 @@ async def get_messages_list(
         Depends(lambda: get_container().resolve(AbstractFetchMessagesUseCase)),
     ],
 ):
-    results: list = await use_case.execute(pagination_in=pagination_in, uow=uow)
     return ApiResponseSchema(
-        data=ListPaginatedResponse(
-            items=results,
-            pagination=PaginationOut(
-                offset=pagination_in.offset,
-                limit=pagination_in.limit,
-                total=len(results),
-            ),
-        )
+        data=await use_case.execute(pagination_in=pagination_in, uow=uow),
     )
 
 
@@ -55,7 +47,7 @@ async def get_message(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(message_id=message_id, uow=uow)
+        data=await use_case.execute(message_id=message_id, uow=uow),
     )
 
 
@@ -73,5 +65,5 @@ async def create_message(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(message_in=message_in, uow=uow)
+        data=await use_case.execute(message_in=message_in, uow=uow),
     )

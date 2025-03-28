@@ -1,14 +1,6 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC, abstractmethod
 
-from pydantic import BaseModel
-
-from app.schemas.users import (
-    CreateUserSchema,
-    ReadUserSchema,
-)
+from app.schemas.users import CreateUserSchema, ReadUserSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -19,7 +11,7 @@ class AbstractAuthService(ABC):
         self,
         uow: AbstractUnitOfWork,
         user_in: CreateUserSchema,
-    ) -> BaseModel: ...
+    ) -> ReadUserSchema: ...
 
 
 class AuthService(AbstractAuthService):

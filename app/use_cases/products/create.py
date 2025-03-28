@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.core.exceptions.base import BaseAppException
-from app.core.exceptions.common import ProductCreationError
+from app.core.exceptions.common import ProductCreationException
 from app.schemas.product_images import CreateProductImageSchema
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema
 from app.services.files import AbstractFileUploadService
@@ -38,6 +38,7 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
         image_data = []
         try:
             async with uow:
+
                 product = await self.product_service.create(
                     product_in=product_in,
                     uow=uow,
@@ -57,7 +58,7 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
 
                 return ReadFullProductSchema(
                     **product.model_dump(),
-                    images=await self.product_image_service.bulk_add(
+                    images=await self.product_image_service.bulk_create(
                         images=image_data,
                         uow=uow,
                     ),
@@ -67,4 +68,4 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
             raise
         except Exception:
             await self.file_service.cleanup_files(image_data)
-            raise ProductCreationError()
+            raise ProductCreationException()

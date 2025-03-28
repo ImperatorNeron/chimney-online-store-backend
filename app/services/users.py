@@ -1,7 +1,4 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
 
@@ -34,7 +31,7 @@ class UserService(AbstractUserService):
         username: str,
     ) -> ReadUserSchema:
         async with uow:
-            return await uow.users.fetch_one_by_attributes(username=username)
+            return await uow.users.get_or_none(username=username)
 
     async def get_user_by_id(
         self,
@@ -42,4 +39,4 @@ class UserService(AbstractUserService):
         id: int,  # noqa
     ) -> ReadUserSchema:
         async with uow:
-            return await uow.users.fetch_by_id(item_id=id)
+            return await uow.users.get(id=id)

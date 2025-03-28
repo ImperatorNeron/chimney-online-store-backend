@@ -1,10 +1,15 @@
-class BaseAppException(Exception):
-    status_code: int
-    detail: str
+from typing import Optional
 
-    def __init__(self, detail: str, status_code: int):
+
+class BaseAppException(Exception):
+    def __init__(
+        self,
+        error_code: str,
+        detail: str,
+        status_code: int,
+        meta: Optional[dict] = None,
+    ):
+        self.error_code = error_code
         self.detail = detail
         self.status_code = status_code
-
-    def __str__(self):
-        return str(self.detail)
+        self.meta = meta or {}

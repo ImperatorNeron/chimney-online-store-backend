@@ -18,7 +18,8 @@ class AbstractCartService(ABC):
 
     @abstractmethod
     def get_total_price(
-        self, items: list[ReadCartItemWithTotalPriceSchema],
+        self,
+        items: list[ReadCartItemWithTotalPriceSchema],
     ) -> float: ...
 
     @abstractmethod
@@ -43,7 +44,7 @@ class CartService(AbstractCartService):
         uow: AbstractUnitOfWork,
         **kwargs: dict,
     ) -> ReadCartSchema:
-        return await uow.cart.fetch_with_full_item(**kwargs)
+        return await uow.cart.get_with_items(**kwargs)
 
     def get_total_quantity(self, items: list[ReadCartItemWithProductSchema]) -> int:
         return sum(item.quantity for item in items)
@@ -63,4 +64,4 @@ class CartService(AbstractCartService):
         uow: AbstractUnitOfWork,
         cart_id: int,
     ) -> None:
-        await uow.cart.remove_by_id(item_id=cart_id)
+        await uow.cart.delete(id=cart_id)

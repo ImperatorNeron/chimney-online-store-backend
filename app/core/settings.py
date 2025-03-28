@@ -17,7 +17,7 @@ class DatabaseBaseSettings(BaseModel):
     host: str
     port: str
     db_name: str
-    echo: bool = False
+    echo: bool = True
     echo_pool: bool = False
     pool_size: int = 50
     max_overflow: int = 10
@@ -51,6 +51,15 @@ class AuthJWT(BaseModel):
     refresh_token_expire_days: int = 30
 
 
+class SessionSettings(BaseModel):
+    session_expire_seconds: int = 30 * 24 * 3600
+    urlsafe_token_length: int = 32
+    session_key: str = "cart_session_id"
+    session_httponly: bool = True
+    session_secure: bool = True
+    same_site: str = "Lax"
+
+
 class ImageSettings(BaseModel):
     upload_dir: Path = BASE_DIR / "images"
     max_size: int = 10 * 1024 * 1024
@@ -69,6 +78,7 @@ class Settings(BaseSettings):
     database: DatabaseSettings
     test_database: TestDatabaseSettings
     auth_jwt: AuthJWT = AuthJWT()
+    session: SessionSettings = SessionSettings()
     images: ImageSettings = ImageSettings()
 
 
