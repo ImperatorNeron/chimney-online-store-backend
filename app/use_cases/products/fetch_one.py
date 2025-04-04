@@ -11,7 +11,7 @@ class AbstractFetchProductUseCase(ABC):
     @abstractmethod
     async def execute(
         self,
-        product_id: int,
+        product_slug: str,
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema: ...
 
@@ -23,11 +23,11 @@ class FetchProductUseCase(AbstractFetchProductUseCase):
 
     async def execute(
         self,
-        product_id: int,
+        product_slug: str,
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema:
         async with uow:
             return await self.product_service.get_full_one(
-                product_id=product_id,
+                product_slug=product_slug,
                 uow=uow,
             )

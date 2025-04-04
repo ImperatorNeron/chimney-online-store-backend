@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Numeric, String, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -15,10 +15,23 @@ if TYPE_CHECKING:
 
 
 class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
+
+    __table_args__ = (
+        CheckConstraint(
+            "discount_percentage >= 0 AND discount_percentage <= 100",
+            name="discount_range",
+        ),
+    )
+
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(255), unique=True)
     description: Mapped[Optional[str]] = mapped_column(Text)
     price: Mapped[float] = mapped_column(Numeric(10, 2))
+    discount_percentage: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        default=0,
+        server_default="0",
+    )
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
 
     category: Mapped["Category"] = relationship(back_populates="products")
@@ -37,6 +50,11 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             slug=self.slug,
             description=self.description,
             price=self.price,
+            discount_price=round(
+                self.price - self.price * self.discount_percentage / 100,
+                2,
+            ),
+            discount_percentage=self.discount_percentage,
             category_id=self.category_id,
         )
 
@@ -54,6 +72,11 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             slug=self.slug,
             description=self.description,
             price=self.price,
+            discount_price=round(
+                self.price - self.price * self.discount_percentage / 100,
+                2,
+            ),
+            discount_percentage=self.discount_percentage,
             category_id=self.category_id,
             preview=preview_image,
         )
@@ -68,6 +91,11 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             slug=self.slug,
             description=self.description,
             price=self.price,
+            discount_price=round(
+                self.price - self.price * self.discount_percentage / 100,
+                2,
+            ),
+            discount_percentage=self.discount_percentage,
             category_id=self.category_id,
             images=images_schemas,
         )

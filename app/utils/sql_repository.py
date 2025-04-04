@@ -210,8 +210,12 @@ class BaseRepository:
         except Exception:
             raise RepositoryException()
 
-    async def delete(self, id: int) -> None:  # noqa
-        instance = await self._get_model(id=id)
+    async def delete(
+        self,
+        id: int,  # noqa
+        **filters: Any,
+    ) -> None:  # noqa
+        instance = await self._get_model(id=id, **filters)
         await self.session.delete(instance)
 
     async def exists(self, **filters: Any) -> bool:

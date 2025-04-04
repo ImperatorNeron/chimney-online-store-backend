@@ -17,10 +17,10 @@ class ProductRepository(BaseRepository):
 
     async def get_full(
         self,
-        product_id: int,
+        product_slug: str,
     ):
         product = await self._get_model(
-            id=product_id,
+            slug=product_slug,
             options=self.default_preload,
         )
         return product.to_read_full_model()

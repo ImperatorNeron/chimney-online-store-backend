@@ -30,3 +30,8 @@ class CreateCartItemSchema(BaseModel):
 class CreateCartItemWithoutCartIdSchema(BaseModel):
     quantity: int = Field(..., ge=1, le=100)
     product_id: int = Field(..., gt=0)
+
+
+class UpdateCartItemQuantity(BaseModel):
+    action: str = Field(..., pattern="^(increment|decrement)$")
+    quantity: int = Field(..., ge=1, le=100)

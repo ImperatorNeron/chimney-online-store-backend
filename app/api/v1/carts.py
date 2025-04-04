@@ -5,10 +5,16 @@ from fastapi import APIRouter, Depends
 from app.api.v1.dependencies import get_user_cart
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
-from app.schemas.cart_items import CreateCartItemSchema, CreateCartItemWithoutCartIdSchema, ReadCartItemSchema
+from app.schemas.cart_items import (
+    CreateCartItemSchema,
+    CreateCartItemWithoutCartIdSchema,
+    ReadCartItemSchema,
+    UpdateCartItemQuantity,
+)
 from app.schemas.carts import ReadFullCartSchema
-from app.schemas.users import ReadUserSchema
-from app.use_cases.cart.add_to_cart import AbstractAddToCartUseCase
+from app.use_cases.cart.change_items_quantity import AbstractChangeItemQuantityUseCase
+from app.use_cases.cart.create_cart_item import AbstractAddToCartUseCase
+from app.use_cases.cart.delete_item import AbstractDeleteFromCartUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
@@ -17,7 +23,7 @@ router = APIRouter(prefix="/cart", tags=["Carts"])
 
 @router.get("", response_model=ApiResponseSchema[ReadFullCartSchema])
 async def get_cart(
-    cart: Annotated[ReadUserSchema, Depends(get_user_cart)],
+    cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],
 ):
     return ApiResponseSchema(
         data=cart,
@@ -27,7 +33,7 @@ async def get_cart(
 @router.post("", response_model=ApiResponseSchema[ReadCartItemSchema])
 async def add_to_cart(
     cart_item_in: CreateCartItemWithoutCartIdSchema,
-    cart: Annotated[ReadUserSchema, Depends(get_user_cart)],
+    cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractAddToCartUseCase,
@@ -43,3 +49,40 @@ async def add_to_cart(
             uow=uow,
         ),
     )
+
+
+@router.patch(
+    "/change-item-quantity/{cart_item_id}",
+    response_model=ApiResponseSchema[ReadCartItemSchema],
+)
+async def update_cart_item_quantity(
+    cart_item_id: int,
+    cart_item_in: UpdateCartItemQuantity,
+    cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractChangeItemQuantityUseCase,
+        Depends(lambda: get_container().resolve(AbstractChangeItemQuantityUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            cart_item_in=cart_item_in,
+            cart_item_id=cart_item_id,
+            cart_id=cart.id,
+            uow=uow,
+        ),
+    )
+
+
+@router.delete("/{cart_item_id}", response_model=None)
+async def remove_item_from_cart(
+    cart_item_id: int,
+    cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractDeleteFromCartUseCase,
+        Depends(lambda: get_container().resolve(AbstractDeleteFromCartUseCase)),
+    ],
+):
+    await use_case.execute(cart_item_id=cart_item_id, cart_id=cart.id, uow=uow)

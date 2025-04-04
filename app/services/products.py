@@ -24,7 +24,7 @@ class AbstractProductService(ABC):
     @abstractmethod
     async def get_full_one(
         self,
-        product_id: int,
+        product_slug: str,
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema: ...
 
@@ -52,10 +52,10 @@ class ProductService(AbstractProductService):
 
     async def get_full_one(
         self,
-        product_id: int,
+        product_slug: str,
         uow: AbstractUnitOfWork,
     ) -> ReadFullProductSchema:
-        return await uow.products.get_full(product_id=product_id)
+        return await uow.products.get_full(product_slug=product_slug)
 
     async def create(
         self,

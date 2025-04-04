@@ -38,11 +38,11 @@ async def get_products_list(
 
 
 @router.get(
-    "/{product_id}",
+    "/{product_slug}",
     response_model=ApiResponseSchema[ReadFullProductSchema],
 )
 async def fetch_product(
-    product_id: int,
+    product_slug: str,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractFetchProductUseCase,
@@ -50,7 +50,7 @@ async def fetch_product(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(product_id=product_id, uow=uow),
+        data=await use_case.execute(product_slug=product_slug, uow=uow),
     )
 
 

@@ -17,7 +17,7 @@ class DatabaseBaseSettings(BaseModel):
     host: str
     port: str
     db_name: str
-    echo: bool = True
+    echo: bool = False
     echo_pool: bool = False
     pool_size: int = 50
     max_overflow: int = 10
@@ -56,8 +56,8 @@ class SessionSettings(BaseModel):
     urlsafe_token_length: int = 32
     session_key: str = "cart_session_id"
     session_httponly: bool = True
-    session_secure: bool = True
-    same_site: str = "Lax"
+    session_secure: bool = False    # Change
+    same_site: str = "Lax"         # Change
 
 
 class ImageSettings(BaseModel):

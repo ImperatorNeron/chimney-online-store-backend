@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.core.exceptions.common import ForeignKeyConstraintViolationException
+from app.core.exceptions.common import ForeignKeyConstraintViolationException, ItemNotFoundException
 from app.schemas.cart_items import (
     CreateCartItemSchema,
     ReadCartItemSchema,
@@ -23,6 +23,16 @@ class AbstractCartItemService(ABC):
         self,
         cart_item_id: int,
         quantity: int,
+        cart_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadCartItemSchema: ...
+
+    @abstractmethod
+    async def decrease_cart_item_quantity(
+        self,
+        quantity: int,
+        cart_item_id: int,
+        cart_id: int,
         uow: AbstractUnitOfWork,
     ) -> ReadCartItemSchema: ...
 
@@ -32,6 +42,14 @@ class AbstractCartItemService(ABC):
         cart_item_in: CreateCartItemSchema,
         uow: AbstractUnitOfWork,
     ) -> ReadCartItemSchema: ...
+
+    @abstractmethod
+    async def delete_cart_item(
+        self,
+        cart_item_id: int,
+        cart_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> None: ...
 
 
 class CartItemService(AbstractCartItemService):
@@ -49,9 +67,26 @@ class CartItemService(AbstractCartItemService):
         self,
         quantity: int,
         cart_item_id: int,
+        cart_id: int,
         uow: AbstractUnitOfWork,
     ) -> ReadCartItemSchema:
+        if not await uow.cart_item.exists(id=cart_item_id, cart_id=cart_id):
+            raise ItemNotFoundException()
         return await uow.cart_item.increase_quantity(
+            quantity=quantity,
+            cart_item_id=cart_item_id,
+        )
+
+    async def decrease_cart_item_quantity(
+        self,
+        quantity: int,
+        cart_item_id: int,
+        cart_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadCartItemSchema:
+        if not await uow.cart_item.exists(id=cart_item_id, cart_id=cart_id):
+            raise ItemNotFoundException()
+        return await uow.cart_item.decrease_quantity(
             quantity=quantity,
             cart_item_id=cart_item_id,
         )
@@ -80,7 +115,16 @@ class CartItemService(AbstractCartItemService):
             return await self.increase_cart_item_quantity(
                 quantity=cart_item_in.quantity,
                 cart_item_id=cart_item.id,
+                cart_id=cart_item_in.cart_id,
                 uow=uow,
             )
 
         return await uow.cart_item.create(item_in=cart_item_in)
+
+    async def delete_cart_item(
+        self,
+        cart_item_id: int,
+        cart_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> None:
+        await uow.cart_item.delete(id=cart_item_id, cart_id=cart_id)
