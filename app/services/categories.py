@@ -53,7 +53,7 @@ class CategoryService(AbstractCategoryService):
             raise UniqueConstraintViolationsException(
                 {"slug": "Категорія з цим url вже існує."},
             )
-        if not await uow.categories.exists(id=category_in.parent_id):
+        if category_in.parent_id and not await uow.categories.exists(id=category_in.parent_id):
             raise ForeignKeyConstraintViolationException(
                 {"parent_id": "Категорія не існує."},
             )

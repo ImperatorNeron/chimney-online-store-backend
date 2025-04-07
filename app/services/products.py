@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from app.core.exceptions.common import ForeignKeyConstraintViolationException, UniqueConstraintViolationsException
-from app.schemas.filters import PaginationIn
+from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema, ReadProductSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
@@ -11,14 +12,17 @@ class AbstractProductService(ABC):
     @abstractmethod
     async def list_all(
         self,
+        filters: Optional[ProductFiltersSchema],
+        sort_params: Optional[SortOrderSchema],
         uow: AbstractUnitOfWork,
-        pagination_in: PaginationIn,
+        pagination_in: Optional[PaginationIn],
     ) -> list[ReadPreviewProductSchema]: ...
 
     @abstractmethod
-    async def get_total_products(
+    async def get_products_count(
         self,
         uow: AbstractUnitOfWork,
+        filters: Optional[ProductFiltersSchema],
     ) -> int: ...
 
     @abstractmethod
@@ -39,16 +43,23 @@ class AbstractProductService(ABC):
 class ProductService(AbstractProductService):
     async def list_all(
         self,
+        filters: Optional[ProductFiltersSchema],
+        sort_params: Optional[SortOrderSchema],
         uow: AbstractUnitOfWork,
-        pagination_in: PaginationIn,
+        pagination_in: Optional[PaginationIn],
     ) -> list[ReadPreviewProductSchema]:
-        return await uow.products.list_preview(pagination_in=pagination_in)
+        return await uow.products.list_preview(
+            pagination_in=pagination_in,
+            filters=filters,
+            sort_params=sort_params,
+        )
 
-    async def get_total_products(
+    async def get_products_count(
         self,
         uow: AbstractUnitOfWork,
+        filters: Optional[ProductFiltersSchema],
     ) -> int:
-        return await uow.products.count()
+        return await uow.products.count(filters=filters)
 
     async def get_full_one(
         self,

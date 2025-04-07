@@ -60,7 +60,7 @@ class CartItemService(AbstractCartItemService):
     ) -> ReadCartItemWithTotalPriceSchema:
         return ReadCartItemWithTotalPriceSchema(
             **item.model_dump(),
-            total_price=item.quantity * item.product.price,
+            total_price=item.quantity * item.product.discount_price,
         )
 
     async def increase_cart_item_quantity(

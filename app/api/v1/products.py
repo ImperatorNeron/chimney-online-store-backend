@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
-from app.schemas.filters import PaginationIn
+from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema
 from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
@@ -22,6 +22,8 @@ router = APIRouter(prefix="/products", tags=["Products"])
     response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
 )
 async def get_products_list(
+    filters: Annotated[ProductFiltersSchema, Depends()],
+    sort_params: Annotated[SortOrderSchema, Depends()],
     pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -32,6 +34,8 @@ async def get_products_list(
     return ApiResponseSchema(
         data=await use_case.execute(
             uow=uow,
+            filters=filters,
+            sort_params=sort_params,
             pagination_in=pagination_in,
         ),
     )

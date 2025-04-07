@@ -16,8 +16,7 @@ class BaseProductSchema(BaseModel, SlugValidatorMixin):
         example="This is a sample product description.",
     )
     price: float = Field(gt=0, example=19.99)
-    discount_price: float = Field(ge=0, example=19.99)
-    discount_percentage: int = Field(ge=0, le=100, example=20)
+
     category_id: int = Field(..., ge=0, example=1)
 
 
@@ -25,6 +24,8 @@ class ReadProductSchema(BaseProductSchema):
     id: int = Field(ge=0)  # noqa
     created_at: datetime
     updated_at: datetime
+    discount_price: float = Field(ge=0, example=19.99)
+    discount_percentage: int = Field(ge=0, le=100, example=20)
 
 
 class CreateProductSchema(BaseProductSchema):
