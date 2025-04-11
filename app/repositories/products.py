@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import func, Select, select
+from sqlalchemy import func, or_, Select, select
 from sqlalchemy.orm import aliased, selectinload
 
 from app.models.categories import Category
@@ -36,7 +36,8 @@ class ProductRepository(BaseRepository):
             )
 
             child_categories = select(category.id).join(
-                category_tree, category.parent_id == category_tree.c.id,
+                category_tree,
+                category.parent_id == category_tree.c.id,
             )
 
             category_tree = category_tree.union_all(child_categories)
@@ -44,6 +45,22 @@ class ProductRepository(BaseRepository):
             query = query.join(Product.category).where(
                 Category.id.in_(select(category_tree.c.id)),
             )
+
+        if filters.text and not filters.category_slug:
+            search_terms = filters.text.split()
+            conditions = []
+            for term in search_terms:
+
+                if term.isdigit():
+                    conditions.append(self.model.id == int(term))
+
+                conditions.extend(
+                    [
+                        func.similarity(self.model.name, term) >= 0.05,
+                        func.similarity(self.model.description, term) >= 0.05,
+                    ],
+                )
+            query = query.where(or_(*conditions))
         return query
 
     def _build_query(

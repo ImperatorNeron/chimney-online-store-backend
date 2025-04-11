@@ -20,6 +20,7 @@ class PaginationIn(BaseModel):
 
 class ProductFiltersSchema(BaseModel):
     category_slug: Optional[str] = Query(default=None)
+    text: Optional[str] = Query(default=None)
 
     @field_validator("category_slug")
     @classmethod

@@ -1,6 +1,11 @@
 services:
   postgres:
     image: postgres:17rc1-alpine
+    command: >
+      sh -c '
+      apk add --no-cache postgresql-contrib &&
+      docker-entrypoint.sh postgres
+      '
     environment:
       POSTGRES_DB: ${APP_CONFIG__DATABASE__db_name}
       POSTGRES_USER: ${APP_CONFIG__DATABASE__user}
@@ -10,6 +15,7 @@ services:
       - "${APP_CONFIG__DATABASE__port}:5432"
     volumes:
       - postgresql_data_chimney:/var/lib/postgresql/data
+      - ../init.sql:/docker-entrypoint-initdb.d/init.sql
     env_file:
       - ../.env
 
