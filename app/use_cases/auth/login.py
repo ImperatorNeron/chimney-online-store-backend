@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
+from fastapi import Response
+
 from app.core.exceptions.common import InvalidCredentialsException
+from app.core.settings import settings
 from app.schemas.tokens import TokenInfoSchema
 from app.schemas.users import LoginUserSchema
 from app.services.tokens import AbstractJWTTokenService
@@ -16,6 +19,7 @@ class LoginUserUseCase:
 
     async def execute(
         self,
+        response: Response,
         uow: AbstractUnitOfWork,
         user_in: LoginUserSchema,
     ) -> TokenInfoSchema:
@@ -31,12 +35,19 @@ class LoginUserUseCase:
             ):
                 raise InvalidCredentialsException()
 
+            # TODO: add to settings
+            response.set_cookie(
+                key="refresh_token",
+                value=await self.token_service.create_refresh_token(pk=user.id),
+                max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60,
+                httponly=True,
+                secure=False,
+                samesite="lax",
+            )
+
             return TokenInfoSchema(
                 access_token=await self.token_service.create_access_token(
                     pk=user.id,
                     username=user.username,
-                ),
-                refresh_token=await self.token_service.create_refresh_token(
-                    pk=user.id,
                 ),
             )

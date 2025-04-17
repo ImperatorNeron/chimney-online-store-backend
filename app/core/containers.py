@@ -31,6 +31,7 @@ from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, 
 from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
+from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
 
 
 @lru_cache(1)
@@ -73,5 +74,6 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractAddToCartUseCase, AddToCartUseCase)
     container.register(AbstractDeleteFromCartUseCase, DeleteFromCartUseCase)
     container.register(AbstractChangeItemQuantityUseCase, ChangeItemQuantityUseCase)
+    container.register(AbstractUpdateUserUseCase, UpdateUserUseCase)
 
     return container

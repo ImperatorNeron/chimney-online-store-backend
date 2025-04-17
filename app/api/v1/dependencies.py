@@ -1,5 +1,5 @@
 import secrets
-from typing import Annotated, Any, Callable
+from typing import Annotated, Any
 
 from fastapi import Depends, Request, Response
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer
@@ -68,28 +68,50 @@ async def get_user_by_token_sub(
     return ReadUserSchema(**user.model_dump(exclude="hashed_password"))
 
 
-def get_auth_user_from_token_of_type(token_type: str) -> Callable:
-    async def get_auth_user_from_token(
-        payload: Annotated[dict, Depends(get_current_token_payload)],
-        container: Annotated[Container, Depends(get_container)],
-        uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    ) -> ReadUserSchema:
-        await validate_token_type(payload=payload, current_token_type=token_type)
-        return await get_user_by_token_sub(
-            container=container,
-            uow=uow,
-            payload=payload,
-        )
-
-    return get_auth_user_from_token
+async def get_auth_user_from_token_of_type(
+    payload: dict,
+    token_type: str,
+    container: Container,
+    uow: AbstractUnitOfWork,
+):
+    await validate_token_type(payload=payload, current_token_type=token_type)
+    return await get_user_by_token_sub(
+        container=container,
+        uow=uow,
+        payload=payload,
+    )
 
 
-get_current_auth_user = get_auth_user_from_token_of_type("access")
-get_current_auth_user_for_refresh = get_auth_user_from_token_of_type("refresh")
+async def get_auth_from_access_token(
+    payload: Annotated[dict, Depends(get_current_token_payload)],
+    container: Annotated[Container, Depends(get_container)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+) -> ReadUserSchema:
+    return await get_auth_user_from_token_of_type(
+        payload=payload,
+        token_type="access",
+        container=container,
+        uow=uow,
+    )
+
+
+async def get_current_auth_user_for_refresh(
+    request: Request,
+    container: Annotated[Container, Depends(get_container)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+):
+    refresh_token = request.cookies.get("refresh_token")
+    payload = await get_current_token_payload(container=container, token=refresh_token)
+    return await get_auth_user_from_token_of_type(
+        payload=payload,
+        token_type="refresh",
+        container=container,
+        uow=uow,
+    )
 
 
 async def get_current_active_auth_user(
-    user: Annotated[ReadUserSchema, Depends(get_current_auth_user)],
+    user: Annotated[ReadUserSchema, Depends(get_auth_from_access_token)],
 ):
     if user.is_active:
         return user
@@ -97,12 +119,28 @@ async def get_current_active_auth_user(
 
 
 async def get_current_active_auth_superuser(
-    user: Annotated[ReadUserSchema, Depends(get_current_auth_user)],
+    user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
 ):
-    if user.is_active and user.is_superuser:
+    if user.is_superuser:
         return user
     # TODO: change all user errors and clearify whole users major
     raise UserAdminPermissionException()
+
+
+async def refresh_check(
+    request: Request,
+    container: Annotated[Container, Depends(get_container)],
+):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        return {"is_authenticated": False}
+
+    try:
+        # Перевірити токен, наприклад, через JWT decode або бібліотеку
+        await get_current_token_payload(container=container, token=refresh_token)
+        return {"is_authenticated": True}
+    except InvalidTokenException:
+        return {"is_authenticated": False}
 
 
 ###################################################
@@ -206,8 +244,8 @@ async def get_user_cart(
 ) -> ReadFullCartSchema:
 
     session_id = request.cookies.get("cart_session_id")
-
     if token:
+
         payload = await get_current_token_payload(container=container, token=token)
         await validate_token_type(payload=payload, current_token_type="access")
         user_cart = await _get_user_cart_or_create_new(

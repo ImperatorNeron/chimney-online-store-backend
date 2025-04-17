@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
 
-from app.schemas.users import ReadUserSchema
+from app.schemas.users import ReadUserSchema, ReadUserWithPasswordSchema, UserUpdateSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -20,6 +20,14 @@ class AbstractUserService(ABC):
         self,
         uow: AbstractUnitOfWork,
         id: int,  # noqa
+    ) -> BaseModel: ...
+
+    @abstractmethod
+    async def update_user(
+        self,
+        user_in: UserUpdateSchema,
+        user_id: int,
+        uow: AbstractUnitOfWork,
     ) -> BaseModel: ...
 
 
@@ -40,3 +48,11 @@ class UserService(AbstractUserService):
     ) -> ReadUserSchema:
         async with uow:
             return await uow.users.get(id=id)
+
+    async def update_user(
+        self,
+        user_in: UserUpdateSchema,
+        user_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadUserWithPasswordSchema:
+        return await uow.users.update(id=user_id, item_in=user_in)

@@ -1,29 +1,17 @@
 from typing import Annotated
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    Form,
-)
-
+from fastapi import APIRouter, Depends, Response
 from punq import Container
 
-from app.api.v1.dependencies import get_current_auth_user_for_refresh
+from app.api.v1.dependencies import get_current_auth_user_for_refresh, refresh_check
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.tokens import TokenInfoSchema
-from app.schemas.users import (
-    LoginUserSchema,
-    ReadUserSchema,
-    RegisterUserSchema,
-)
+from app.schemas.users import LoginUserSchema, ReadUserSchema, RegisterUserSchema
 from app.use_cases.auth.login import LoginUserUseCase
 from app.use_cases.auth.refresh import RefreshTokenUseCase
 from app.use_cases.auth.registration import RegisterUserUseCase
-from app.utils.unit_of_work import (
-    AbstractUnitOfWork,
-    UnitOfWork,
-)
+from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -52,14 +40,13 @@ async def register(
     response_model=TokenInfoSchema,
 )
 async def login(
-    username: Annotated[str, Form()],
-    password: Annotated[str, Form()],
+    user_in: LoginUserSchema,
+    response: Response,
     container: Annotated[Container, Depends(get_container)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
 ):
     use_case: LoginUserUseCase = container.resolve(LoginUserUseCase)
-    user_in = LoginUserSchema(username=username, password=password)
-    return await use_case.execute(uow=uow, user_in=user_in)
+    return await use_case.execute(response=response, uow=uow, user_in=user_in)
 
 
 @router.post(
@@ -72,3 +59,15 @@ async def refresh(
 ):
     use_case: RefreshTokenUseCase = container.resolve(RefreshTokenUseCase)
     return await use_case.execute(user=user)
+
+
+@router.get("/refresh-check")
+async def check_refresh_token(
+    refresh_check: Annotated[bool, Depends(refresh_check)],
+):
+    return refresh_check
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="refresh_token")

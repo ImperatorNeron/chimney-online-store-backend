@@ -206,6 +206,7 @@ class BaseRepository:
             for field, value in item_in.model_dump(exclude_unset=True).items():
                 setattr(instance, field, value)
             await self.session.flush([instance])
+            await self.session.refresh(instance)
             return instance.to_read_model()
         except Exception:
             raise RepositoryException()
