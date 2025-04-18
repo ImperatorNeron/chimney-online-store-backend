@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import func, Select, select
+from sqlalchemy import func, insert, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions.base import BaseAppException
@@ -193,11 +193,14 @@ class BaseRepository:
 
     async def create(self, item_in: BaseModel) -> BaseModel:
         try:
-            instance = self.model(**item_in.model_dump())
-            self.session.add(instance)
-            await self.session.flush([instance])
+            stmt = (
+                insert(self.model).values(**item_in.model_dump()).returning(self.model)
+            )
+            result = await self.session.execute(stmt)
+            instance = result.scalar_one()
             return instance.to_read_model()
-        except Exception:
+        except Exception as e:
+            print(e)
             raise RepositoryException()
 
     async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa

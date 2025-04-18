@@ -31,7 +31,7 @@ class RegisterUserUseCase:
         return await self.auth_service.register(
             uow=uow,
             user_in=CreateUserSchema(
-                **user_in.model_dump(exclude={"password"}),
+                **user_in.model_dump(exclude={"password", "confirm_password"}),
                 hashed_password=self.token_service.hash_password(
                     user_in.password,
                 ),

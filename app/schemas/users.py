@@ -1,12 +1,13 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, PositiveInt
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, PositiveInt
 
 
 class BaseUserFields(BaseModel):
     email: Optional[EmailStr] = Field(
         default=None,
+        min_length=5,
         max_length=255,
         title="Email address of the user",
     )
@@ -93,7 +94,19 @@ class ReadUserSchema(BaseUserSchema):
 
 
 class RegisterUserSchema(BaseUserSchema, PasswordField):
-    pass
+
+    confirm_password: str = Field(
+        min_length=4,
+        max_length=255,
+        title="User's confirm password for registration",
+        examples=["YouPass123"],
+    )
+
+    @model_validator(mode="after")
+    def check_passwords_match(self):
+        if self.password != self.confirm_password:
+            raise ValueError("Паролі не співпадають")
+        return self
 
 
 class ReadUserWithPasswordSchema(ReadUserSchema, HashedPasswordField):

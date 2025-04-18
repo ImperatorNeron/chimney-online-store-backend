@@ -6,6 +6,7 @@ from app.services.auth import AbstractAuthService, AuthService
 from app.services.cart_items import AbstractCartItemService, CartItemService
 from app.services.carts import AbstractCartService, CartService
 from app.services.categories import AbstractCategoryService, CategoryService
+from app.services.faq import AbstractFAQService, FAQService
 from app.services.files import AbstractFileUploadService, FileUploadService
 from app.services.messages import AbstractMessageService, MessageService
 from app.services.product_images import AbstractProductImageService, ProductImageService
@@ -25,6 +26,11 @@ from app.use_cases.categories.create import AbstractCreateCategoryUseCase, Creat
 from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase, DeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase, FetchCategoriesUseCase
 from app.use_cases.categories.update import AbstractUpdateCategoryUseCase, UpdateCategoryUseCase
+from app.use_cases.faq.create import AbstractCreateFAQUseCase, CreateFAQUseCase
+from app.use_cases.faq.delete import AbstractDeleteFAQUseCase, DeleteFAQUseCase
+from app.use_cases.faq.fetch_all import AbstractFetchFAQsUseCase, FetchFAQsUseCase
+from app.use_cases.faq.fetch_one import AbstractFetchFAQUseCase, FetchFAQUseCase
+from app.use_cases.faq.update import AbstractUpdateFAQUseCase, UpdateFAQUseCase
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
@@ -53,6 +59,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFileUploadService, FileUploadService)
     container.register(AbstractCartService, CartService)
     container.register(AbstractCartItemService, CartItemService)
+    container.register(AbstractFAQService, FAQService)
 
     # Use cases
     container.register(RegisterUserUseCase)
@@ -75,5 +82,11 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractDeleteFromCartUseCase, DeleteFromCartUseCase)
     container.register(AbstractChangeItemQuantityUseCase, ChangeItemQuantityUseCase)
     container.register(AbstractUpdateUserUseCase, UpdateUserUseCase)
+    # FAQ
+    container.register(AbstractFetchFAQsUseCase, FetchFAQsUseCase)
+    container.register(AbstractFetchFAQUseCase, FetchFAQUseCase)
+    container.register(AbstractCreateFAQUseCase, CreateFAQUseCase)
+    container.register(AbstractUpdateFAQUseCase, UpdateFAQUseCase)
+    container.register(AbstractDeleteFAQUseCase, DeleteFAQUseCase)
 
     return container
