@@ -8,6 +8,7 @@ from app.services.carts import AbstractCartService, CartService
 from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.faq import AbstractFAQService, FAQService
 from app.services.files import AbstractFileUploadService, FileUploadService
+from app.services.likes import AbstractLikeService, LikeService
 from app.services.messages import AbstractMessageService, MessageService
 from app.services.product_images import AbstractProductImageService, ProductImageService
 from app.services.products import AbstractProductService, ProductService
@@ -31,6 +32,10 @@ from app.use_cases.faq.delete import AbstractDeleteFAQUseCase, DeleteFAQUseCase
 from app.use_cases.faq.fetch_all import AbstractFetchFAQsUseCase, FetchFAQsUseCase
 from app.use_cases.faq.fetch_one import AbstractFetchFAQUseCase, FetchFAQUseCase
 from app.use_cases.faq.update import AbstractUpdateFAQUseCase, UpdateFAQUseCase
+from app.use_cases.like.count import AbstractCountUserLikesUseCase, CountUserLikesUseCase
+from app.use_cases.like.create import AbstractCreateLikeUseCase, CreateLikeUseCase
+from app.use_cases.like.delete import AbstractDeleteLikeUseCase, DeleteLikeUseCase
+from app.use_cases.like.fetch_all import AbstractFetchLikesUseCase, FetchLikesUseCase
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
@@ -48,45 +53,61 @@ def get_container() -> punq.Container:
 def _initialize_container() -> punq.Container:
     container = punq.Container()
 
-    # Services
+    # Auth
     container.register(AbstractAuthService, AuthService)
-    container.register(AbstractUserService, UserService)
-    container.register(AbstractJWTTokenService, JWTTokenService)
-    container.register(AbstractMessageService, MessageService)
-    container.register(AbstractCategoryService, CategoryService)
-    container.register(AbstractProductService, ProductService)
-    container.register(AbstractProductImageService, ProductImageService)
-    container.register(AbstractFileUploadService, FileUploadService)
-    container.register(AbstractCartService, CartService)
-    container.register(AbstractCartItemService, CartItemService)
-    container.register(AbstractFAQService, FAQService)
-
-    # Use cases
     container.register(RegisterUserUseCase)
     container.register(LoginUserUseCase)
     container.register(RefreshTokenUseCase)
-    container.register(AbstractCreateMessageUseCase, CreateMessageUseCase)
-    container.register(AbstractFetchMessagesUseCase, FetchMessagesUseCase)
-    container.register(AbstractFetchMessageUseCase, FetchMessageUseCase)
-    container.register(AbstractFetchCategoriesUseCase, FetchCategoriesUseCase)
-    container.register(AbstractCreateCategoryUseCase, CreateCategoryUseCase)
-    container.register(AbstractUpdateCategoryUseCase, UpdateCategoryUseCase)
-    container.register(AbstractDeleteCategoryUseCase, DeleteCategoryUseCase)
-    container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
-    container.register(AbstractFetchProductUseCase, FetchProductUseCase)
-    container.register(AbstractCreateProductUseCase, CreateProductUseCase)
+
+    # Cart
+    container.register(AbstractCartService, CartService)
+    container.register(AbstractCartItemService, CartItemService)
     container.register(AbstractFetchCartUseCase, FetchCartUseCase)
     container.register(AbstractCreateCartUseCase, CreateCartUseCase)
     container.register(AbstractMergeCartsUseCase, MergeCartsUseCase)
     container.register(AbstractAddToCartUseCase, AddToCartUseCase)
     container.register(AbstractDeleteFromCartUseCase, DeleteFromCartUseCase)
     container.register(AbstractChangeItemQuantityUseCase, ChangeItemQuantityUseCase)
-    container.register(AbstractUpdateUserUseCase, UpdateUserUseCase)
+
+    # Category
+    container.register(AbstractCategoryService, CategoryService)
+    container.register(AbstractFetchCategoriesUseCase, FetchCategoriesUseCase)
+    container.register(AbstractCreateCategoryUseCase, CreateCategoryUseCase)
+    container.register(AbstractUpdateCategoryUseCase, UpdateCategoryUseCase)
+    container.register(AbstractDeleteCategoryUseCase, DeleteCategoryUseCase)
+
     # FAQ
+    container.register(AbstractFAQService, FAQService)
     container.register(AbstractFetchFAQsUseCase, FetchFAQsUseCase)
     container.register(AbstractFetchFAQUseCase, FetchFAQUseCase)
     container.register(AbstractCreateFAQUseCase, CreateFAQUseCase)
     container.register(AbstractUpdateFAQUseCase, UpdateFAQUseCase)
     container.register(AbstractDeleteFAQUseCase, DeleteFAQUseCase)
+
+    # Like
+    container.register(AbstractLikeService, LikeService)
+    container.register(AbstractCreateLikeUseCase, CreateLikeUseCase)
+    container.register(AbstractDeleteLikeUseCase, DeleteLikeUseCase)
+    container.register(AbstractFetchLikesUseCase, FetchLikesUseCase)
+    container.register(AbstractCountUserLikesUseCase, CountUserLikesUseCase)
+
+    # Message
+    container.register(AbstractMessageService, MessageService)
+    container.register(AbstractCreateMessageUseCase, CreateMessageUseCase)
+    container.register(AbstractFetchMessagesUseCase, FetchMessagesUseCase)
+    container.register(AbstractFetchMessageUseCase, FetchMessageUseCase)
+
+    # Product
+    container.register(AbstractProductService, ProductService)
+    container.register(AbstractProductImageService, ProductImageService)
+    container.register(AbstractFileUploadService, FileUploadService)
+    container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
+    container.register(AbstractFetchProductUseCase, FetchProductUseCase)
+    container.register(AbstractCreateProductUseCase, CreateProductUseCase)
+
+    # User
+    container.register(AbstractUserService, UserService)
+    container.register(AbstractJWTTokenService, JWTTokenService)
+    container.register(AbstractUpdateUserUseCase, UpdateUserUseCase)
 
     return container

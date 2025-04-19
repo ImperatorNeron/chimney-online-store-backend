@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy import func, insert, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions.base import BaseAppException
 from app.core.exceptions.common import ItemNotFoundException, MultipleResultsFound, RepositoryException
 from app.models.base import BaseModel as Model
 
@@ -62,20 +61,6 @@ class AbstractRepository(ABC):
     async def bulk_create(self, data_list: list[BaseModel]) -> list[BaseModel]:
         """Create multiple items."""
         ...
-
-
-class UniqueConstraintViolationError(BaseAppException):
-    def __init__(self, fields: list[str], message: str = "Unique constraint violation"):
-        self.fields = fields
-        self.message = f"{message} on fields: {', '.join(fields)}"
-        super().__init__(
-            detail=self.message,
-            status_code=400,
-        )
-
-
-class RepositoryError(Exception):
-    """Base exception for repository errors."""
 
 
 class BaseRepository:
@@ -199,8 +184,7 @@ class BaseRepository:
             result = await self.session.execute(stmt)
             instance = result.scalar_one()
             return instance.to_read_model()
-        except Exception as e:
-            print(e)
+        except Exception:
             raise RepositoryException()
 
     async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa
@@ -216,10 +200,9 @@ class BaseRepository:
 
     async def delete(
         self,
-        id: int,  # noqa
         **filters: Any,
     ) -> None:  # noqa
-        instance = await self._get_model(id=id, **filters)
+        instance = await self._get_model(**filters)
         await self.session.delete(instance)
 
     async def exists(self, **filters: Any) -> bool:

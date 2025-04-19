@@ -6,6 +6,7 @@ from app.repositories.cart_items import CartItemRepository
 from app.repositories.carts import CartRepository
 from app.repositories.categories import CategoryRepository
 from app.repositories.faq import FAQRepository
+from app.repositories.likes import LikeRepository
 from app.repositories.messages import MessageRepository
 from app.repositories.product_images import ProductImageRepository
 from app.repositories.products import ProductRepository
@@ -24,6 +25,7 @@ class AbstractUnitOfWork(ABC):
     cart: Type[CartRepository]
     cart_item: Type[CartItemRepository]
     faq: Type[FAQRepository]
+    like: Type[LikeRepository]
 
     @abstractmethod
     async def __aenter__(self): ...
@@ -49,6 +51,7 @@ class BaseUnitOfWork(AbstractUnitOfWork):
         self.cart = CartRepository(session=self.session)
         self.cart_item = CartItemRepository(session=self.session)
         self.faq = FAQRepository(session=self.session)
+        self.like = LikeRepository(session=self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):

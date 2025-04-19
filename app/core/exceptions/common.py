@@ -19,6 +19,18 @@ class ItemNotFoundException(BaseAppException):
         )
 
 
+class ItemAlreadyExistsException(BaseAppException):
+    """Raised when a database record already exists."""
+
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="already_exists",
+            detail="Ресурс вже існує",
+            status_code=status.HTTP_409_CONFLICT,
+            meta=meta or {},
+        )
+
+
 class UniqueConstraintViolationsException(BaseAppException):
     """Raised for database unique constraint violations."""
 
@@ -81,7 +93,10 @@ class UnsupportedMediaException(BaseAppException):
             error_code="unsupported_media",
             detail="Непідтримуваний формат файлу",
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            meta={"allowed_types": list(settings.images.allowed_mime_types), **(meta or {})},
+            meta={
+                "allowed_types": list(settings.images.allowed_mime_types),
+                **(meta or {}),
+            },
         )
 
 

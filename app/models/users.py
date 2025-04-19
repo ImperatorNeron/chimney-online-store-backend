@@ -1,9 +1,15 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, LargeBinary, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
 from app.schemas.users import ReadUserWithPasswordSchema
+
+
+if TYPE_CHECKING:
+    from app.models.likes import Like
 
 
 class User(
@@ -57,6 +63,12 @@ class User(
         Boolean,
         default=False,
         server_default="false",
+    )
+
+    likes: Mapped[list["Like"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     def to_read_model(self):

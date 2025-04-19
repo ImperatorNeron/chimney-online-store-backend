@@ -5,6 +5,7 @@ from app.api.v1.carts import router as carts
 from app.api.v1.categories import router as categories
 from app.api.v1.dependencies import http_bearer
 from app.api.v1.faq import router as faqs
+from app.api.v1.likes import router as likes
 from app.api.v1.messages import router as messages
 from app.api.v1.products import router as products
 from app.api.v1.users import router as users
@@ -18,3 +19,4 @@ router.include_router(router=categories)
 router.include_router(router=products)
 router.include_router(router=carts)
 router.include_router(router=faqs)
+router.include_router(router=likes)

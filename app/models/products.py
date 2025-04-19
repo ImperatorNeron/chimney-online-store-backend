@@ -11,6 +11,7 @@ from app.schemas.products import ReadFullProductSchema, ReadPreviewProductSchema
 if TYPE_CHECKING:
     from app.models.cart_item import CartItem
     from app.models.categories import Category
+    from app.models.likes import Like
     from app.models.product_images import ProductImage
 
 
@@ -39,6 +40,11 @@ class Product(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     images: Mapped[list["ProductImage"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
+    )
+    likes: Mapped[list["Like"]] = relationship(
+        back_populates="product",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     def to_read_model(self):
