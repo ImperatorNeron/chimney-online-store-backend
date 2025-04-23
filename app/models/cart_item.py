@@ -19,7 +19,7 @@ class CartItem(IdIntPkMixin, BaseModel):
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"))
     quantity: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     cart: Mapped["Cart"] = relationship("Cart", back_populates="items")
-    product: Mapped["Product"] = relationship("Product", back_populates="items")
+    product: Mapped["Product"] = relationship("Product", back_populates="cart_items")
 
     def to_read_model(self):
         return ReadCartItemSchema(

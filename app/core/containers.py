@@ -10,6 +10,7 @@ from app.services.faq import AbstractFAQService, FAQService
 from app.services.files import AbstractFileUploadService, FileUploadService
 from app.services.likes import AbstractLikeService, LikeService
 from app.services.messages import AbstractMessageService, MessageService
+from app.services.orders import AbstractOrderService, OrderService
 from app.services.product_images import AbstractProductImageService, ProductImageService
 from app.services.products import AbstractProductService, ProductService
 from app.services.tokens import AbstractJWTTokenService, JWTTokenService
@@ -39,6 +40,8 @@ from app.use_cases.like.fetch_all import AbstractFetchLikesUseCase, FetchLikesUs
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
+from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderUseCase
+from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
 from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
@@ -109,5 +112,10 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractUserService, UserService)
     container.register(AbstractJWTTokenService, JWTTokenService)
     container.register(AbstractUpdateUserUseCase, UpdateUserUseCase)
+
+    # Order
+    container.register(AbstractOrderService, OrderService)
+    container.register(AbstractFetchOrdersUseCase, FetchOrdersUseCase)
+    container.register(AbstractCreateOrderUseCase, CreateOrderUseCase)
 
     return container

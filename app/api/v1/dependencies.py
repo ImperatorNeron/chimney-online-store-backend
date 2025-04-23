@@ -127,6 +127,23 @@ async def get_current_active_auth_superuser(
     raise UserAdminPermissionException()
 
 
+async def get_user_or_none(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    container: Annotated[Container, Depends(get_container)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+):
+    try:
+        user = await get_auth_user_from_token_of_type(
+            payload=await get_current_token_payload(container=container, token=token),
+            token_type="access",
+            container=container,
+            uow=uow,
+        )
+        return user.id
+    except (InvalidTokenTypeException, InvalidTokenException):
+        return
+
+
 async def refresh_check(
     request: Request,
     container: Annotated[Container, Depends(get_container)],

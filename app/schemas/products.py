@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import Form
 from pydantic import BaseModel, Field
 
 from app.schemas.product_images import ReadProductImageSchema
@@ -16,7 +15,7 @@ class BaseProductSchema(BaseModel, SlugValidatorMixin):
         example="This is a sample product description.",
     )
     price: float = Field(gt=0, example=19.99)
-
+    characteristics: Optional[dict]
     category_id: int = Field(..., ge=0, example=1)
 
 
@@ -30,31 +29,6 @@ class ReadProductSchema(BaseProductSchema):
 
 class CreateProductSchema(BaseProductSchema):
     pass
-
-
-class ProductForm(BaseModel):
-    name: str
-    slug: str
-    description: Optional[str] = None
-    price: float
-    category_id: int
-
-    @classmethod
-    def from_form(
-        cls,
-        name: str = Form(...),
-        slug: str = Form(...),
-        description: Optional[str] = Form(None),
-        price: float = Form(...),
-        category_id: int = Form(...),
-    ):
-        return cls(
-            name=name,
-            slug=slug,
-            description=description,
-            price=price,
-            category_id=category_id,
-        )
 
 
 class ReadPreviewProductSchema(ReadProductSchema):

@@ -165,3 +165,4 @@ certificates/
 poetry.lock
 images/
 Emoji.md
+app/migrations/versions/

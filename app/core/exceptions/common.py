@@ -265,3 +265,13 @@ class CustomPydanticValidationException(HTTPException):
             field = ".".join(str(loc) for loc in err["loc"])
             errors.append({"field": field, "message": err["msg"], "type": err["type"]})
         super().__init__(status_code=422, detail={"errors": errors})
+
+
+class EmptyCartException(BaseAppException):
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="empty_cart",
+            detail="Кошик порожній. Неможливо оформити замовлення.",
+            status_code=status.HTTP_409_CONFLICT,
+            meta=meta or {},
+        )

@@ -1,3 +1,4 @@
+import json
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
@@ -75,6 +76,7 @@ async def create_product(
     description: Optional[str] = Form(None),
     price: float = Form(...),
     category_id: int = Form(...),
+    characteristics: Optional[str] = Form(None),
 ):
     try:
         product_in = CreateProductSchema(
@@ -83,6 +85,7 @@ async def create_product(
             description=description,
             price=price,
             category_id=category_id,
+            characteristics=json.loads(characteristics) if characteristics else None,
         )
     except ValidationError as e:
         raise CustomPydanticValidationException(error=e)
