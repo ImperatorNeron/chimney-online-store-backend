@@ -15,7 +15,9 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     email: Mapped[str] = mapped_column(String(320))
     address: Mapped[str] = mapped_column(String(200))
     price_discount: Mapped[float] = mapped_column(
-        Numeric(10, 2), default=0, server_default="0",
+        Numeric(10, 2),
+        default=0,
+        server_default="0",
     )
 
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
@@ -31,13 +33,13 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
 
     status: Mapped[str] = mapped_column(
         String(20),
-        default="обробляється",
+        default="pending",
     )
 
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem",
         back_populates="order",
-        cascade="all, delete-orphan",
+        cascade="all, delete",
     )
 
     def to_read_model(self) -> ReadOrderSchema:
@@ -79,7 +81,7 @@ class OrderItem(BaseModel, IdIntPkMixin):
             name="uq_orderitems_order_id_product_id",
         ),
     )
-    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
 
     quantity: Mapped[int] = mapped_column(Integer)

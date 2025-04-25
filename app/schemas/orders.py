@@ -57,8 +57,8 @@ class OrderFields(BaseModel):
     )
     phone_number: str = Field(
         default=None,
-        min_length=10,
-        max_length=20,
+        min_length=9,
+        max_length=19,
         title="Phone Number",
         pattern=r"^\d{9,19}$",
         examples=["0961234567"],
@@ -70,15 +70,20 @@ class OrderFields(BaseModel):
         title="Email address of the user",
     )
     address: str = Field(
-        ..., min_length=5, max_length=200, description="5-200 characters",
+        ...,
+        min_length=5,
+        max_length=200,
+        description="5-200 characters",
     )
     shipping_method: str = Field(
         ...,
-        regex="^(nova_poshta|ukrposhta|courier)$",
+        pattern="^(nova_poshta|ukrposhta|courier)$",
         description="Invalid shipping method",
     )
     payment_method: str = Field(
-        ..., regex="^(cash|card|online)$", description="Invalid payment method",
+        ...,
+        pattern="^(cash|card|online)$",
+        description="Invalid payment method",
     )
 
     @field_validator("first_name", "last_name", "patronymic")
@@ -95,7 +100,7 @@ class BaseOrderSchema(OrderFields):
     id: int = Field(..., description="Order ID")  # noqa
     status: str = Field(
         ...,
-        regex="^(pending|processing|shipped|delivered|cancelled)$",
+        pattern="^(pending|processing|shipped|delivered|cancelled)$",
         description="Invalid order status",
     )
     created_at: datetime

@@ -13,8 +13,8 @@ class BaseUserFields(BaseModel):
     )
     phone_number: Optional[str] = Field(
         default=None,
-        min_length=10,
-        max_length=20,
+        min_length=9,
+        max_length=19,
         title="Phone Number",
         pattern=r"^\d{9,19}$",
         examples=["0961234567"],

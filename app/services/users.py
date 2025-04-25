@@ -16,6 +16,20 @@ class AbstractUserService(ABC):
     ) -> BaseModel: ...
 
     @abstractmethod
+    async def get_user_by_email(
+        self,
+        uow: AbstractUnitOfWork,
+        email: str,
+    ) -> BaseModel: ...
+
+    @abstractmethod
+    async def get_user_by_phone_number(
+        self,
+        uow: AbstractUnitOfWork,
+        phone_number: str,
+    ) -> BaseModel: ...
+
+    @abstractmethod
     async def get_user_by_id(
         self,
         uow: AbstractUnitOfWork,
@@ -38,8 +52,21 @@ class UserService(AbstractUserService):
         uow: AbstractUnitOfWork,
         username: str,
     ) -> ReadUserSchema:
-        async with uow:
-            return await uow.users.get_or_none(username=username)
+        return await uow.users.get_or_none(username=username)
+
+    async def get_user_by_email(
+        self,
+        uow: AbstractUnitOfWork,
+        email: str,
+    ) -> ReadUserSchema:
+        return await uow.users.get_or_none(email=email)
+
+    async def get_user_by_phone_number(
+        self,
+        uow: AbstractUnitOfWork,
+        phone_number: str,
+    ) -> ReadUserSchema:
+        return await uow.users.get_or_none(phone_number=phone_number)
 
     async def get_user_by_id(
         self,
