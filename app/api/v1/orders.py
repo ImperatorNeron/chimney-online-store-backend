@@ -2,14 +2,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.api.v1.dependencies import get_user_cart, get_user_or_none
+from app.api.v1.dependencies import get_current_active_auth_user, get_user_cart, get_user_or_none
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.carts import ReadFullCartSchema
 from app.schemas.orders import CreateOrderSchema, ReadExtendedOrderSchema, ReadOrderBaseSchema
 from app.schemas.users import ReadUserSchema
+from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase
 from app.use_cases.orders.create import AbstractCreateOrderUseCase
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase
+from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
@@ -26,6 +28,34 @@ async def get_orders_list(
 ):
     return ApiResponseSchema(
         data=await use_case.execute(uow=uow),
+    )
+
+
+@router.get("/history", response_model=ApiResponseSchema[list[ReadExtendedOrderSchema]])
+async def get_orders_history(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
+    use_case: Annotated[
+        AbstractFetchOrdersHistoryUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchOrdersHistoryUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(user_id=user.id, uow=uow),
+    )
+
+
+@router.get("/active", response_model=ApiResponseSchema[list[ReadExtendedOrderSchema]])
+async def get_active_orders(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
+    use_case: Annotated[
+        AbstractFetchActiveOrdersUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchActiveOrdersUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(user_id=user.id, uow=uow),
     )
 
 

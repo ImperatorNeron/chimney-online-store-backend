@@ -1,4 +1,4 @@
-from sqlalchemy import insert, select
+from sqlalchemy import and_, insert, select
 from sqlalchemy.orm import joinedload
 
 from app.core.exceptions.common import RepositoryException
@@ -12,9 +12,37 @@ class OrderRepository(BaseRepository):
 
     model = Order
 
+    def _get_base_query(self):
+        return (
+            select(self.model)
+            .options(
+                joinedload(self.model.items).joinedload(OrderItem.product),
+            )
+            .order_by(self.model.created_at.desc())
+        )
+
     async def all(self):  # noqa
-        stmt = select(self.model).options(
-            joinedload(Order.items).joinedload(OrderItem.product),
+        result = await self.session.execute(self._get_base_query())
+        orders = result.unique().scalars().all()
+        return [order.to_read_model() for order in orders]
+
+    async def finished_orders_by_user_id(self, user_id: int):
+        stmt = self._get_base_query().where(
+            and_(
+                self.model.user_id == user_id,
+                self.model.status.in_(["delivered", "cancelled"]),
+            ),
+        )
+        result = await self.session.execute(stmt)
+        orders = result.unique().scalars().all()
+        return [order.to_read_model() for order in orders]
+
+    async def current_orders_by_user_id(self, user_id: int):
+        stmt = self._get_base_query().where(
+            and_(
+                self.model.user_id == user_id,
+                self.model.status.notin_(["delivered", "cancelled"]),
+            ),
         )
         result = await self.session.execute(stmt)
         orders = result.unique().scalars().all()

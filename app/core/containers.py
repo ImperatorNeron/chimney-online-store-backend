@@ -40,8 +40,10 @@ from app.use_cases.like.fetch_all import AbstractFetchLikesUseCase, FetchLikesUs
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, FetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
+from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase, FetchActiveOrdersUseCase
 from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderUseCase
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
+from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
@@ -117,5 +119,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractOrderService, OrderService)
     container.register(AbstractFetchOrdersUseCase, FetchOrdersUseCase)
     container.register(AbstractCreateOrderUseCase, CreateOrderUseCase)
+    container.register(AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase)
+    container.register(AbstractFetchActiveOrdersUseCase, FetchActiveOrdersUseCase)
 
     return container

@@ -20,6 +20,20 @@ class AbstractOrderService(ABC):
     ) -> list[ReadOrderSchema]: ...
 
     @abstractmethod
+    async def get_order_history(
+        self,
+        user_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadOrderSchema]: ...
+
+    @abstractmethod
+    async def get_active_orders(
+        self,
+        user_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadOrderSchema]: ...
+
+    @abstractmethod
     async def get_total_price(
         self,
         order_items: list[ReadOrderItemSchema],
@@ -54,6 +68,20 @@ class OrderService(AbstractOrderService):
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderSchema]:
         return await uow.order.all()
+
+    async def get_order_history(
+        self,
+        user_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadOrderSchema]:
+        return await uow.order.finished_orders_by_user_id(user_id=user_id)
+
+    async def get_active_orders(
+        self,
+        user_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadOrderSchema]:
+        return await uow.order.current_orders_by_user_id(user_id=user_id)
 
     async def get_total_price(
         self,
