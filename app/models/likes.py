@@ -9,7 +9,7 @@ from app.schemas.likes import ReadLikeSchema
 
 
 if TYPE_CHECKING:
-    from app.models.products import Product
+    from app.models.products import ProductVariation
     from app.models.users import User
 
 
@@ -20,11 +20,11 @@ class Like(BaseModel, IdIntPkMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
     )
     product_id: Mapped[int] = mapped_column(
-        ForeignKey("products.id", ondelete="CASCADE"),
+        ForeignKey("productvariations.id", ondelete="CASCADE"),
     )
 
     user: Mapped["User"] = relationship(back_populates="likes")
-    product: Mapped["Product"] = relationship(back_populates="likes")
+    product: Mapped["ProductVariation"] = relationship(back_populates="likes")
 
     __table_args__ = (
         UniqueConstraint("user_id", "product_id", name="uq_like_user_id_product_id"),

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
-from app.models.products import Product
+from app.models.products import ProductVariation
 from app.schemas.orders import ReadOrderBaseSchema, ReadOrderItemBaseSchema, ReadOrderItemSchema, ReadOrderSchema
 
 
@@ -82,12 +82,12 @@ class OrderItem(BaseModel, IdIntPkMixin):
         ),
     )
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product_id: Mapped[int] = mapped_column(ForeignKey("productvariations.id"))
 
     quantity: Mapped[int] = mapped_column(Integer)
     price_at_order: Mapped[float] = mapped_column(Numeric(10, 2))
     order: Mapped[Order] = relationship("Order", back_populates="items")
-    product: Mapped["Product"] = relationship("Product", back_populates="order_items")
+    product: Mapped["ProductVariation"] = relationship("ProductVariation", back_populates="order_items")
 
     def to_read_model(self):
         return ReadOrderItemSchema(

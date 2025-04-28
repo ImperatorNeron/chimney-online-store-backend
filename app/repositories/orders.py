@@ -3,6 +3,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core.exceptions.common import RepositoryException
 from app.models.orders import Order, OrderItem
+from app.models.products import ProductVariation
 from app.schemas.orders import CreateOrderSchema
 from app.utils.sql_repository import BaseRepository
 
@@ -16,7 +17,9 @@ class OrderRepository(BaseRepository):
         return (
             select(self.model)
             .options(
-                joinedload(self.model.items).joinedload(OrderItem.product),
+                joinedload(self.model.items)
+                .joinedload(OrderItem.product)
+                .joinedload(ProductVariation.product),
             )
             .order_by(self.model.created_at.desc())
         )

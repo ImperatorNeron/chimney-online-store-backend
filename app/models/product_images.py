@@ -9,7 +9,7 @@ from app.schemas.products import ReadProductImageSchema
 
 
 if TYPE_CHECKING:
-    from app.models.products import Product
+    from app.models.products import UniqueProduct
 
 
 class ProductImage(BaseModel, IdIntPkMixin):
@@ -18,12 +18,12 @@ class ProductImage(BaseModel, IdIntPkMixin):
     alt: Mapped[str] = mapped_column(String(200))
     product_id: Mapped[int] = mapped_column(
         ForeignKey(
-            "products.id",
+            "uniqueproducts.id",
             ondelete="CASCADE",
         ),
     )
 
-    product: Mapped["Product"] = relationship(back_populates="images")
+    product: Mapped["UniqueProduct"] = relationship(back_populates="images")
 
     def to_read_model(self):
         return ReadProductImageSchema(

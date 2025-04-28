@@ -3,23 +3,43 @@ from typing import Optional
 from sqlalchemy import func, or_, Select, select
 from sqlalchemy.orm import aliased, selectinload
 
+from app.core.exceptions.common import ItemNotFoundException
 from app.models.categories import Category
-from app.models.products import Product
+from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import ReadPreviewProductSchema
 from app.utils.sql_repository import BaseRepository
 
 
 class ProductRepository(BaseRepository):
-    """Repository for performing CRUD operations on Product data."""
+    """Repository for performing CRUD operations on ProductVariation data."""
 
-    model = Product
-    default_preload = [selectinload(Product.images)]
-    default_order = [Product.id]
+    model = ProductVariation
+    default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
+    default_order = [model.id]
 
-    async def get_full(self, product_slug: str):
-        product = await self._get_model(slug=product_slug, options=self.default_preload)
-        return product.to_read_full_model()
+    async def get_full(
+        self,
+        product_slug: str,
+        product_variation_id: int,
+    ):
+        query = select(self.model)
+
+        if self.default_preload:
+            query = query.options(*self.default_preload)
+
+        query = query.where(
+            self.model.id == product_variation_id,
+            self.model.product.has(UniqueProduct.slug == product_slug),
+        )
+
+        result = await self.session.execute(query)
+        product_variation = result.scalars().first()
+
+        if not product_variation:
+            raise ItemNotFoundException()
+
+        return product_variation.to_read_full_model()
 
     def _apply_custom_filters(
         self,
@@ -42,25 +62,26 @@ class ProductRepository(BaseRepository):
 
             category_tree = category_tree.union_all(child_categories)
 
-            query = query.join(Product.category).where(
-                Category.id.in_(select(category_tree.c.id)),
-            )
+            query = query.join(self.model.product).join(UniqueProduct.category)
+            query = query.where(Category.id.in_(select(category_tree.c.id)))
 
         if filters.text and not filters.category_slug:
             search_terms = filters.text.split()
             conditions = []
             for term in search_terms:
-
                 if term.isdigit():
                     conditions.append(self.model.id == int(term))
 
                 conditions.extend(
                     [
-                        func.similarity(self.model.name, term) >= 0.05,
-                        func.similarity(self.model.description, term) >= 0.05,
+                        func.similarity(UniqueProduct.name, term) >= 0.05,
+                        func.similarity(UniqueProduct.description, term) >= 0.05,
                     ],
                 )
+
+            query = query.join(self.model.product)
             query = query.where(or_(*conditions))
+
         return query
 
     def _build_query(
@@ -100,8 +121,8 @@ class ProductRepository(BaseRepository):
             pagination_in=pagination_in,
         )
         result = await self.session.execute(query)
-        products = result.scalars().all()
-        return [product.to_read_model_with_preview() for product in products]
+        product_variations = result.scalars().all()
+        return [product.to_read_model_with_preview() for product in product_variations]
 
     async def count(self, filters: Optional[ProductFiltersSchema]) -> int:
         query = select(func.count()).select_from(self.model)

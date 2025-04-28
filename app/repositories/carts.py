@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from app.core.exceptions.common import InvalidRequestParametersException
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
-from app.models.products import Product
+from app.models.products import ProductVariation, UniqueProduct
 from app.utils.sql_repository import BaseRepository
 
 
@@ -16,7 +16,8 @@ class CartRepository(BaseRepository):
     default_preload = [
         selectinload(Cart.items)
         .selectinload(CartItem.product)
-        .selectinload(Product.images),
+        .selectinload(ProductVariation.product)
+        .selectinload(UniqueProduct.images),
     ]
 
     async def get_with_items(

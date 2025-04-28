@@ -10,16 +10,16 @@ from app.schemas.cart_items import ReadCartItemSchema, ReadCartItemWithProductSc
 
 if TYPE_CHECKING:
     from app.models.cart import Cart
-    from app.models.products import Product
+    from app.models.products import ProductVariation
 
 
 class CartItem(IdIntPkMixin, BaseModel):
 
     cart_id: Mapped[int] = mapped_column(Integer, ForeignKey("carts.id", ondelete="CASCADE"))
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"))
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("productvariations.id"))
     quantity: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     cart: Mapped["Cart"] = relationship("Cart", back_populates="items")
-    product: Mapped["Product"] = relationship("Product", back_populates="cart_items")
+    product: Mapped["ProductVariation"] = relationship("ProductVariation", back_populates="cart_items")
 
     def to_read_model(self):
         return ReadCartItemSchema(

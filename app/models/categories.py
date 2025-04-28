@@ -9,7 +9,7 @@ from app.schemas.categories import ReadCategorySchema
 
 
 if TYPE_CHECKING:
-    from app.models.products import Product
+    from app.models.products import UniqueProduct
 
 
 class Category(BaseModel, IdIntPkMixin):
@@ -21,8 +21,8 @@ class Category(BaseModel, IdIntPkMixin):
         index=True,
     )
 
-    products: Mapped[list["Product"]] = relationship(
-        "Product",
+    products: Mapped[list["UniqueProduct"]] = relationship(
+        "UniqueProduct",
         back_populates="category",
         cascade="all, delete",
     )
