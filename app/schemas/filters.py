@@ -2,7 +2,7 @@ import re
 from typing import Optional
 
 from fastapi import Query
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.core.constants import SLUG_REGEX
 
@@ -21,6 +21,13 @@ class PaginationIn(BaseModel):
 class ProductFiltersSchema(BaseModel):
     category_slug: Optional[str] = Query(default=None)
     text: Optional[str] = Query(default=None)
+    min_price: Optional[float] = Query(default=None, ge=0)
+    max_price: Optional[float] = Query(default=None, ge=0)
+    diameter: Optional[str] = Query(max_length=20, default=None)
+    length: Optional[str] = Query(max_length=20, default=None)
+    thickness: Optional[str] = Query(max_length=20, default=None)
+    angle: Optional[str] = Query(max_length=20, default=None)
+    metal_type: Optional[str] = Query(max_length=20, default=None)
 
     @field_validator("category_slug")
     @classmethod
@@ -28,6 +35,12 @@ class ProductFiltersSchema(BaseModel):
         if v is not None and not re.match(SLUG_REGEX, v):
             raise ValueError("Slug має містити тільки a-z, 0-9, '-' та '_'")
         return v.lower() if v else v
+
+    @model_validator(mode="after")
+    def validate_price(self):
+        if self.min_price and self.max_price and self.min_price > self.max_price:
+            raise ValueError("Мінімальна ціна не може бути більшою за максимальну")
+        return self
 
 
 class SortOrderSchema(BaseModel):

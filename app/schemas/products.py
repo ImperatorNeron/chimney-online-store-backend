@@ -55,3 +55,13 @@ class ReadUniqueProductSchema(BaseModel, SlugValidatorMixin):
     category_id: int = Field(..., ge=0, example=1)
     created_at: datetime
     updated_at: datetime
+
+
+class ReadFiltersSchema(BaseModel):
+    diameter: Optional[str] = Field(max_length=20)
+    length: Optional[str] = Field(max_length=20)
+    thickness: Optional[str] = Field(max_length=20)
+    angle: Optional[str] = Field(max_length=20)
+    metal_type: Optional[str] = Field(max_length=20)
+    min_price: Optional[str] = Field(max_length=20)
+    max_price: Optional[str] = Field(max_length=20)

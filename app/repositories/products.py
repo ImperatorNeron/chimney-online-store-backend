@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import func, or_, Select, select
+from sqlalchemy import distinct, func, or_, Select, select
 from sqlalchemy.orm import aliased, selectinload
 
 from app.core.exceptions.common import ItemNotFoundException
@@ -17,6 +17,7 @@ class ProductRepository(BaseRepository):
     model = ProductVariation
     default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
     default_order = [model.id]
+    filter_characteristics = ["diameter", "length", "thickness", "angle", "metal_type"]
 
     async def get_full(
         self,
@@ -41,11 +42,72 @@ class ProductRepository(BaseRepository):
 
         return product_variation.to_read_full_model()
 
+    async def list_preview(
+        self,
+        pagination_in: Optional[PaginationIn],
+        filters: Optional[ProductFiltersSchema],
+        sort_params: SortOrderSchema,
+    ) -> list[ReadPreviewProductSchema]:
+        query = self._build_query(
+            filters=filters,
+            sort_params=sort_params,
+            pagination_in=pagination_in,
+        )
+        result = await self.session.execute(query)
+        product_variations = result.scalars().all()
+        return [product.to_read_model_with_preview() for product in product_variations]
+
+    async def count(self, filters: Optional[ProductFiltersSchema]) -> int:
+        query = select(func.count()).select_from(self.model)
+        query = self._apply_custom_filters(query=query, filters=filters)
+        return (await self.session.execute(query)).scalar_one()
+
+    async def fetch_filters(
+        self,
+        filters: Optional[ProductFiltersSchema],
+    ):
+        agg_cols = [
+            func.array_agg(distinct(getattr(ProductVariation, attr))).label(attr)
+            for attr in self.filter_characteristics
+        ]
+        query = select(*agg_cols)
+        query = self._apply_custom_filters(query=query, filters=filters)
+        result = await self.session.execute(query)
+        row = result.one()
+        return {
+            attr: list(getattr(row, attr) or []) for attr in self.filter_characteristics
+        }
+
+    async def get_min_max_price(
+        self,
+        filters: Optional[ProductFiltersSchema],
+    ) -> dict[str, float | None]:
+        discounted_price = self.model.price * (1 - self.model.discount_percentage / 100)
+
+        query = select(
+            func.min(discounted_price).label("min_price"),
+            func.max(discounted_price).label("max_price"),
+        )
+
+        query = self._apply_custom_filters(query=query, filters=filters)
+
+        result = await self.session.execute(query)
+        min_price, max_price = result.one()
+
+        return {
+            "min_price": round(min_price, 2) if min_price is not None else 0,
+            "max_price": round(max_price, 2) if max_price is not None else 0,
+        }
+
     def _apply_custom_filters(
         self,
         query: Select,
         filters: Optional[ProductFiltersSchema],
     ) -> Select:
+
+        if not filters:
+            return query
+
         if filters.category_slug:
             category = aliased(Category)
 
@@ -82,6 +144,19 @@ class ProductRepository(BaseRepository):
             query = query.join(self.model.product)
             query = query.where(or_(*conditions))
 
+        if filters.min_price and filters.max_price:
+            discounted_price = self.model.price * (
+                1 - self.model.discount_percentage / 100
+            )
+            query = query.where(
+                discounted_price.between(filters.min_price, filters.max_price),
+            )
+
+        for attr in self.filter_characteristics:
+            value = getattr(filters, attr, None)
+            if value:
+                query = query.where(getattr(self.model, attr) == value)
+
         return query
 
     def _build_query(
@@ -108,23 +183,3 @@ class ProductRepository(BaseRepository):
         query = query.order_by(order_clause)
         query = query.limit(pagination_in.limit).offset(pagination_in.offset)
         return query
-
-    async def list_preview(
-        self,
-        pagination_in: Optional[PaginationIn],
-        filters: Optional[ProductFiltersSchema],
-        sort_params: SortOrderSchema,
-    ) -> list[ReadPreviewProductSchema]:
-        query = self._build_query(
-            filters=filters,
-            sort_params=sort_params,
-            pagination_in=pagination_in,
-        )
-        result = await self.session.execute(query)
-        product_variations = result.scalars().all()
-        return [product.to_read_model_with_preview() for product in product_variations]
-
-    async def count(self, filters: Optional[ProductFiltersSchema]) -> int:
-        query = select(func.count()).select_from(self.model)
-        query = self._apply_custom_filters(query=query, filters=filters)
-        return (await self.session.execute(query)).scalar_one()

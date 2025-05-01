@@ -46,6 +46,7 @@ from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrde
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
+from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, FetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
 from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
 
@@ -109,6 +110,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
     container.register(AbstractFetchProductUseCase, FetchProductUseCase)
     container.register(AbstractCreateProductUseCase, CreateProductUseCase)
+    container.register(AbstractFetchFiltersUseCase, FetchFiltersUseCase)
 
     # User
     container.register(AbstractUserService, UserService)

@@ -40,6 +40,20 @@ class AbstractProductService(ABC):
         uow: AbstractUnitOfWork,
     ) -> ReadProductSchema: ...
 
+    @abstractmethod
+    async def get_filters(
+        self,
+        filters: ProductFiltersSchema,
+        uow: AbstractUnitOfWork,
+    ) -> dict: ...
+
+    @abstractmethod
+    async def get_min_max_price(
+        self,
+        filters: ProductFiltersSchema,
+        uow: AbstractUnitOfWork,
+    ) -> list: ...
+
 
 class ProductService(AbstractProductService):
     async def list_all(
@@ -87,3 +101,17 @@ class ProductService(AbstractProductService):
                 {"category_id": "Категорія не існує."},
             )
         return await uow.products.create(item_in=product_in)
+
+    async def get_filters(
+        self,
+        filters: ProductFiltersSchema,
+        uow: AbstractUnitOfWork,
+    ) -> dict:
+        return await uow.products.fetch_filters(filters=filters)
+
+    async def get_min_max_price(
+        self,
+        filters: ProductFiltersSchema,
+        uow: AbstractUnitOfWork,
+    ) -> list:
+        return await uow.products.get_min_max_price(filters=filters)

@@ -1,16 +1,17 @@
 import json
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from pydantic import ValidationError
 
 from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
-from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema
+from app.schemas.products import CreateProductSchema, ReadFiltersSchema, ReadFullProductSchema, ReadPreviewProductSchema
 from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
+from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
@@ -101,3 +102,20 @@ async def create_product(
             uow=uow,
         ),
     )
+
+
+@router.get(
+    "/filters",
+    response_model=ApiResponseSchema[ReadFiltersSchema],
+)
+async def fetch_filters(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchFiltersUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchFiltersUseCase)),
+    ],
+    slug: Optional[str] = Query(default=None),
+    text: Optional[str] = Query(default=None),
+):
+
+    return ApiResponseSchema(data=await use_case.execute(slug=slug, text=text, uow=uow))
