@@ -11,7 +11,8 @@ from app.repositories.messages import MessageRepository
 from app.repositories.order_items import OrderItemRepository
 from app.repositories.orders import OrderRepository
 from app.repositories.product_images import ProductImageRepository
-from app.repositories.products import ProductRepository
+from app.repositories.products import VariationProductRepository
+from app.repositories.unique_products import UniqueProductRepository
 from app.repositories.users import UserRepository
 
 
@@ -22,7 +23,8 @@ class AbstractUnitOfWork(ABC):
     users: Type[UserRepository]
     messages: Type[MessageRepository]
     categories: Type[CategoryRepository]
-    products: Type[ProductRepository]
+    products: Type[VariationProductRepository]
+    unique_products: Type[UniqueProductRepository]
     products_images: Type[ProductImageRepository]
     cart: Type[CartRepository]
     cart_item: Type[CartItemRepository]
@@ -50,7 +52,8 @@ class BaseUnitOfWork(AbstractUnitOfWork):
         self.users = UserRepository(session=self.session)
         self.messages = MessageRepository(session=self.session)
         self.categories = CategoryRepository(session=self.session)
-        self.products = ProductRepository(session=self.session)
+        self.products = VariationProductRepository(session=self.session)
+        self.unique_products = UniqueProductRepository(session=self.session)
         self.products_images = ProductImageRepository(session=self.session)
         self.cart = CartRepository(session=self.session)
         self.cart_item = CartItemRepository(session=self.session)

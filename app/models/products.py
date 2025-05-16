@@ -10,6 +10,7 @@ from app.schemas.products import (
     ReadFullProductSchema,
     ReadPreviewProductSchema,
     ReadProductSchema,
+    ReadProductVariationSchema,
     ReadUniqueProductSchema,
 )
 
@@ -114,6 +115,20 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
 
     def to_read_model(self):
         return ReadProductSchema(**self._get_common_fields())
+
+    def to_read_base_model(self):
+        return ReadProductVariationSchema(
+            id=self.id,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            discount_price=self.price - (self.price * self.discount_percentage) / 100,
+            discount_percentage=self.discount_percentage,
+            diameter=self.diameter,
+            length=self.length,
+            thickness=self.thickness,
+            angle=self.angle,
+            metal_type=self.metal_type,
+        )
 
     def to_read_model_with_preview(self):
         preview_image = (

@@ -25,3 +25,4 @@ class CreateProductImageSchema(BaseProductImageSchema):
 
 class ReadProductImageSchema(BaseProductImageSchema):
     id: int = Field(ge=0)  # noqa
+    filename: str

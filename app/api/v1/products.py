@@ -1,4 +1,3 @@
-import json
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -8,8 +7,17 @@ from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
-from app.schemas.products import CreateProductSchema, ReadFiltersSchema, ReadFullProductSchema, ReadPreviewProductSchema
-from app.use_cases.products.create import AbstractCreateProductUseCase
+from app.schemas.products import (
+    BaseCreateProductVariationSchema,
+    CreateUniqueProductSchema,
+    ReadFiltersSchema,
+    ReadFullProductSchema,
+    ReadPreviewProductSchema,
+    ReadProductVariationSchema,
+    ReadUniqueProductSchema,
+)
+from app.use_cases.products.create_unique import AbstractCreateUniqueProductUseCase
+from app.use_cases.products.create_variations import AbstractCreateProductVariationsUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
@@ -56,40 +64,58 @@ async def get_products_by_likes_list(
     return ApiResponseSchema(data=await use_case.execute(ids=product_ids, uow=uow))
 
 
-@router.post(
-    "",
-    response_model=ApiResponseSchema[ReadFullProductSchema],
-)
-async def create_product(
+@router.post("", response_model=ApiResponseSchema[ReadUniqueProductSchema])
+async def create_unique(
     # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
-        AbstractCreateProductUseCase,
-        Depends(lambda: get_container().resolve(AbstractCreateProductUseCase)),
+        AbstractCreateUniqueProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractCreateUniqueProductUseCase)),
     ],
-    images: list[UploadFile] = File(...),
     name: str = Form(...),
     slug: str = Form(...),
     description: Optional[str] = Form(None),
-    price: float = Form(...),
     category_id: int = Form(...),
-    characteristics: Optional[str] = Form(None),
+    images: list[UploadFile] = File(...),
 ):
     try:
-        product_in = CreateProductSchema(
+        product_in = CreateUniqueProductSchema(
             name=name,
             slug=slug,
             description=description,
-            price=price,
             category_id=category_id,
-            characteristics=json.loads(characteristics) if characteristics else None,
         )
     except ValidationError as e:
         raise CustomPydanticValidationException(error=e)
     return ApiResponseSchema(
         data=await use_case.execute(
             product_in=product_in,
+            uow=uow,
             images=images,
+        ),
+    )
+
+
+@router.post(
+    "/{unique_product_id}",
+    response_model=ApiResponseSchema[list[ReadProductVariationSchema]],
+)
+async def create_variations(
+    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractCreateProductVariationsUseCase,
+        Depends(
+            lambda: get_container().resolve(AbstractCreateProductVariationsUseCase),
+        ),
+    ],
+    unique_product_id: int,
+    products_in: list[BaseCreateProductVariationSchema],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            unique_product_id=unique_product_id,
+            products_in=products_in,
             uow=uow,
         ),
     )

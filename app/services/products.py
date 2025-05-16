@@ -3,7 +3,13 @@ from typing import Optional
 
 from app.core.exceptions.common import ForeignKeyConstraintViolationException, UniqueConstraintViolationsException
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
-from app.schemas.products import CreateProductSchema, ReadFullProductSchema, ReadPreviewProductSchema, ReadProductSchema
+from app.schemas.products import (
+    CreateProductVariationSchema,
+    CreateUniqueProductSchema,
+    ReadFullProductSchema,
+    ReadPreviewProductSchema,
+    ReadUniqueProductSchema,
+)
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -41,11 +47,11 @@ class AbstractProductService(ABC):
     ) -> ReadFullProductSchema: ...
 
     @abstractmethod
-    async def create(
+    async def create_unique(
         self,
-        product_in: CreateProductSchema,
+        product_in: CreateUniqueProductSchema,
         uow: AbstractUnitOfWork,
-    ) -> ReadProductSchema: ...
+    ) -> ReadUniqueProductSchema: ...
 
     @abstractmethod
     async def get_filters(
@@ -60,6 +66,14 @@ class AbstractProductService(ABC):
         filters: ProductFiltersSchema,
         uow: AbstractUnitOfWork,
     ) -> list: ...
+
+    @abstractmethod
+    async def create_variations(
+        self,
+        unique_product_id: int,
+        products_in: list[CreateProductVariationSchema],
+        uow: AbstractUnitOfWork,
+    ): ...
 
 
 class ProductService(AbstractProductService):
@@ -101,12 +115,12 @@ class ProductService(AbstractProductService):
             product_variation_id=product_variation_id,
         )
 
-    async def create(
+    async def create_unique(
         self,
-        product_in: CreateProductSchema,
+        product_in: CreateUniqueProductSchema,
         uow: AbstractUnitOfWork,
-    ) -> ReadProductSchema:
-        if await uow.products.exists(slug=product_in.slug):
+    ) -> ReadUniqueProductSchema:
+        if await uow.unique_products.exists(slug=product_in.slug):
             raise UniqueConstraintViolationsException(
                 {"slug": "Продукт з цим url вже існує."},
             )
@@ -114,7 +128,7 @@ class ProductService(AbstractProductService):
             raise ForeignKeyConstraintViolationException(
                 {"category_id": "Категорія не існує."},
             )
-        return await uow.products.create(item_in=product_in)
+        return await uow.unique_products.create(item_in=product_in)
 
     async def get_filters(
         self,
@@ -129,3 +143,15 @@ class ProductService(AbstractProductService):
         uow: AbstractUnitOfWork,
     ) -> list:
         return await uow.products.get_min_max_price(filters=filters)
+
+    async def create_variations(
+        self,
+        unique_product_id: int,
+        products_in: list[CreateProductVariationSchema],
+        uow: AbstractUnitOfWork,
+    ):
+        if not await uow.unique_products.exists(id=unique_product_id):
+            raise ForeignKeyConstraintViolationException(
+                {"product_id": "Продукту не існує."},
+            )
+        return await uow.products.bulk_create(data_list=products_in)

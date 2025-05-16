@@ -11,13 +11,19 @@ from app.schemas.products import ReadPreviewProductSchema
 from app.utils.sql_repository import BaseRepository
 
 
-class ProductRepository(BaseRepository):
+class VariationProductRepository(BaseRepository):
     """Repository for performing CRUD operations on ProductVariation data."""
 
     model = ProductVariation
     default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
     default_order = [model.id]
     filter_characteristics = ["diameter", "length", "thickness", "angle", "metal_type"]
+
+    async def bulk_create(self, data_list: list) -> list:
+        instances = [self.model(**data.model_dump()) for data in data_list]
+        self.session.add_all(instances)
+        await self.session.flush(instances)
+        return [instance.to_read_base_model() for instance in instances]
 
     async def get_full(
         self,

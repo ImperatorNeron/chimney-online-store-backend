@@ -1,3 +1,4 @@
+import os
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String
@@ -30,6 +31,7 @@ class ProductImage(BaseModel, IdIntPkMixin):
             id=self.id,
             alt=self.alt,
             file_path=self.file_path,
+            filename=os.path.basename(self.file_path),
             product_id=self.product_id,
         )
 
