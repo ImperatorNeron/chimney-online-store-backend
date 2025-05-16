@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import distinct, func, or_, Select, select
+from sqlalchemy import distinct, func, or_, Result, Select, select
 from sqlalchemy.orm import aliased, selectinload
 
 from app.core.exceptions.common import ItemNotFoundException
@@ -54,8 +54,8 @@ class ProductRepository(BaseRepository):
             pagination_in=pagination_in,
         )
         result = await self.session.execute(query)
-        product_variations = result.scalars().all()
-        return [product.to_read_model_with_preview() for product in product_variations]
+        products = result.scalars().all()
+        return [product.to_read_model_with_preview() for product in products]
 
     async def count(self, filters: Optional[ProductFiltersSchema]) -> int:
         query = select(func.count()).select_from(self.model)
@@ -98,6 +98,16 @@ class ProductRepository(BaseRepository):
             "min_price": round(min_price, 2) if min_price is not None else 0,
             "max_price": round(max_price, 2) if max_price is not None else 0,
         }
+
+    async def list_products_by_ids(self, ids: list[int]):
+        query = (
+            select(self.model)
+            .options(*self.default_preload)
+            .where(self.model.id.in_(ids))
+        )
+        results: Result = await self.session.execute(query)
+        products = results.scalars().all()
+        return [product.to_read_model_with_preview() for product in products]
 
     def _apply_custom_filters(
         self,

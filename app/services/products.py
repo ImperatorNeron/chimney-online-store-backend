@@ -19,6 +19,13 @@ class AbstractProductService(ABC):
     ) -> list[ReadPreviewProductSchema]: ...
 
     @abstractmethod
+    async def get_products_by_ids(
+        self,
+        ids: list[int],
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadPreviewProductSchema]: ...
+
+    @abstractmethod
     async def get_products_count(
         self,
         uow: AbstractUnitOfWork,
@@ -68,6 +75,13 @@ class ProductService(AbstractProductService):
             filters=filters,
             sort_params=sort_params,
         )
+
+    async def get_products_by_ids(
+        self,
+        ids: list[int],
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadPreviewProductSchema]:
+        return await uow.products.list_products_by_ids(ids=ids)
 
     async def get_products_count(
         self,

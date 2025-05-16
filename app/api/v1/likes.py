@@ -7,7 +7,6 @@ from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.likes import CreateLikeSchema, ReadLikeSchema
 from app.schemas.users import ReadUserSchema
-from app.use_cases.like.count import AbstractCountUserLikesUseCase
 from app.use_cases.like.create import AbstractCreateLikeUseCase
 from app.use_cases.like.delete import AbstractDeleteLikeUseCase
 from app.use_cases.like.fetch_all import AbstractFetchLikesUseCase
@@ -17,10 +16,7 @@ from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 router = APIRouter(prefix="/like", tags=["Like"])
 
 
-@router.get(
-    "",
-    response_model=ApiResponseSchema[list[ReadLikeSchema]],
-)
+@router.get("", response_model=ApiResponseSchema[list[int]])
 async def get_likes_list(
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -37,31 +33,11 @@ async def get_likes_list(
     )
 
 
-@router.get(
-    "/count",
-    response_model=ApiResponseSchema[int],
-)
-async def get_likes_count(
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    use_case: Annotated[
-        AbstractCountUserLikesUseCase,
-        Depends(lambda: get_container().resolve(AbstractCountUserLikesUseCase)),
-    ],
-    user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
-):
-    return ApiResponseSchema(
-        data=await use_case.execute(
-            uow=uow,
-            user_id=user.id,
-        ),
-    )
-
-
 @router.post(
     "",
     response_model=ApiResponseSchema[ReadLikeSchema],
 )
-async def create_faq(
+async def create_like(
     product_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -81,9 +57,9 @@ async def create_faq(
     )
 
 
-@router.delete("/{like_id}")
-async def delete_faq(
-    like_id: int,
+@router.delete("/{product_id}")
+async def delete_like(
+    product_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractDeleteLikeUseCase,
@@ -94,7 +70,7 @@ async def delete_faq(
     return ApiResponseSchema(
         data=await use_case.execute(
             uow=uow,
-            like_id=like_id,
+            product_id=product_id,
             user_id=user.id,
         ),
     )

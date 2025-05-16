@@ -10,7 +10,7 @@ class AbstractDeleteLikeUseCase(ABC):
     @abstractmethod
     async def execute(
         self,
-        like_id: int,
+        product_id: int,
         user_id: int,
         uow: AbstractUnitOfWork,
     ) -> None: ...
@@ -22,13 +22,13 @@ class DeleteLikeUseCase(AbstractDeleteLikeUseCase):
 
     async def execute(
         self,
-        like_id: int,
+        product_id: int,
         user_id: int,
         uow: AbstractUnitOfWork,
     ) -> None:
         async with uow:
             return await self.like_service.delete(
-                like_id=like_id,
+                product_id=product_id,
                 user_id=user_id,
                 uow=uow,
             )

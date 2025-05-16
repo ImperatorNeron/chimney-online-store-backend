@@ -11,6 +11,7 @@ from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSch
 from app.schemas.products import CreateProductSchema, ReadFiltersSchema, ReadFullProductSchema, ReadPreviewProductSchema
 from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
+from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -43,26 +44,16 @@ async def get_products_list(
     )
 
 
-@router.get(
-    "/{product_slug}/{product_variation_id}",
-    response_model=ApiResponseSchema[ReadFullProductSchema],
-)
-async def fetch_product(
-    product_slug: str,
-    product_variation_id: int,
+@router.get("/by-ids", response_model=ApiResponseSchema[list[ReadPreviewProductSchema]])
+async def get_products_by_likes_list(
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
-        AbstractFetchProductUseCase,
-        Depends(lambda: get_container().resolve(AbstractFetchProductUseCase)),
+        AbstractFetchProductsByIdsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchProductsByIdsUseCase)),
     ],
+    product_ids: list[int] = Query(default=[]),
 ):
-    return ApiResponseSchema(
-        data=await use_case.execute(
-            product_slug=product_slug,
-            product_variation_id=product_variation_id,
-            uow=uow,
-        ),
-    )
+    return ApiResponseSchema(data=await use_case.execute(ids=product_ids, uow=uow))
 
 
 @router.post(
@@ -119,3 +110,25 @@ async def fetch_filters(
 ):
 
     return ApiResponseSchema(data=await use_case.execute(slug=slug, text=text, uow=uow))
+
+
+@router.get(
+    "/{product_slug}/{product_variation_id}",
+    response_model=ApiResponseSchema[ReadFullProductSchema],
+)
+async def fetch_product(
+    product_slug: str,
+    product_variation_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchProductUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            product_slug=product_slug,
+            product_variation_id=product_variation_id,
+            uow=uow,
+        ),
+    )

@@ -12,7 +12,7 @@ class AbstractLikeService(ABC):
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadLikeSchema]: ...
+    ) -> list[int]: ...
 
     @abstractmethod
     async def create(
@@ -24,17 +24,10 @@ class AbstractLikeService(ABC):
     @abstractmethod
     async def delete(
         self,
-        like_id: int,
+        product_id: int,
         user_id: int,
         uow: AbstractUnitOfWork,
     ) -> None: ...
-
-    @abstractmethod
-    async def count(
-        self,
-        user_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> int: ...
 
 
 class LikeService(AbstractLikeService):
@@ -43,8 +36,8 @@ class LikeService(AbstractLikeService):
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadLikeSchema]:
-        return await uow.like.all(filters={"user_id": user_id})
+    ) -> list[int]:
+        return await uow.like.all(user_id=user_id)
 
     async def create(
         self,
@@ -58,15 +51,8 @@ class LikeService(AbstractLikeService):
 
     async def delete(
         self,
-        like_id: int,
+        product_id: int,
         user_id: int,
         uow: AbstractUnitOfWork,
     ) -> None:
-        return await uow.like.delete(id=like_id, user_id=user_id)
-
-    async def count(
-        self,
-        user_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> int:
-        return await uow.like.count(user_id=user_id)
+        return await uow.like.delete(product_id=product_id, user_id=user_id)

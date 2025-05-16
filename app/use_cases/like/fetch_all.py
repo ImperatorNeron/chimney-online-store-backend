@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from app.schemas.likes import ReadLikeSchema
 from app.services.likes import AbstractLikeService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
@@ -13,7 +12,7 @@ class AbstractFetchLikesUseCase(ABC):
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadLikeSchema]: ...
+    ) -> list[int]: ...
 
 
 @dataclass
@@ -24,6 +23,6 @@ class FetchLikesUseCase(AbstractFetchLikesUseCase):
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadLikeSchema]:
+    ) -> list[int]:
         async with uow:
             return await self.like_service.fetch_all(user_id=user_id, uow=uow)

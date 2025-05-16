@@ -33,7 +33,6 @@ from app.use_cases.faq.delete import AbstractDeleteFAQUseCase, DeleteFAQUseCase
 from app.use_cases.faq.fetch_all import AbstractFetchFAQsUseCase, FetchFAQsUseCase
 from app.use_cases.faq.fetch_one import AbstractFetchFAQUseCase, FetchFAQUseCase
 from app.use_cases.faq.update import AbstractUpdateFAQUseCase, UpdateFAQUseCase
-from app.use_cases.like.count import AbstractCountUserLikesUseCase, CountUserLikesUseCase
 from app.use_cases.like.create import AbstractCreateLikeUseCase, CreateLikeUseCase
 from app.use_cases.like.delete import AbstractDeleteLikeUseCase, DeleteLikeUseCase
 from app.use_cases.like.fetch_all import AbstractFetchLikesUseCase, FetchLikesUseCase
@@ -46,6 +45,7 @@ from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrde
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
+from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, FetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
 from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
@@ -95,7 +95,6 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCreateLikeUseCase, CreateLikeUseCase)
     container.register(AbstractDeleteLikeUseCase, DeleteLikeUseCase)
     container.register(AbstractFetchLikesUseCase, FetchLikesUseCase)
-    container.register(AbstractCountUserLikesUseCase, CountUserLikesUseCase)
 
     # Message
     container.register(AbstractMessageService, MessageService)
@@ -111,6 +110,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchProductUseCase, FetchProductUseCase)
     container.register(AbstractCreateProductUseCase, CreateProductUseCase)
     container.register(AbstractFetchFiltersUseCase, FetchFiltersUseCase)
+    container.register(AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase)
 
     # User
     container.register(AbstractUserService, UserService)
