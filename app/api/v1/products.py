@@ -12,22 +12,30 @@ from app.schemas.products import (
     CreateUniqueProductSchema,
     ReadFiltersSchema,
     ReadFullProductSchema,
+    ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
     ReadUniqueProductSchema,
+    UpdateUniqueProductSchema,
 )
-from app.use_cases.products.create_unique import AbstractCreateUniqueProductUseCase
-from app.use_cases.products.create_variations import AbstractCreateProductVariationsUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
+from app.use_cases.products.unique.create_unique import AbstractCreateUniqueProductUseCase
+from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
+from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
+from app.use_cases.products.unique.update_unique import AbstractUpdateUniqueProductUseCase
+from app.use_cases.products.variation.create_variations import AbstractCreateProductVariationsUseCase
+from app.use_cases.products.variation.delete_variation import AbstractDeleteProductVariationUseCase
+from app.use_cases.products.variation.fetch_all_by_unique import AbstractFetchProductVariationsUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
 
+# Read ======================================================
 @router.get(
     "",
     response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
@@ -64,59 +72,46 @@ async def get_products_by_likes_list(
     return ApiResponseSchema(data=await use_case.execute(ids=product_ids, uow=uow))
 
 
-@router.post("", response_model=ApiResponseSchema[ReadUniqueProductSchema])
-async def create_unique(
-    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    use_case: Annotated[
-        AbstractCreateUniqueProductUseCase,
-        Depends(lambda: get_container().resolve(AbstractCreateUniqueProductUseCase)),
+@router.get(
+    "/unique",
+    response_model=ApiResponseSchema[
+        ListPaginatedResponse[ReadFullUniqueProductSchema]
     ],
-    name: str = Form(...),
-    slug: str = Form(...),
-    description: Optional[str] = Form(None),
-    category_id: int = Form(...),
-    images: list[UploadFile] = File(...),
+)
+async def get_unique_product_list(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    pagination_in: Annotated[PaginationIn, Depends()],
+    use_case: Annotated[
+        AbstractFetchUniqueProductsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchUniqueProductsUseCase)),
+    ],
 ):
-    try:
-        product_in = CreateUniqueProductSchema(
-            name=name,
-            slug=slug,
-            description=description,
-            category_id=category_id,
-        )
-    except ValidationError as e:
-        raise CustomPydanticValidationException(error=e)
     return ApiResponseSchema(
         data=await use_case.execute(
-            product_in=product_in,
             uow=uow,
-            images=images,
+            pagination_in=pagination_in,
         ),
     )
 
 
-@router.post(
-    "/{unique_product_id}",
-    response_model=ApiResponseSchema[list[ReadProductVariationSchema]],
+@router.get(
+    "/unique/{unique_product_id}/variation",
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadProductVariationSchema]],
 )
-async def create_variations(
-    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    use_case: Annotated[
-        AbstractCreateProductVariationsUseCase,
-        Depends(
-            lambda: get_container().resolve(AbstractCreateProductVariationsUseCase),
-        ),
-    ],
+async def get_product_variations_list(
     unique_product_id: int,
-    products_in: list[BaseCreateProductVariationSchema],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    pagination_in: Annotated[PaginationIn, Depends()],
+    use_case: Annotated[
+        AbstractFetchProductVariationsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchProductVariationsUseCase)),
+    ],
 ):
     return ApiResponseSchema(
         data=await use_case.execute(
-            unique_product_id=unique_product_id,
-            products_in=products_in,
             uow=uow,
+            unique_product_id=unique_product_id,
+            pagination_in=pagination_in,
         ),
     )
 
@@ -158,3 +153,131 @@ async def fetch_product(
             uow=uow,
         ),
     )
+
+
+# Create =====================================================================
+
+
+@router.post("/unique", response_model=ApiResponseSchema[ReadUniqueProductSchema])
+async def create_unique(
+    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractCreateUniqueProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractCreateUniqueProductUseCase)),
+    ],
+    name: str = Form(...),
+    slug: str = Form(...),
+    description: Optional[str] = Form(None),
+    category_id: int = Form(...),
+    images: list[UploadFile] = File(...),
+):
+    try:
+        product_in = CreateUniqueProductSchema(
+            name=name,
+            slug=slug,
+            description=description,
+            category_id=category_id,
+        )
+    except ValidationError as e:
+        raise CustomPydanticValidationException(error=e)
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            product_in=product_in,
+            uow=uow,
+            images=images,
+        ),
+    )
+
+
+@router.post(
+    "/unique/{unique_product_id}/variation",
+    response_model=ApiResponseSchema[list[ReadProductVariationSchema]],
+)
+async def create_variations(
+    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractCreateProductVariationsUseCase,
+        Depends(
+            lambda: get_container().resolve(AbstractCreateProductVariationsUseCase),
+        ),
+    ],
+    unique_product_id: int,
+    products_in: list[BaseCreateProductVariationSchema],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            unique_product_id=unique_product_id,
+            products_in=products_in,
+            uow=uow,
+        ),
+    )
+
+
+# Update =====================================================================
+
+
+@router.patch(
+    "/unique/{unique_product_id}",
+    response_model=ApiResponseSchema[ReadUniqueProductSchema],
+)
+async def update_unique(
+    unique_product_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractUpdateUniqueProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractUpdateUniqueProductUseCase)),
+    ],
+    deleted_images_ids: list[int] = Query(default=[]),
+    name: str = Form(...),
+    slug: str = Form(...),
+    description: Optional[str] = Form(None),
+    category_id: int = Form(...),
+    images: list[UploadFile] = File(...),
+):
+    try:
+        product_in = UpdateUniqueProductSchema(
+            name=name,
+            slug=slug,
+            description=description,
+            category_id=category_id,
+        )
+    except ValidationError as e:
+        raise CustomPydanticValidationException(error=e)
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            unique_product_id=unique_product_id,
+            deleted_images_ids=deleted_images_ids,
+            product_in=product_in,
+            uow=uow,
+            images=images,
+        ),
+    )
+
+
+# Delete =====================================================================
+
+
+@router.delete("/unique/{unique_product_id}", response_model=None)
+async def delete_unique(
+    unique_product_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractDeleteUniqueProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractDeleteUniqueProductUseCase)),
+    ],
+):
+    await use_case.execute(unique_product_id=unique_product_id, uow=uow)
+
+
+@router.delete("/variation/{product_variation_id}", response_model=None)
+async def delete_variation(
+    product_variation_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractDeleteProductVariationUseCase,
+        Depends(lambda: get_container().resolve(AbstractDeleteProductVariationUseCase)),
+    ],
+):
+    await use_case.execute(product_variation_id=product_variation_id, uow=uow)

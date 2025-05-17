@@ -56,6 +56,10 @@ class ReadUniqueProductSchema(BaseModel, SlugValidatorMixin):
     updated_at: datetime
 
 
+class ReadFullUniqueProductSchema(ReadUniqueProductSchema):
+    images: list[ReadProductImageSchema]
+
+
 class CreateUniqueProductSchema(BaseModel, SlugValidatorMixin):
     name: str = Field(..., min_length=2, max_length=200, example="Sample Product")
     slug: str = Field(..., min_length=2, max_length=255, example="sample-product")
@@ -64,6 +68,20 @@ class CreateUniqueProductSchema(BaseModel, SlugValidatorMixin):
         example="This is a sample product description.",
     )
     category_id: int = Field(..., ge=0, example=1)
+
+
+class UpdateUniqueProductSchema(BaseModel):
+    name: Optional[str] = Field(
+        None, min_length=2, max_length=200, example="Sample Product",
+    )
+    slug: Optional[str] = Field(
+        None, min_length=2, max_length=255, example="sample-product",
+    )
+    description: Optional[str] = Field(
+        None,
+        example="This is a sample product description.",
+    )
+    category_id: Optional[int] = Field(None, ge=0, example=1)
 
 
 class ReadFiltersSchema(BaseModel):

@@ -8,6 +8,7 @@ from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
 from app.schemas.products import (
     ReadFullProductSchema,
+    ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
     ReadProductSchema,
     ReadProductVariationSchema,
@@ -35,7 +36,8 @@ class UniqueProduct(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         cascade="all, delete-orphan",
     )
     variations: Mapped[list["ProductVariation"]] = relationship(
-        back_populates="product", cascade="all, delete-orphan",
+        back_populates="product",
+        cascade="all, delete-orphan",
     )
 
     def to_read_model(self):
@@ -47,6 +49,12 @@ class UniqueProduct(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             category_id=self.category_id,
             created_at=self.created_at,
             updated_at=self.updated_at,
+        )
+
+    def to_read_full_model(self):
+        images_schemas = [image.to_read_model() for image in self.images]
+        return ReadFullUniqueProductSchema(
+            **self.to_read_model().model_dump(), images=images_schemas,
         )
 
 
@@ -79,10 +87,12 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
 
     product: Mapped[UniqueProduct] = relationship(back_populates="variations")
     cart_items: Mapped[list["CartItem"]] = relationship(
-        back_populates="product", cascade="all, delete-orphan",
+        back_populates="product",
+        cascade="all, delete-orphan",
     )
     order_items: Mapped[list["OrderItem"]] = relationship(
-        back_populates="product", cascade="all, delete-orphan",
+        back_populates="product",
+        cascade="all, delete-orphan",
     )
     likes: Mapped[list["Like"]] = relationship(
         back_populates="product",

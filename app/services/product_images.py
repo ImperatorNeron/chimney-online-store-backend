@@ -13,6 +13,13 @@ class AbstractProductImageService(ABC):
         uow: AbstractUnitOfWork,
     ) -> list[ReadProductImageSchema]: ...
 
+    @abstractmethod
+    async def delete_by_ids(
+        self,
+        ids: list[int],
+        uow: AbstractUnitOfWork,
+    ) -> None: ...
+
 
 class ProductImageService(AbstractProductImageService):
 
@@ -22,3 +29,10 @@ class ProductImageService(AbstractProductImageService):
         uow: AbstractUnitOfWork,
     ) -> list[ReadProductImageSchema]:
         return await uow.products_images.bulk_create(data_list=images)
+
+    async def delete_by_ids(
+        self,
+        ids: list[int],
+        uow: AbstractUnitOfWork,
+    ) -> None:
+        return await uow.products_images.delete_by_ids(ids=ids)

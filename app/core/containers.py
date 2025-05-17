@@ -43,15 +43,26 @@ from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase, FetchA
 from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderUseCase
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
-from app.use_cases.products.create_unique import AbstractCreateUniqueProductUseCase, CreateUniqueProductUseCase
-from app.use_cases.products.create_variations import (
-    AbstractCreateProductVariationsUseCase,
-    CreateProductVariationsUseCase,
-)
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, FetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
+from app.use_cases.products.unique.create_unique import AbstractCreateUniqueProductUseCase, CreateUniqueProductUseCase
+from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase
+from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase
+from app.use_cases.products.unique.update_unique import AbstractUpdateUniqueProductUseCase, UpdateUniqueProductUseCase
+from app.use_cases.products.variation.create_variations import (
+    AbstractCreateProductVariationsUseCase,
+    CreateProductVariationsUseCase,
+)
+from app.use_cases.products.variation.delete_variation import (
+    AbstractDeleteProductVariationUseCase,
+    DeleteProductVariationUseCase,
+)
+from app.use_cases.products.variation.fetch_all_by_unique import (
+    AbstractFetchProductVariationsUseCase,
+    FetchProductVariationsUseCase,
+)
 from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
 
 
@@ -116,6 +127,11 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCreateProductVariationsUseCase, CreateProductVariationsUseCase)
     container.register(AbstractFetchFiltersUseCase, FetchFiltersUseCase)
     container.register(AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase)
+    container.register(AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase)
+    container.register(AbstractDeleteProductVariationUseCase, DeleteProductVariationUseCase)
+    container.register(AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase)
+    container.register(AbstractFetchProductVariationsUseCase, FetchProductVariationsUseCase)
+    container.register(AbstractUpdateUniqueProductUseCase, UpdateUniqueProductUseCase)
 
     # User
     container.register(AbstractUserService, UserService)

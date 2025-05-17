@@ -7,7 +7,7 @@ from app.core.exceptions.common import ItemNotFoundException
 from app.models.categories import Category
 from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
-from app.schemas.products import ReadPreviewProductSchema
+from app.schemas.products import ReadPreviewProductSchema, ReadProductVariationSchema
 from app.utils.sql_repository import BaseRepository
 
 
@@ -63,7 +63,24 @@ class VariationProductRepository(BaseRepository):
         products = result.scalars().all()
         return [product.to_read_model_with_preview() for product in products]
 
-    async def count(self, filters: Optional[ProductFiltersSchema]) -> int:
+    async def all(  # noqa
+        self,
+        filters: Optional[dict] = None,
+        order_by: Optional[list[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        options: Optional[list] = None,
+    ) -> list[ReadProductVariationSchema]:
+        models = await self._all_models(
+            filters=filters,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
+            options=options,
+        )
+        return [model.to_read_base_model() for model in models]
+
+    async def count_filtered(self, filters: Optional[ProductFiltersSchema]) -> int:
         query = select(func.count()).select_from(self.model)
         query = self._apply_custom_filters(query=query, filters=filters)
         return (await self.session.execute(query)).scalar_one()

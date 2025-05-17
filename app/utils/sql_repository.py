@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import insert, Select, select
+from sqlalchemy import func, insert, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions.common import ItemNotFoundException, MultipleResultsFound, RepositoryException
@@ -204,6 +204,12 @@ class BaseRepository:
     ) -> None:  # noqa
         instance = await self._get_model(**filters)
         await self.session.delete(instance)
+
+    async def count(self, **filters: Any) -> int:
+        query = select(func.count()).select_from(self.model)
+        if filters:
+            query = self._apply_filters(query, filters)
+        return (await self.session.execute(query)).scalar_one()
 
     async def exists(self, **filters: Any) -> bool:
         query = select(1).select_from(self.model)

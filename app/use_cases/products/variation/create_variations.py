@@ -18,7 +18,7 @@ class AbstractCreateProductVariationsUseCase(ABC):
         unique_product_id: int,
         products_in: list[BaseCreateProductVariationSchema],
         uow: AbstractUnitOfWork,
-    ) -> ReadProductVariationSchema: ...
+    ) -> list[ReadProductVariationSchema]: ...
 
 
 @dataclass
@@ -31,7 +31,7 @@ class CreateProductVariationsUseCase(AbstractCreateProductVariationsUseCase):
         unique_product_id: int,
         products_in: list[BaseCreateProductVariationSchema],
         uow: AbstractUnitOfWork,
-    ) -> ReadProductVariationSchema:
+    ) -> list[ReadProductVariationSchema]:
         async with uow:
             products = [
                 CreateProductVariationSchema(
