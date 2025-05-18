@@ -34,6 +34,13 @@ class AbstractMessageService(ABC):
         message_in: CreateMessageSchema,
     ) -> ReadMessageSchema: ...
 
+    @abstractmethod
+    async def delete_message(
+        self,
+        message_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> None: ...
+
 
 class MessageService(AbstractMessageService):
 
@@ -43,6 +50,7 @@ class MessageService(AbstractMessageService):
         uow: AbstractUnitOfWork,
     ) -> list[ReadMessageSchema]:
         return await uow.messages.all(
+            order_by=["-created_at"],
             limit=pagination_in.limit,
             offset=pagination_in.offset,
         )
@@ -66,3 +74,10 @@ class MessageService(AbstractMessageService):
         message_in: CreateMessageSchema,
     ) -> ReadMessageSchema:
         return await uow.messages.create(item_in=message_in)
+
+    async def delete_message(
+        self,
+        message_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> None:
+        await uow.messages.delete(id=message_id)

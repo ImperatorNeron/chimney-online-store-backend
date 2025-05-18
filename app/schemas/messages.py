@@ -1,7 +1,9 @@
-from datetime import datetime
 import re
-from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
+
 from markupsafe import escape
+from pydantic import BaseModel, Field, field_validator
+
 
 class BaseMessageSchema(BaseModel):
     user_name: str = Field(
@@ -35,10 +37,10 @@ class BaseMessageSchema(BaseModel):
         allowed_pattern = r"^[a-zA-Zа-яА-ЯїЇіІєЄґҐ'`\s-]+$"
         if not re.match(allowed_pattern, value):
             raise ValueError(
-                "Name can only contain letters, spaces, apostrophes, and hyphens"
+                "Name can only contain letters, spaces, apostrophes, and hyphens",
             )
         return value
-    
+
     @field_validator("message")
     @classmethod
     def escape_html(cls, value):
@@ -47,7 +49,7 @@ class BaseMessageSchema(BaseModel):
 
 class ReadMessageSchema(BaseMessageSchema):
     id: int  # noqa
-    created_at: datetime = Field(None, title="Timestamp when the message was created")
+    created_at: datetime = Field(title="Timestamp when the message was created")
 
 
 class CreateMessageSchema(BaseMessageSchema):

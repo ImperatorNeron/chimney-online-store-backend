@@ -7,6 +7,7 @@ from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn
 from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase
+from app.use_cases.messages.delete import AbstractDeleteMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -66,4 +67,23 @@ async def create_message(
 ):
     return ApiResponseSchema(
         data=await use_case.execute(message_in=message_in, uow=uow),
+    )
+
+
+@router.delete(
+    "/{message_id}",
+    response_model=None,
+    summary="Delete new message",
+)
+async def delete_message(
+    message_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractDeleteMessageUseCase,
+        Depends(lambda: get_container().resolve(AbstractDeleteMessageUseCase)),
+    ],
+):
+    await use_case.execute(
+        message_id=message_id,
+        uow=uow,
     )
