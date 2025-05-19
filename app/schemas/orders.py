@@ -103,6 +103,7 @@ class BaseOrderSchema(OrderFields):
         pattern="^(pending|processing|shipped|delivered|cancelled)$",
         description="Invalid order status",
     )
+    waybill_number: Optional[str] = Field(None, max_length=30)
     created_at: datetime
     updated_at: datetime
     price_discount: float = Field(0, ge=0)
@@ -127,3 +128,13 @@ class CreateOrderSchema(OrderFields):
 
 class CreateOrderWithUserSchema(OrderFields, UserIdField):
     pass
+
+
+class UpdateOrderSchema(BaseModel):
+    status: Optional[str] = Field(
+        default="pending",
+        pattern="^(pending|processing|shipped|delivered|cancelled)$",
+        description="Invalid order status",
+    )
+    waybill_number: Optional[str] = Field(None, max_length=30)
+    price_discount: float = Field(..., ge=0)

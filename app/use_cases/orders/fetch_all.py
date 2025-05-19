@@ -30,7 +30,6 @@ class FetchOrdersUseCase(AbstractFetchOrdersUseCase):
                     **order.model_dump(),
                     total_price=await self.order_service.get_total_price(
                         order_items=order.items,
-                        price_discount=order.price_discount,
                     ),
                     total_quantity=await self.order_service.get_total_quantity(
                         order.items,

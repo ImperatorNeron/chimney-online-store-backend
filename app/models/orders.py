@@ -14,6 +14,7 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     phone_number: Mapped[str] = mapped_column(String(20))
     email: Mapped[str] = mapped_column(String(320))
     address: Mapped[str] = mapped_column(String(200))
+    waybill_number: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
     price_discount: Mapped[float] = mapped_column(
         Numeric(10, 2),
         default=0,
@@ -65,6 +66,7 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             "phone_number": self.phone_number,
             "email": self.email,
             "address": self.address,
+            "waybill_number": self.waybill_number,
             "shipping_method": self.shipping_method,
             "payment_method": self.payment_method,
             "price_discount": (
@@ -87,7 +89,9 @@ class OrderItem(BaseModel, IdIntPkMixin):
     quantity: Mapped[int] = mapped_column(Integer)
     price_at_order: Mapped[float] = mapped_column(Numeric(10, 2))
     order: Mapped[Order] = relationship("Order", back_populates="items")
-    product: Mapped["ProductVariation"] = relationship("ProductVariation", back_populates="order_items")
+    product: Mapped["ProductVariation"] = relationship(
+        "ProductVariation", back_populates="order_items",
+    )
 
     def to_read_model(self):
         return ReadOrderItemSchema(

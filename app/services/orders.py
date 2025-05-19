@@ -7,6 +7,7 @@ from app.schemas.orders import (
     ReadOrderItemBaseSchema,
     ReadOrderItemSchema,
     ReadOrderSchema,
+    UpdateOrderSchema,
 )
 from app.utils.unit_of_work import AbstractUnitOfWork
 
@@ -37,7 +38,6 @@ class AbstractOrderService(ABC):
     async def get_total_price(
         self,
         order_items: list[ReadOrderItemSchema],
-        price_discount: float,
     ) -> float: ...
 
     @abstractmethod
@@ -59,6 +59,14 @@ class AbstractOrderService(ABC):
         cart_items: list[CreateOrderItemSchema],
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderItemBaseSchema]: ...
+
+    @abstractmethod
+    async def update_info(
+        self,
+        order_id: int,
+        order_in: UpdateOrderSchema,
+        uow: AbstractUnitOfWork,
+    ) -> ReadOrderBaseSchema: ...
 
 
 class OrderService(AbstractOrderService):
@@ -86,10 +94,9 @@ class OrderService(AbstractOrderService):
     async def get_total_price(
         self,
         order_items: list[ReadOrderItemSchema],
-        price_discount: float,
     ) -> float:
         return round(
-            sum(item.price_at_order for item in order_items) - price_discount,
+            sum(item.price_at_order for item in order_items),
             2,
         )
 
@@ -112,3 +119,14 @@ class OrderService(AbstractOrderService):
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderItemBaseSchema]:
         return await uow.order_item.bulk_create(data_list=items)
+
+    async def update_info(
+        self,
+        order_id: int,
+        order_in: UpdateOrderSchema,
+        uow: AbstractUnitOfWork,
+    ) -> ReadOrderBaseSchema:
+        return await uow.order.update(
+            order_id=order_id,
+            order_in=order_in,
+        )
