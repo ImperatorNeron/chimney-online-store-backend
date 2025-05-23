@@ -35,6 +35,20 @@ class AbstractCategoryService(ABC):
         uow: AbstractUnitOfWork,
     ) -> None: ...
 
+    @abstractmethod
+    async def get_category_hierarchy(
+        self,
+        category_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> list[list[str]]: ...
+
+    @abstractmethod
+    async def get_category_names_from_slugs(
+        self,
+        slugs: list[list[str]],
+        uow: AbstractUnitOfWork,
+    ) -> list[str]: ...
+
 
 class CategoryService(AbstractCategoryService):
 
@@ -53,7 +67,9 @@ class CategoryService(AbstractCategoryService):
             raise UniqueConstraintViolationsException(
                 {"slug": "Категорія з цим url вже існує."},
             )
-        if category_in.parent_id and not await uow.categories.exists(id=category_in.parent_id):
+        if category_in.parent_id and not await uow.categories.exists(
+            id=category_in.parent_id,
+        ):
             raise ForeignKeyConstraintViolationException(
                 {"parent_id": "Категорія не існує."},
             )
@@ -88,3 +104,17 @@ class CategoryService(AbstractCategoryService):
         uow: AbstractUnitOfWork,
     ) -> None:
         return await uow.categories.delete(id=category_id)
+
+    async def get_category_hierarchy(
+        self,
+        category_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> list[list[str]]:
+        return await uow.categories.get_category_hierarchy(category_id=category_id)
+
+    async def get_category_names_from_slugs(
+        self,
+        slugs: list[str],
+        uow: AbstractUnitOfWork,
+    ) -> list[list[str]]:
+        return await uow.categories.get_category_names_from_slugs(slugs=slugs)

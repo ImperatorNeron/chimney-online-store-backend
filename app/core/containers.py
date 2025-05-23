@@ -27,6 +27,7 @@ from app.use_cases.cart.merge import AbstractMergeCartsUseCase, MergeCartsUseCas
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase, CreateCategoryUseCase
 from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase, DeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase, FetchCategoriesUseCase
+from app.use_cases.categories.get_names_from_slugs import AbstractFetchNamesFromSlugsUseCase, FetchNamesFromSlugsUseCase
 from app.use_cases.categories.update import AbstractUpdateCategoryUseCase, UpdateCategoryUseCase
 from app.use_cases.faq.create import AbstractCreateFAQUseCase, CreateFAQUseCase
 from app.use_cases.faq.delete import AbstractDeleteFAQUseCase, DeleteFAQUseCase
@@ -91,6 +92,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCreateCategoryUseCase, CreateCategoryUseCase)
     container.register(AbstractUpdateCategoryUseCase, UpdateCategoryUseCase)
     container.register(AbstractDeleteCategoryUseCase, DeleteCategoryUseCase)
+    container.register(AbstractFetchNamesFromSlugsUseCase, FetchNamesFromSlugsUseCase)
 
     # FAQ
     container.register(AbstractFAQService, FAQService)

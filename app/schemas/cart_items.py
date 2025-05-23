@@ -6,14 +6,14 @@ from app.schemas.products import ReadPreviewProductSchema
 class ReadCartItemSchema(BaseModel):
     id: int = Field(..., gt=0)  # noqa
     cart_id: int = Field(..., ge=0)
-    quantity: int = Field(..., ge=1, le=100)
+    quantity: int = Field(..., ge=1)
     product_id: int = Field(..., gt=0)
 
 
 class ReadCartItemWithProductSchema(BaseModel):
     id: int = Field(..., gt=0)  # noqa
     cart_id: int = Field(..., ge=0)
-    quantity: int = Field(..., ge=1, le=100)
+    quantity: int = Field(..., ge=1)
     product: ReadPreviewProductSchema
 
 
@@ -23,15 +23,15 @@ class ReadCartItemWithTotalPriceSchema(ReadCartItemWithProductSchema):
 
 class CreateCartItemSchema(BaseModel):
     cart_id: int = Field(..., ge=0)
-    quantity: int = Field(..., ge=1, le=100)
+    quantity: int = Field(..., ge=1)
     product_id: int = Field(..., gt=0)
 
 
 class CreateCartItemWithoutCartIdSchema(BaseModel):
-    quantity: int = Field(..., ge=1, le=100)
+    quantity: int = Field(..., ge=1)
     product_id: int = Field(..., gt=0)
 
 
 class UpdateCartItemQuantity(BaseModel):
     action: str = Field(..., pattern="^(increment|decrement)$")
-    quantity: int = Field(..., ge=1, le=100)
+    quantity: int = Field(..., ge=1)

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
@@ -8,6 +8,7 @@ from app.schemas.categories import CreateCategorySchema, ReadCategorySchema, Upd
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase
 from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase
+from app.use_cases.categories.get_names_from_slugs import AbstractFetchNamesFromSlugsUseCase
 from app.use_cases.categories.update import AbstractUpdateCategoryUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
@@ -24,6 +25,18 @@ async def get_categories_list(
     ],
 ):
     return ApiResponseSchema(data=await use_case.execute(uow=uow))
+
+
+@router.get("/by-slugs", response_model=ApiResponseSchema[list[list[str, str]]])
+async def get_categories_list_by_slugs(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchNamesFromSlugsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchNamesFromSlugsUseCase)),
+    ],
+    slugs: list[str] = Query(...),
+):
+    return ApiResponseSchema(data=await use_case.execute(slugs=slugs, uow=uow))
 
 
 @router.post("", response_model=ApiResponseSchema[ReadCategorySchema])

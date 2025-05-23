@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from app.api.v1.dependencies import get_current_active_auth_user
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
-from app.schemas.users import ReadUserSchema, UserUpdateSchema
+from app.schemas.users import ReadUserSchema, UserUpdateWithPasswordSchema
 from app.use_cases.users.update import AbstractUpdateUserUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
@@ -28,7 +28,7 @@ async def get_authenticated_user_profile(
     response_model=ApiResponseSchema[ReadUserSchema],
 )
 async def update_authenticated_user_profile(
-    user_in: UserUpdateSchema,
+    user_in: UserUpdateWithPasswordSchema,
     user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[

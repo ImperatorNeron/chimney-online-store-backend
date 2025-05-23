@@ -13,7 +13,7 @@ from app.schemas.products import (
     CreateUniqueProductSchema,
     ReadAbsoluteProductSchema,
     ReadFiltersSchema,
-    ReadFullProductSchema,
+    ReadFullProductWithCategoryHierarchySchema,
     ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
@@ -155,7 +155,7 @@ async def fetch_absolute_product(
 
 @router.get(
     "/{product_slug}/{product_variation_id}",
-    response_model=ApiResponseSchema[ReadFullProductSchema],
+    response_model=ApiResponseSchema[ReadFullProductWithCategoryHierarchySchema],
 )
 async def fetch_product(
     product_slug: str,

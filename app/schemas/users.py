@@ -122,4 +122,32 @@ class LoginUserSchema(UsernameField, PasswordField):
 
 
 class UserUpdateSchema(BaseUserFields):
-    pass
+    hashed_password: Optional[bytes] = Field(None, title="Hashed user's password")
+
+
+class UserUpdateWithPasswordSchema(BaseUserFields):
+    password: Optional[str] = Field(
+        None,
+        min_length=4,
+        max_length=255,
+        title="User's password for registration",
+        examples=["YouPass123"],
+    )
+    confirm_password: Optional[str] = Field(
+        None,
+        min_length=4,
+        max_length=255,
+        title="User's confirm password for registration",
+        examples=["YouPass123"],
+    )
+
+    @model_validator(mode="after")
+    def check_passwords_match(self):
+        if self.password or self.confirm_password:
+            if not self.password or not self.confirm_password:
+                raise ValueError(
+                    "Обидва поля 'password' та 'confirm_password' повинні бути заповнені",
+                )
+            if self.password != self.confirm_password:
+                raise ValueError("Паролі не співпадають")
+        return self

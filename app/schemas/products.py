@@ -41,6 +41,10 @@ class ReadFullProductSchema(ReadProductSchema):
     images: list[ReadProductImageSchema]
 
 
+class ReadFullProductWithCategoryHierarchySchema(ReadFullProductSchema):
+    categories: list[list[str]]
+
+
 # -----------------------------------------------
 
 
