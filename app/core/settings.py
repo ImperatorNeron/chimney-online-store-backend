@@ -63,8 +63,8 @@ class SessionSettings(BaseModel):
 class ImageSettings(BaseModel):
     upload_dir: Path = BASE_DIR / "images"
     max_size: int = 10 * 1024 * 1024
-    allowed_mime_types: set = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
-    allowed_extensions: set = {".jpg", ".jpeg", ".png", ".webp"}
+    allowed_mime_types: list = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    allowed_extensions: list = [".jpg", ".jpeg", ".png", ".webp"]
 
 
 class Settings(BaseSettings):

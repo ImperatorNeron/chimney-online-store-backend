@@ -1,9 +1,10 @@
 from typing import Optional
 
+from pydantic import BaseModel
 from sqlalchemy import distinct, func, or_, Result, Select, select
 from sqlalchemy.orm import aliased, selectinload
 
-from app.core.exceptions.common import ItemNotFoundException
+from app.core.exceptions.common import ItemNotFoundException, RepositoryException
 from app.models.categories import Category
 from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
@@ -24,6 +25,17 @@ class VariationProductRepository(BaseRepository):
         self.session.add_all(instances)
         await self.session.flush(instances)
         return [instance.to_read_base_model() for instance in instances]
+
+    async def update(self, id: int, item_in: BaseModel):  # noqa
+        instance = await self._get_model(id=id)
+        try:
+            for field, value in item_in.model_dump(exclude_unset=True).items():
+                setattr(instance, field, value)
+            await self.session.flush([instance])
+            await self.session.refresh(instance)
+            return instance.to_read_base_model()
+        except Exception:
+            raise RepositoryException()
 
     async def get_full(
         self,

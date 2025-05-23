@@ -45,22 +45,15 @@ from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderU
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.orders.update import AbstractUpdateOrderUseCase, UpdateOrderUseCase
+from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
+from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, FetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase, FetchProductUseCase
-from app.use_cases.products.unique.create_unique import AbstractCreateUniqueProductUseCase, CreateUniqueProductUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase
-from app.use_cases.products.unique.update_unique import AbstractUpdateUniqueProductUseCase, UpdateUniqueProductUseCase
-from app.use_cases.products.variation.create_variations import (
-    AbstractCreateProductVariationsUseCase,
-    CreateProductVariationsUseCase,
-)
-from app.use_cases.products.variation.delete_variation import (
-    AbstractDeleteProductVariationUseCase,
-    DeleteProductVariationUseCase,
-)
+from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductUseCase
 from app.use_cases.products.variation.fetch_all_by_unique import (
     AbstractFetchProductVariationsUseCase,
     FetchProductVariationsUseCase,
@@ -126,15 +119,14 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFileUploadService, FileUploadService)
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
     container.register(AbstractFetchProductUseCase, FetchProductUseCase)
-    container.register(AbstractCreateUniqueProductUseCase, CreateUniqueProductUseCase)
-    container.register(AbstractCreateProductVariationsUseCase, CreateProductVariationsUseCase)
     container.register(AbstractFetchFiltersUseCase, FetchFiltersUseCase)
     container.register(AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase)
     container.register(AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase)
-    container.register(AbstractDeleteProductVariationUseCase, DeleteProductVariationUseCase)
     container.register(AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase)
     container.register(AbstractFetchProductVariationsUseCase, FetchProductVariationsUseCase)
-    container.register(AbstractUpdateUniqueProductUseCase, UpdateUniqueProductUseCase)
+    container.register(AbstractCreateProductUseCase, CreateProductUseCase)
+    container.register(AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase)
+    container.register(AbstractUpdateProductUseCase, UpdateProductUseCase)
 
     # User
     container.register(AbstractUserService, UserService)

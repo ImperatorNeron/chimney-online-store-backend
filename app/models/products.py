@@ -54,7 +54,8 @@ class UniqueProduct(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     def to_read_full_model(self):
         images_schemas = [image.to_read_model() for image in self.images]
         return ReadFullUniqueProductSchema(
-            **self.to_read_model().model_dump(), images=images_schemas,
+            **self.to_read_model().model_dump(),
+            images=images_schemas,
         )
 
 
@@ -131,6 +132,7 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
             id=self.id,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            price=self.price,
             discount_price=self.price - (self.price * self.discount_percentage) / 100,
             discount_percentage=self.discount_percentage,
             diameter=self.diameter,

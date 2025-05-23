@@ -1,3 +1,4 @@
+import json
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -10,24 +11,24 @@ from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSch
 from app.schemas.products import (
     BaseCreateProductVariationSchema,
     CreateUniqueProductSchema,
+    ReadAbsoluteProductSchema,
     ReadFiltersSchema,
     ReadFullProductSchema,
     ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
-    ReadUniqueProductSchema,
     UpdateUniqueProductSchema,
+    UpdateVariationSchema,
 )
+from app.use_cases.products.create import AbstractCreateProductUseCase
+from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
-from app.use_cases.products.unique.create_unique import AbstractCreateUniqueProductUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
-from app.use_cases.products.unique.update_unique import AbstractUpdateUniqueProductUseCase
-from app.use_cases.products.variation.create_variations import AbstractCreateProductVariationsUseCase
-from app.use_cases.products.variation.delete_variation import AbstractDeleteProductVariationUseCase
+from app.use_cases.products.update import AbstractUpdateProductUseCase
 from app.use_cases.products.variation.fetch_all_by_unique import AbstractFetchProductVariationsUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
@@ -134,6 +135,25 @@ async def fetch_filters(
 
 
 @router.get(
+    "/{product_slug}", response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+)
+async def fetch_absolute_product(
+    product_slug: str,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchAbsoluteProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchAbsoluteProductUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            product_slug=product_slug,
+            uow=uow,
+        ),
+    )
+
+
+@router.get(
     "/{product_slug}/{product_variation_id}",
     response_model=ApiResponseSchema[ReadFullProductSchema],
 )
@@ -158,19 +178,21 @@ async def fetch_product(
 # Create =====================================================================
 
 
-@router.post("/unique", response_model=ApiResponseSchema[ReadUniqueProductSchema])
-async def create_unique(
-    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
+@router.post("/", response_model=ApiResponseSchema[ReadAbsoluteProductSchema])
+async def create_product(
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
-        AbstractCreateUniqueProductUseCase,
-        Depends(lambda: get_container().resolve(AbstractCreateUniqueProductUseCase)),
+        AbstractCreateProductUseCase,
+        Depends(
+            lambda: get_container().resolve(AbstractCreateProductUseCase),
+        ),
     ],
     name: str = Form(...),
     slug: str = Form(...),
     description: Optional[str] = Form(None),
     category_id: int = Form(...),
     images: list[UploadFile] = File(...),
+    variations_json: str = Form(...),
 ):
     try:
         product_in = CreateUniqueProductSchema(
@@ -179,37 +201,15 @@ async def create_unique(
             description=description,
             category_id=category_id,
         )
+        variations = json.loads(variations_json)
+        variations_in = [BaseCreateProductVariationSchema(**v) for v in variations]
     except ValidationError as e:
         raise CustomPydanticValidationException(error=e)
     return ApiResponseSchema(
         data=await use_case.execute(
             product_in=product_in,
-            uow=uow,
+            variations_in=variations_in,
             images=images,
-        ),
-    )
-
-
-@router.post(
-    "/unique/{unique_product_id}/variation",
-    response_model=ApiResponseSchema[list[ReadProductVariationSchema]],
-)
-async def create_variations(
-    # user: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    use_case: Annotated[
-        AbstractCreateProductVariationsUseCase,
-        Depends(
-            lambda: get_container().resolve(AbstractCreateProductVariationsUseCase),
-        ),
-    ],
-    unique_product_id: int,
-    products_in: list[BaseCreateProductVariationSchema],
-):
-    return ApiResponseSchema(
-        data=await use_case.execute(
-            unique_product_id=unique_product_id,
-            products_in=products_in,
             uow=uow,
         ),
     )
@@ -219,42 +219,52 @@ async def create_variations(
 
 
 @router.patch(
-    "/unique/{unique_product_id}",
-    response_model=ApiResponseSchema[ReadUniqueProductSchema],
+    "/{product_id}", response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
 )
-async def update_unique(
-    unique_product_id: int,
+async def update_product(
+    product_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
-        AbstractUpdateUniqueProductUseCase,
-        Depends(lambda: get_container().resolve(AbstractUpdateUniqueProductUseCase)),
+        AbstractUpdateProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractUpdateProductUseCase)),
     ],
-    deleted_images_ids: list[int] = Query(default=[]),
-    name: str = Form(...),
-    slug: str = Form(...),
+    name: Optional[str] = Form(None),
+    slug: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    category_id: int = Form(...),
-    images: list[UploadFile] = File(...),
+    category_id: Optional[int] = Form(None),
+    new_images: Optional[list[UploadFile]] = File(None),
+    delete_image_ids: Optional[str] = Form(None),
+    variations_json: Optional[str] = Form(None),
 ):
+    variations_in = []
+    deleted_images = []
     try:
         product_in = UpdateUniqueProductSchema(
             name=name,
             slug=slug,
             description=description,
-            category_id=category_id,
+            category_id=int(category_id) if category_id else None,
         )
+        product_in = UpdateUniqueProductSchema(
+            **product_in.model_dump(exclude_none=True),
+        )
+        if delete_image_ids is not None:
+            deleted_images = json.loads(delete_image_ids)
+        if variations_json is not None:
+            raw = json.loads(variations_json)
+            variations_in = [UpdateVariationSchema(**v) for v in raw]
     except ValidationError as e:
         raise CustomPydanticValidationException(error=e)
     return ApiResponseSchema(
         data=await use_case.execute(
-            unique_product_id=unique_product_id,
-            deleted_images_ids=deleted_images_ids,
+            product_id=product_id,
             product_in=product_in,
+            variations=variations_in,
+            images=new_images or [],
+            delete_images_ids=deleted_images,
             uow=uow,
-            images=images,
         ),
     )
-
 
 # Delete =====================================================================
 
@@ -269,15 +279,3 @@ async def delete_unique(
     ],
 ):
     await use_case.execute(unique_product_id=unique_product_id, uow=uow)
-
-
-@router.delete("/variation/{product_variation_id}", response_model=None)
-async def delete_variation(
-    product_variation_id: int,
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    use_case: Annotated[
-        AbstractDeleteProductVariationUseCase,
-        Depends(lambda: get_container().resolve(AbstractDeleteProductVariationUseCase)),
-    ],
-):
-    await use_case.execute(product_variation_id=product_variation_id, uow=uow)

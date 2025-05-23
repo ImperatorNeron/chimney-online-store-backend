@@ -4,28 +4,27 @@ from dataclasses import dataclass
 from app.core.exceptions.base import BaseAppException
 from app.core.exceptions.common import ProductCreationException
 from app.schemas.product_images import CreateProductImageSchema
-from app.schemas.products import ReadUniqueProductSchema, UpdateUniqueProductSchema
+from app.schemas.products import BaseCreateProductVariationSchema, CreateUniqueProductSchema, ReadAbsoluteProductSchema
 from app.services.files import AbstractFileUploadService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
-class AbstractUpdateUniqueProductUseCase(ABC):
+class AbstractCreateProductUseCase(ABC):
 
     @abstractmethod
     async def execute(
         self,
-        unique_product_id: int,
-        deleted_images_ids: list[int],
-        product_in: UpdateUniqueProductSchema,
+        product_in: CreateUniqueProductSchema,
+        variations_in: list[BaseCreateProductVariationSchema],
         images: list,
         uow: AbstractUnitOfWork,
-    ) -> ReadUniqueProductSchema: ...
+    ) -> ReadAbsoluteProductSchema: ...
 
 
 @dataclass
-class UpdateUniqueProductUseCase(AbstractUpdateUniqueProductUseCase):
+class CreateProductUseCase(AbstractCreateProductUseCase):
 
     product_service: AbstractProductService
     product_image_service: AbstractProductImageService
@@ -33,22 +32,19 @@ class UpdateUniqueProductUseCase(AbstractUpdateUniqueProductUseCase):
 
     async def execute(
         self,
-        unique_product_id: int,
-        deleted_images_ids: list[int],
-        product_in: UpdateUniqueProductSchema,
+        product_in: CreateUniqueProductSchema,
+        variations_in: list[BaseCreateProductVariationSchema],
+        images: list,
         uow: AbstractUnitOfWork,
-        images: list = None,
-    ) -> ReadUniqueProductSchema:
+    ) -> ReadAbsoluteProductSchema:
         async with uow:
             image_data = []
 
-            unique_product = await self.product_service.update_unique(
-                unique_product_id=unique_product_id,
+            unique_product = await self.product_service.create_unique(
                 product_in=product_in,
                 uow=uow,
             )
-
-            await self.product_image_service.delete_by_ids(ids=deleted_images_ids, uow=uow)
+            print(unique_product.id)
 
             try:
                 for img in images:
@@ -62,7 +58,7 @@ class UpdateUniqueProductUseCase(AbstractUpdateUniqueProductUseCase):
                             product_id=unique_product.id,
                         ),
                     )
-                await self.product_image_service.bulk_create(
+                new_images = await self.product_image_service.bulk_create(
                     images=image_data,
                     uow=uow,
                 )
@@ -73,4 +69,13 @@ class UpdateUniqueProductUseCase(AbstractUpdateUniqueProductUseCase):
                 await self.file_service.cleanup_files(image_data)
                 raise ProductCreationException()
 
-            return unique_product
+            product_variations = await self.product_service.create_variations(
+                unique_product_id=unique_product.id,
+                products_in=variations_in,
+                uow=uow,
+            )
+            return ReadAbsoluteProductSchema(
+                **unique_product.model_dump(),
+                images=new_images,
+                variations=product_variations,
+            )

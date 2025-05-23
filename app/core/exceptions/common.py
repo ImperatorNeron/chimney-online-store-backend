@@ -10,10 +10,10 @@ from app.core.settings import settings
 class ItemNotFoundException(BaseAppException):
     """Raised when a database record is not found."""
 
-    def __init__(self, meta: Optional[dict] = None):
+    def __init__(self, meta: Optional[dict] = None, detail="Ресурс не знайдено"):
         super().__init__(
             error_code="not_found",
-            detail="Ресурс не знайдено",
+            detail=detail,
             status_code=status.HTTP_404_NOT_FOUND,
             meta=meta or {},
         )
@@ -34,14 +34,14 @@ class ItemAlreadyExistsException(BaseAppException):
 class UniqueConstraintViolationsException(BaseAppException):
     """Raised for database unique constraint violations."""
 
-    def __init__(self, violations: list[dict]):
+    def __init__(self, violations: list[dict], detail="Конфлікт унікальних значень"):
         """
         :param violations: List of violation details in format
         [{"field": "email", "value": "test@example.com"}]
         """
         super().__init__(
             error_code="unique_conflict",
-            detail="Конфлікт унікальних значень",
+            detail=detail,
             status_code=status.HTTP_409_CONFLICT,
             meta={"violations": violations},
         )
@@ -50,10 +50,10 @@ class UniqueConstraintViolationsException(BaseAppException):
 class ForeignKeyConstraintViolationException(BaseAppException):
     """Виняток для порушень зовнішніх ключів."""
 
-    def __init__(self, violations: list[dict]):
+    def __init__(self, violations: list[dict], detail="Посилання на неіснуючий запис"):
         super().__init__(
             error_code="foreign_key_violation",
-            detail="Посилання на неіснуючий запис",
+            detail=detail,
             status_code=status.HTTP_400_BAD_REQUEST,
             meta={"violations": violations},
         )
