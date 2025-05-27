@@ -141,6 +141,7 @@ class CreateProductVariationSchema(BaseCreateProductVariationSchema):
 
 class ReadAbsoluteProductSchema(ReadFullUniqueProductSchema):
     variations: list[ReadProductVariationSchema]
+    categories: Optional[list[tuple[str, str]]] = None
 
 
 class VariationAction(str, Enum):

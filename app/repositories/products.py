@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from pydantic import BaseModel
@@ -10,6 +11,9 @@ from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import ReadPreviewProductSchema, ReadProductVariationSchema
 from app.utils.sql_repository import BaseRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 class VariationProductRepository(BaseRepository):
@@ -34,7 +38,8 @@ class VariationProductRepository(BaseRepository):
             await self.session.flush([instance])
             await self.session.refresh(instance)
             return instance.to_read_base_model()
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to update product: %s", e, exc_info=True)
             raise RepositoryException()
 
     async def get_full(

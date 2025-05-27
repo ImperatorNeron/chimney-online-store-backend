@@ -1,3 +1,4 @@
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -8,6 +9,9 @@ from fastapi import UploadFile
 
 from app.core.exceptions.common import FileTooLargeException, UnsupportedMediaException
 from app.core.settings import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractFileUploadService(ABC):
@@ -68,8 +72,7 @@ class FileUploadService(AbstractFileUploadService):
             try:
                 await aiofiles.os.remove(file.file_path)
             except (FileNotFoundError, PermissionError, OSError) as e:
-                # TODO: add logging
-                print(e)
+                logger.error("Failed to create product: %s", e, exc_info=True)
 
     def get_metadata(self, file: UploadFile) -> dict:
         filename = self.__secure_filename(file.filename)

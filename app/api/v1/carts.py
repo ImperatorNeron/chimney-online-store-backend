@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.api.v1.dependencies import get_user_cart
 from app.core.containers import get_container
+from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.cart_items import (
     CreateCartItemSchema,
@@ -31,7 +32,9 @@ async def get_cart(
 
 
 @router.post("", response_model=ApiResponseSchema[ReadCartItemSchema])
+@limiter.limit("60/minute")
 async def add_to_cart(
+    request: Request,
     cart_item_in: CreateCartItemWithoutCartIdSchema,
     cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
@@ -55,7 +58,9 @@ async def add_to_cart(
     "/change-item-quantity/{cart_item_id}",
     response_model=ApiResponseSchema[ReadCartItemSchema],
 )
+@limiter.limit("120/minute")
 async def update_cart_item_quantity(
+    request: Request,
     cart_item_id: int,
     cart_item_in: UpdateCartItemQuantity,
     cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],

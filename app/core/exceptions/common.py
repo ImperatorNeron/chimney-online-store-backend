@@ -198,33 +198,36 @@ class UserAdminPermissionException(BaseAppException):
 class UsernameAlreadyExistsException(BaseAppException):
     """Raised during duplicate username registration."""
 
-    def __init__(self):
+    def __init__(self, meta: dict = {}):
         super().__init__(
             error_code="username_exists",
             detail="Такий логін уже зареєстрований",
             status_code=status.HTTP_409_CONFLICT,
+            meta=meta,
         )
 
 
 class EmailAlreadyExistsException(BaseAppException):
     """Raised during duplicate user registration."""
 
-    def __init__(self):
+    def __init__(self, meta: dict = {}):
         super().__init__(
             error_code="email_exists",
             detail="Така пошта уже зареєстрована",
             status_code=status.HTTP_409_CONFLICT,
+            meta=meta,
         )
 
 
 class PhoneNumberAlreadyExistsException(BaseAppException):
     """Raised during duplicate user registration."""
 
-    def __init__(self):
+    def __init__(self, meta: dict = {}):
         super().__init__(
             error_code="phone_number_exists",
             detail="Такий номер телефону уже зареєстрований",
             status_code=status.HTTP_409_CONFLICT,
+            meta=meta,
         )
 
 

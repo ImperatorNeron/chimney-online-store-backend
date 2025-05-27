@@ -1,8 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
+from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
+from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn
 from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
@@ -20,6 +22,7 @@ router = APIRouter(prefix="/messages", tags=["Messages"])
     "/",
     summary="Get list of messages",
     response_model=ApiResponseSchema[ListPaginatedResponse[ReadMessageSchema]],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def get_messages_list(
     pagination_in: Annotated[PaginationIn, Depends()],
@@ -38,6 +41,7 @@ async def get_messages_list(
     "/{message_id}",
     summary="Get specific message by id",
     response_model=ApiResponseSchema[ReadMessageSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def get_message(
     message_id: int,
@@ -57,7 +61,9 @@ async def get_message(
     response_model=ApiResponseSchema[ReadMessageSchema],
     summary="Create new message",
 )
+@limiter.limit("10/minute")
 async def create_message(
+    request: Request,
     message_in: CreateMessageSchema,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -74,6 +80,7 @@ async def create_message(
     "/{message_id}",
     response_model=None,
     summary="Delete new message",
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def delete_message(
     message_id: int,

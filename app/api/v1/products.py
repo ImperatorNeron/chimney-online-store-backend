@@ -2,10 +2,13 @@ import json
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi_cache.decorator import cache
 from pydantic import ValidationError
 
+from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
+from app.core.settings import settings
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import (
@@ -13,10 +16,8 @@ from app.schemas.products import (
     CreateUniqueProductSchema,
     ReadAbsoluteProductSchema,
     ReadFiltersSchema,
-    ReadFullProductWithCategoryHierarchySchema,
     ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
-    ReadProductVariationSchema,
     UpdateUniqueProductSchema,
     UpdateVariationSchema,
 )
@@ -25,11 +26,9 @@ from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProdu
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
-from app.use_cases.products.fetch_one import AbstractFetchProductUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase
-from app.use_cases.products.variation.fetch_all_by_unique import AbstractFetchProductVariationsUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
@@ -41,6 +40,7 @@ router = APIRouter(prefix="/products", tags=["Products"])
     "",
     response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
 )
+@cache(expire=settings.cache.expire)
 async def get_products_list(
     filters: Annotated[ProductFiltersSchema, Depends()],
     sort_params: Annotated[SortOrderSchema, Depends()],
@@ -96,28 +96,6 @@ async def get_unique_product_list(
 
 
 @router.get(
-    "/unique/{unique_product_id}/variation",
-    response_model=ApiResponseSchema[ListPaginatedResponse[ReadProductVariationSchema]],
-)
-async def get_product_variations_list(
-    unique_product_id: int,
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    pagination_in: Annotated[PaginationIn, Depends()],
-    use_case: Annotated[
-        AbstractFetchProductVariationsUseCase,
-        Depends(lambda: get_container().resolve(AbstractFetchProductVariationsUseCase)),
-    ],
-):
-    return ApiResponseSchema(
-        data=await use_case.execute(
-            uow=uow,
-            unique_product_id=unique_product_id,
-            pagination_in=pagination_in,
-        ),
-    )
-
-
-@router.get(
     "/filters",
     response_model=ApiResponseSchema[ReadFiltersSchema],
 )
@@ -135,7 +113,8 @@ async def fetch_filters(
 
 
 @router.get(
-    "/{product_slug}", response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+    "/{product_slug}",
+    response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
 )
 async def fetch_absolute_product(
     product_slug: str,
@@ -153,32 +132,14 @@ async def fetch_absolute_product(
     )
 
 
-@router.get(
-    "/{product_slug}/{product_variation_id}",
-    response_model=ApiResponseSchema[ReadFullProductWithCategoryHierarchySchema],
-)
-async def fetch_product(
-    product_slug: str,
-    product_variation_id: int,
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
-    use_case: Annotated[
-        AbstractFetchProductUseCase,
-        Depends(lambda: get_container().resolve(AbstractFetchProductUseCase)),
-    ],
-):
-    return ApiResponseSchema(
-        data=await use_case.execute(
-            product_slug=product_slug,
-            product_variation_id=product_variation_id,
-            uow=uow,
-        ),
-    )
-
-
 # Create =====================================================================
 
 
-@router.post("/", response_model=ApiResponseSchema[ReadAbsoluteProductSchema])
+@router.post(
+    "/",
+    response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def create_product(
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -219,7 +180,9 @@ async def create_product(
 
 
 @router.patch(
-    "/{product_id}", response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+    "/{product_id}",
+    response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def update_product(
     product_id: int,
@@ -266,10 +229,15 @@ async def update_product(
         ),
     )
 
+
 # Delete =====================================================================
 
 
-@router.delete("/unique/{unique_product_id}", response_model=None)
+@router.delete(
+    "/unique/{unique_product_id}",
+    response_model=None,
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def delete_unique(
     unique_product_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],

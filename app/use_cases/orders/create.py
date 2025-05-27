@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -8,6 +9,9 @@ from app.schemas.orders import CreateOrderItemSchema, CreateOrderSchema, CreateO
 from app.services.carts import AbstractCartService
 from app.services.orders import AbstractOrderService
 from app.utils.unit_of_work import AbstractUnitOfWork
+
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractCreateOrderUseCase(ABC):
@@ -37,6 +41,9 @@ class CreateOrderUseCase(AbstractCreateOrderUseCase):
         async with uow:
 
             if not cart.items:
+                logger.warning(
+                    f"Attempt to create order with empty cart (user_id={user_id})",
+                )
                 raise EmptyCartException()
 
             new_order_in = CreateOrderWithUserSchema(
@@ -44,6 +51,7 @@ class CreateOrderUseCase(AbstractCreateOrderUseCase):
                 user_id=user_id,
             )
             order = await self.order_service.create(order_in=new_order_in, uow=uow)
+
             await self.order_service.bulk_create(
                 items=[
                     CreateOrderItemSchema(
@@ -56,5 +64,9 @@ class CreateOrderUseCase(AbstractCreateOrderUseCase):
                 ],
                 uow=uow,
             )
+            logger.info(
+                f"Order {order.id} created for user {user_id} with {len(cart.items)} items",
+            )
+
             await self.cart_service.delete_cart(cart_id=cart.id, uow=uow)
             return order

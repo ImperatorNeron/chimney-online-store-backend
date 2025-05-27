@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 from punq import Container
 
 from app.api.v1.dependencies import get_current_auth_user_for_refresh, refresh_check
 from app.core.containers import get_container
+from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.tokens import TokenInfoSchema
 from app.schemas.users import LoginUserSchema, ReadUserSchema, RegisterUserSchema
@@ -21,7 +22,9 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
     "/register",
     response_model=ApiResponseSchema[ReadUserSchema],
 )
+@limiter.limit("10/minute")
 async def register(
+    request: Request,
     user_in: RegisterUserSchema,
     container: Annotated[Container, Depends(get_container)],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
@@ -39,7 +42,9 @@ async def register(
     "/login",
     response_model=TokenInfoSchema,
 )
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     user_in: LoginUserSchema,
     response: Response,
     container: Annotated[Container, Depends(get_container)],

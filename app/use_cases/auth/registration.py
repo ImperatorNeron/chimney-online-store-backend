@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from app.core.exceptions.common import (
@@ -12,6 +13,9 @@ from app.services.users import AbstractUserService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
+logger = logging.getLogger(__name__)
+
+
 @dataclass
 class RegisterUserUseCase:
     auth_service: AbstractAuthService
@@ -23,31 +27,55 @@ class RegisterUserUseCase:
         user_in: RegisterUserSchema,
         uow: AbstractUnitOfWork,
     ) -> ReadUserSchema:
+
+        logger.info(
+            f"RegisterUserUseCase: start registration for username={user_in.username}, "
+            f"email={user_in.email}, phone={user_in.phone_number}",
+        )
+
         async with uow:
+
+            update_data = user_in.model_dump(exclude_unset=True)
+
             user_by_username = await self.user_service.get_user_by_username(
-                uow=uow, username=user_in.username,
+                uow=uow,
+                username=user_in.username,
             )
 
             if user_by_username:
-                raise UsernameAlreadyExistsException()
+                logger.warning(
+                    f"Registration failed: username '{user_in.username}' already exists",
+                )
+                raise UsernameAlreadyExistsException(
+                    meta={"username": user_in.username},
+                )
 
-            user_by_email = await self.user_service.get_user_by_email(
-                uow=uow,
-                email=user_in.email,
-            )
+            if "email" in update_data:
+                user_by_email = await self.user_service.get_user_by_email(
+                    uow=uow,
+                    email=user_in.email,
+                )
+                if user_by_email:
+                    logger.warning(
+                        f"Registration failed: email '{user_in.email}' already exists",
+                    )
+                    raise EmailAlreadyExistsException(meta={"email": user_in.email})
 
-            if user_by_email:
-                raise EmailAlreadyExistsException()
+            if "phone_number" in update_data:
+                user_by_phone_number = await self.user_service.get_user_by_phone_number(
+                    uow=uow,
+                    phone_number=user_in.phone_number,
+                )
 
-            user_by_phone_number = await self.user_service.get_user_by_phone_number(
-                uow=uow,
-                phone_number=user_in.phone_number,
-            )
+                if user_by_phone_number:
+                    logger.warning(
+                        f"Registration failed: phone number '{user_in.phone_number}' already exists",
+                    )
+                    raise PhoneNumberAlreadyExistsException(
+                        meta={"phone_number": user_in.phone_number},
+                    )
 
-            if user_by_phone_number:
-                raise PhoneNumberAlreadyExistsException()
-
-            return await self.auth_service.register(
+            user = await self.auth_service.register(
                 uow=uow,
                 user_in=CreateUserSchema(
                     **user_in.model_dump(exclude={"password", "confirm_password"}),
@@ -56,3 +84,9 @@ class RegisterUserUseCase:
                     ),
                 ),
             )
+
+            logger.info(
+                f"Registration successful: user_id={user.id}, username={user.username}, email={user.email}",
+            )
+
+            return user

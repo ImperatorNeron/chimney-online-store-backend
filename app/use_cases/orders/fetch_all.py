@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from app.schemas.api_response import ListPaginatedResponse
+from app.schemas.filters import PaginationIn, PaginationOut
 from app.schemas.orders import ReadExtendedOrderSchema
 from app.services.orders import AbstractOrderService
 from app.utils.unit_of_work import AbstractUnitOfWork
@@ -11,6 +13,7 @@ class AbstractFetchOrdersUseCase(ABC):
     @abstractmethod
     async def execute(
         self,
+        pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
     ) -> list[ReadExtendedOrderSchema]: ...
 
@@ -21,19 +24,31 @@ class FetchOrdersUseCase(AbstractFetchOrdersUseCase):
 
     async def execute(
         self,
+        pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadExtendedOrderSchema]:
+    ) -> ListPaginatedResponse[ReadExtendedOrderSchema]:
         async with uow:
-            orders = await self.order_service.list_all(uow=uow)
-            return [
-                ReadExtendedOrderSchema(
-                    **order.model_dump(),
-                    total_price=await self.order_service.get_total_price(
-                        order_items=order.items,
-                    ),
-                    total_quantity=await self.order_service.get_total_quantity(
-                        order.items,
-                    ),
-                )
-                for order in orders
-            ]
+            count = await self.order_service.get_total_orders(uow=uow)
+            orders = await self.order_service.list_all(
+                uow=uow,
+                pagination_in=pagination_in,
+            )
+            return ListPaginatedResponse(
+                items=[
+                    ReadExtendedOrderSchema(
+                        **order.model_dump(),
+                        total_price=await self.order_service.get_total_price(
+                            order_items=order.items,
+                        ),
+                        total_quantity=await self.order_service.get_total_quantity(
+                            order.items,
+                        ),
+                    )
+                    for order in orders
+                ],
+                pagination=PaginationOut(
+                    offset=pagination_in.offset,
+                    limit=pagination_in.limit,
+                    total=count,
+                ),
+            )

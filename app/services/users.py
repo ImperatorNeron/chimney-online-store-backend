@@ -73,8 +73,7 @@ class UserService(AbstractUserService):
         uow: AbstractUnitOfWork,
         id: int,  # noqa
     ) -> ReadUserSchema:
-        async with uow:
-            return await uow.users.get(id=id)
+        return await uow.users.get(id=id)
 
     async def update_user(
         self,

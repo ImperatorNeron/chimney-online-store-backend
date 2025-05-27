@@ -67,6 +67,20 @@ class ImageSettings(BaseModel):
     allowed_extensions: list = [".jpg", ".jpeg", ".png", ".webp"]
 
 
+class LoggingSettings(BaseModel):
+    log_dir: Path = BASE_DIR / "logs"
+    log_file_name: str = "app.log"
+    log_level: str = "INFO"
+
+    @property
+    def log_file_path(self) -> Path:
+        return self.log_dir / self.log_file_name
+
+
+class CacheSettings(BaseModel):
+    expire: int = 600
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -80,6 +94,8 @@ class Settings(BaseSettings):
     auth_jwt: AuthJWT = AuthJWT()
     session: SessionSettings = SessionSettings()
     images: ImageSettings = ImageSettings()
+    logging: LoggingSettings = LoggingSettings()
+    cache: CacheSettings = CacheSettings()
 
 
 settings = Settings()

@@ -12,7 +12,6 @@ from app.schemas.products import (
     BaseUpdateVariationSchema,
     CreateProductVariationSchema,
     CreateUniqueProductSchema,
-    ReadFullProductSchema,
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
     ReadUniqueProductSchema,
@@ -40,14 +39,6 @@ class AbstractProductService(ABC):
     ) -> list[ReadUniqueProductSchema]: ...
 
     @abstractmethod
-    async def list_variations_by_product_id(
-        self,
-        unique_product_id: int,
-        pagination_in: PaginationIn,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadProductVariationSchema]: ...
-
-    @abstractmethod
     async def get_products_by_ids(
         self,
         ids: list[int],
@@ -66,21 +57,6 @@ class AbstractProductService(ABC):
         self,
         uow: AbstractUnitOfWork,
     ) -> int: ...
-
-    @abstractmethod
-    async def count_variations_by_product_id(
-        self,
-        unique_product_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> int: ...
-
-    @abstractmethod
-    async def get_full_one(
-        self,
-        product_slug: str,
-        product_variation_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFullProductSchema: ...
 
     @abstractmethod
     async def get_filters(
@@ -185,18 +161,6 @@ class ProductService(AbstractProductService):
             offset=pagination_in.offset,
         )
 
-    async def list_variations_by_product_id(
-        self,
-        unique_product_id: int,
-        pagination_in: PaginationIn,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadProductVariationSchema]:
-        return await uow.products.all(
-            filters={"product_id": unique_product_id},
-            limit=pagination_in.limit,
-            offset=pagination_in.offset,
-        )
-
     async def get_products_by_ids(
         self,
         ids: list[int],
@@ -216,24 +180,6 @@ class ProductService(AbstractProductService):
         uow: AbstractUnitOfWork,
     ) -> int:
         return await uow.unique_products.count()
-
-    async def count_variations_by_product_id(
-        self,
-        unique_product_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> int:
-        return await uow.products.count(product_id=unique_product_id)
-
-    async def get_full_one(
-        self,
-        product_slug: str,
-        product_variation_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFullProductSchema:
-        return await uow.products.get_full(
-            product_slug=product_slug,
-            product_variation_id=product_variation_id,
-        )
 
     async def get_filters(
         self,

@@ -21,5 +21,4 @@ class AuthService(AbstractAuthService):
         uow: AbstractUnitOfWork,
         user_in: CreateUserSchema,
     ) -> ReadUserSchema:
-        async with uow:
-            return await uow.users.create(item_in=user_in)
+        return await uow.users.create(item_in=user_in)

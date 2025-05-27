@@ -1,3 +1,4 @@
+import logging
 import secrets
 from typing import Annotated, Any
 
@@ -26,6 +27,8 @@ from app.use_cases.cart.merge import AbstractMergeCartsUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
+logger = logging.getLogger(__name__)
+
 http_bearer = HTTPBearer(auto_error=False)
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login/",
@@ -41,7 +44,8 @@ async def get_current_token_payload(
         service: AbstractJWTTokenService = container.resolve(AbstractJWTTokenService)
         payload = await service.decode_jwt(token=token)
     # TODO: think about login end
-    except InvalidTokenError:
+    except InvalidTokenError as e:
+        logger.warning("Invalid token: %s", e)
         raise InvalidTokenException()
     return payload
 
@@ -53,6 +57,7 @@ async def validate_token_type(
     jwt_token_type = payload.get("token_type")
 
     if jwt_token_type != current_token_type:
+        logger.warning("Token type mismatch: expected '%s', got '%s'", current_token_type, jwt_token_type)
         raise InvalidTokenTypeException()
 
 
@@ -62,8 +67,10 @@ async def get_user_by_token_sub(
     payload: dict,
 ) -> ReadUserSchema:
     service: AbstractUserService = container.resolve(AbstractUserService)
-    user = await service.get_user_by_id(uow=uow, id=int(payload.get("sub")))
+    async with uow:
+        user = await service.get_user_by_id(uow=uow, id=int(payload.get("sub")))
     if user is None:
+        logger.warning("User not found with id: %s", payload.get("sub"))
         raise UserNotFoundException()
     return ReadUserSchema(**user.model_dump(exclude="hashed_password"))
 
@@ -140,8 +147,8 @@ async def get_user_or_none(
             uow=uow,
         )
         return user.id
-    except (InvalidTokenTypeException, InvalidTokenException):
-        return
+    except (InvalidTokenTypeException, InvalidTokenException) as e:
+        logger.info("No valid user from token: %s", str(e))
 
 
 async def refresh_check(
@@ -183,6 +190,7 @@ async def _get_user_cart_or_create_new(
     try:
         return await fetch_cart.execute(uow=uow, **cart_data)
     except ItemNotFoundException:
+        logger.info("Cart not found, creating new one: %s", cart_data)
         cart = await create_cart.execute(
             uow=uow,
             cart_in=CreateCartSchema(**cart_data),
@@ -224,6 +232,7 @@ async def handle_anonymous_cart(
     session_id = request.cookies.get("cart_session_id")
 
     if not session_id:
+        logger.info("No cart session found, creating new cart")
         return await _create_anonymous_cart(
             response=response,
             uow=uow,
@@ -232,6 +241,7 @@ async def handle_anonymous_cart(
     try:
         return await fetch_cart.execute(uow=uow, session_id=session_id)
     except ItemNotFoundException:
+        logger.info("Session cart not found, creating new one and deleting old cookie")
         response.delete_cookie(key="cart_session_id")
         return await _create_anonymous_cart(
             response=response,

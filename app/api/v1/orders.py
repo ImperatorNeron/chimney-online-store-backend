@@ -1,11 +1,18 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
-from app.api.v1.dependencies import get_current_active_auth_user, get_user_cart, get_user_or_none
+from app.api.v1.dependencies import (
+    get_current_active_auth_superuser,
+    get_current_active_auth_user,
+    get_user_cart,
+    get_user_or_none,
+)
 from app.core.containers import get_container
-from app.schemas.api_response import ApiResponseSchema
+from app.core.limiter import limiter
+from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.carts import ReadFullCartSchema
+from app.schemas.filters import PaginationIn
 from app.schemas.orders import CreateOrderSchema, ReadExtendedOrderSchema, ReadOrderBaseSchema, UpdateOrderSchema
 from app.schemas.users import ReadUserSchema
 from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase
@@ -19,8 +26,13 @@ from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-@router.get("", response_model=ApiResponseSchema[list[ReadExtendedOrderSchema]])
+@router.get(
+    "",
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadExtendedOrderSchema]],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def get_orders_list(
+    pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractFetchOrdersUseCase,
@@ -28,7 +40,7 @@ async def get_orders_list(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(uow=uow),
+        data=await use_case.execute(pagination_in=pagination_in, uow=uow),
     )
 
 
@@ -60,7 +72,11 @@ async def get_active_orders(
     )
 
 
-@router.patch("/{order_id}", response_model=ApiResponseSchema[ReadOrderBaseSchema])
+@router.patch(
+    "/{order_id}",
+    response_model=ApiResponseSchema[ReadOrderBaseSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def update_order_info(
     order_id: int,
     order_in: UpdateOrderSchema,
@@ -79,8 +95,14 @@ async def update_order_info(
     )
 
 
-@router.post("", response_model=ApiResponseSchema[ReadOrderBaseSchema])
+@router.post(
+    "",
+    response_model=ApiResponseSchema[ReadOrderBaseSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+@limiter.limit("10/minute")
 async def create_order(
+    request: Request,
     order_in: CreateOrderSchema,
     cart: Annotated[ReadFullCartSchema, Depends(get_user_cart)],
     user_id: Annotated[ReadUserSchema, Depends(get_user_or_none)],

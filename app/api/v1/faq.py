@@ -6,7 +6,6 @@ from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.faq import CreateFAQSchema, ReadFAQSchema, UpdadeFAQSchema
-from app.schemas.users import ReadUserSchema
 from app.use_cases.faq.create import AbstractCreateFAQUseCase
 from app.use_cases.faq.delete import AbstractDeleteFAQUseCase
 from app.use_cases.faq.fetch_all import AbstractFetchFAQsUseCase
@@ -35,6 +34,7 @@ async def get_faqs_list(
 @router.get(
     "/{faq_id}",
     response_model=ApiResponseSchema[ReadFAQSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def get_faq(
     faq_id: int,
@@ -43,7 +43,6 @@ async def get_faq(
         AbstractFetchFAQUseCase,
         Depends(lambda: get_container().resolve(AbstractFetchFAQUseCase)),
     ],
-    _: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
 ):
     return ApiResponseSchema(data=await use_case.execute(uow=uow, faq_id=faq_id))
 
@@ -51,6 +50,7 @@ async def get_faq(
 @router.post(
     "",
     response_model=ApiResponseSchema[ReadFAQSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def create_faq(
     faq_in: CreateFAQSchema,
@@ -59,7 +59,6 @@ async def create_faq(
         AbstractCreateFAQUseCase,
         Depends(lambda: get_container().resolve(AbstractCreateFAQUseCase)),
     ],
-    _: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
 ):
     return ApiResponseSchema(data=await use_case.execute(uow=uow, faq_in=faq_in))
 
@@ -67,6 +66,7 @@ async def create_faq(
 @router.patch(
     "/{faq_id}",
     response_model=ApiResponseSchema[ReadFAQSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def update_faq(
     faq_id: int,
@@ -76,7 +76,6 @@ async def update_faq(
         AbstractUpdateFAQUseCase,
         Depends(lambda: get_container().resolve(AbstractUpdateFAQUseCase)),
     ],
-    _: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
 ):
     return ApiResponseSchema(
         data=await use_case.execute(
@@ -87,7 +86,10 @@ async def update_faq(
     )
 
 
-@router.delete("/{faq_id}")
+@router.delete(
+    "/{faq_id}",
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def delete_faq(
     faq_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
@@ -95,6 +97,5 @@ async def delete_faq(
         AbstractDeleteFAQUseCase,
         Depends(lambda: get_container().resolve(AbstractDeleteFAQUseCase)),
     ],
-    _: Annotated[ReadUserSchema, Depends(get_current_active_auth_superuser)],
 ):
     return ApiResponseSchema(data=await use_case.execute(uow=uow, faq_id=faq_id))

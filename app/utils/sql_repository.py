@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -7,6 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions.common import ItemNotFoundException, MultipleResultsFound, RepositoryException
 from app.models.base import BaseModel as Model
+
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractRepository(ABC):
@@ -184,7 +188,8 @@ class BaseRepository:
             result = await self.session.execute(stmt)
             instance = result.scalar_one()
             return instance.to_read_model()
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to create item: %s", e, exc_info=True)
             raise RepositoryException()
 
     async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa
@@ -195,7 +200,8 @@ class BaseRepository:
             await self.session.flush([instance])
             await self.session.refresh(instance)
             return instance.to_read_model()
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to update item: %s", e, exc_info=True)
             raise RepositoryException()
 
     async def delete(

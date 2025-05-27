@@ -1,3 +1,6 @@
+import logging
+from typing import Optional
+
 from sqlalchemy import and_, insert, select
 from sqlalchemy.orm import joinedload
 
@@ -6,6 +9,9 @@ from app.models.orders import Order, OrderItem
 from app.models.products import ProductVariation
 from app.schemas.orders import CreateOrderSchema, UpdateOrderSchema
 from app.utils.sql_repository import BaseRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 class OrderRepository(BaseRepository):
@@ -24,8 +30,20 @@ class OrderRepository(BaseRepository):
             .order_by(self.model.created_at.desc())
         )
 
-    async def all(self):  # noqa
-        result = await self.session.execute(self._get_base_query())
+    async def all(  # noqa
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ):
+        query = self._get_base_query()
+
+        if limit:
+            query = query.limit(limit)
+
+        if offset:
+            query = query.offset(offset)
+
+        result = await self.session.execute(query)
         orders = result.unique().scalars().all()
         return [order.to_read_model() for order in orders]
 
@@ -59,7 +77,8 @@ class OrderRepository(BaseRepository):
             result = await self.session.execute(stmt)
             instance = result.scalar_one()
             return instance.to_read_model_without_items()
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to create order: %s", e, exc_info=True)
             raise RepositoryException()
 
     async def update(self, order_id: int, order_in: UpdateOrderSchema):
@@ -70,5 +89,6 @@ class OrderRepository(BaseRepository):
             await self.session.flush([instance])
             await self.session.refresh(instance)
             return instance.to_read_model_without_items()
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to update order: %s", e, exc_info=True)
             raise RepositoryException()

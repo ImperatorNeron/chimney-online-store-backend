@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -9,6 +10,9 @@ from app.services.files import AbstractFileUploadService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
+
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractCreateProductUseCase(ABC):
@@ -44,7 +48,6 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
                 product_in=product_in,
                 uow=uow,
             )
-            print(unique_product.id)
 
             try:
                 for img in images:
@@ -65,7 +68,8 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
             except BaseAppException:
                 await self.file_service.cleanup_files(image_data)
                 raise
-            except Exception:
+            except Exception as e:
+                logger.error("Failed to create product: %s", e, exc_info=True)
                 await self.file_service.cleanup_files(image_data)
                 raise ProductCreationException()
 

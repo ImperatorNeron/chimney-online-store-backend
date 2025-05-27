@@ -1,9 +1,13 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
 from app.services.messages import AbstractMessageService
 from app.utils.unit_of_work import AbstractUnitOfWork
+
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractCreateMessageUseCase(ABC):
@@ -25,6 +29,11 @@ class CreateMessageUseCase(AbstractCreateMessageUseCase):
         message_in: CreateMessageSchema,
         uow: AbstractUnitOfWork,
     ) -> ReadMessageSchema:
+        logger.info(
+            f"CreateMessageUseCase: create message registration for username={message_in.user_name}, "
+            f"phone={message_in.phone_number}",
+        )
+
         async with uow:
             return await self.message_service.create_message(
                 message_in=message_in,

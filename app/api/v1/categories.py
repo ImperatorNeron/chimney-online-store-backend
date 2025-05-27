@@ -1,8 +1,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
+from fastapi_cache.decorator import cache
 
+from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
+from app.core.settings import settings
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.categories import CreateCategorySchema, ReadCategorySchema, UpdateCategorySchema
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase
@@ -17,6 +20,7 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @router.get("", response_model=ApiResponseSchema[list[ReadCategorySchema]])
+@cache(expire=settings.cache.expire)
 async def get_categories_list(
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -39,7 +43,11 @@ async def get_categories_list_by_slugs(
     return ApiResponseSchema(data=await use_case.execute(slugs=slugs, uow=uow))
 
 
-@router.post("", response_model=ApiResponseSchema[ReadCategorySchema])
+@router.post(
+    "",
+    response_model=ApiResponseSchema[ReadCategorySchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def create_category(
     category_in: CreateCategorySchema,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
@@ -56,7 +64,11 @@ async def create_category(
     )
 
 
-@router.patch("/{category_id}", response_model=ApiResponseSchema[ReadCategorySchema])
+@router.patch(
+    "/{category_id}",
+    response_model=ApiResponseSchema[ReadCategorySchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def update_category(
     category_id: int,
     category_in: UpdateCategorySchema,
@@ -75,7 +87,11 @@ async def update_category(
     )
 
 
-@router.delete("/{category_id}", response_model=None)
+@router.delete(
+    "/{category_id}",
+    response_model=None,
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
 async def delete_category(
     category_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
