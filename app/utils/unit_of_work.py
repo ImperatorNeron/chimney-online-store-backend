@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Type
 
-from app.db.db import database_helper, test_database_helper
+from app.db.db import database_helper  # , test_database_helper
 from app.repositories.cart_items import CartItemRepository
 from app.repositories.carts import CartRepository
 from app.repositories.categories import CategoryRepository
@@ -85,10 +85,3 @@ class UnitOfWork(BaseUnitOfWork):
 
     async def _get_session(self):
         return database_helper.session_factory()
-
-
-class TestUnitOfWork(BaseUnitOfWork):
-    """Implementation of the UnitOfWork pattern for tests."""
-
-    async def _get_session(self):
-        return test_database_helper.session_factory()

@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     )
     api_version_prefix: str = "/api/v1"
     database: DatabaseSettings
-    test_database: TestDatabaseSettings
+    allow_origins: str
     auth_jwt: AuthJWT = AuthJWT()
     session: SessionSettings = SessionSettings()
     images: ImageSettings = ImageSettings()

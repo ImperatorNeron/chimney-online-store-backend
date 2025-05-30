@@ -40,6 +40,21 @@ def app_down(target, source, env):
     return os.system(command)
 
 
+def main_up(target, source, env):
+    command = f"{DC} -f {APP_FILE} {ENV} up --build -d"
+    return os.system(command)
+
+
+def main_logs(target, source, env):
+    command = f"{DL} {APP_CONTAINER} -f"
+    return os.system(command)
+
+
+def main_down(target, source, env):
+    command = f"{DC} -f {APP_FILE} {ENV} down"
+    return os.system(command)
+
+
 def run_tests(target, source, env):
     command = f"{EXEC} {APP_CONTAINER} {TESTS}"
     return os.system(command)
@@ -65,6 +80,11 @@ Command("up", [], app)
 Command("down", [], app_down)
 Command("logs", [], app_logs)
 Command("run-tests", [], run_tests)
+
+# App
+Command("mainup", [], main_up)
+Command("maindown", [], main_down)
+Command("mainlogs", [], main_logs)
 
 # db
 Command("auto-migrations", [], auto_migrations)

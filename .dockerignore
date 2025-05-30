@@ -5,3 +5,7 @@ __pycache__
 docker_compose/
 .pytest_cache/
 .sconsign.dblite
+*.log
+logs/         
+app/logs/  
+**/*.log   

@@ -33,9 +33,8 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     logger.info("Starting application setup...")
     application = FastAPI(
-        title="JunToSin API",
+        title="Chimney online shop API",
         docs_url="/api/docs",
-        description="Starnavi test project for junior position.",
         default_response_class=ORJSONResponse,
         debug=True,
         lifespan=lifespan,
@@ -51,7 +50,7 @@ def create_app() -> FastAPI:
 
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=settings.allow_origins.split(","),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

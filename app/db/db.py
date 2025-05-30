@@ -1,9 +1,4 @@
-from sqlalchemy.ext.asyncio import (
-    async_sessionmaker,
-    AsyncEngine,
-    AsyncSession,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
 
 from app.core.settings import settings
 
@@ -38,12 +33,4 @@ database_helper = DatabaseHelper(
     echo_pool=settings.database.echo_pool,
     pool_size=settings.database.pool_size,
     max_overflow=settings.database.max_overflow,
-)
-
-test_database_helper = DatabaseHelper(
-    url=str(settings.test_database.url),
-    echo=settings.test_database.echo,
-    echo_pool=settings.test_database.echo_pool,
-    pool_size=settings.test_database.pool_size,
-    max_overflow=settings.test_database.max_overflow,
 )
