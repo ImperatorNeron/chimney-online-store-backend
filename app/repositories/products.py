@@ -1,12 +1,13 @@
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import distinct, func, or_, Result, Select, select
+from sqlalchemy import desc, distinct, func, or_, Result, Select, select
 from sqlalchemy.orm import aliased, selectinload
 
 from app.core.exceptions.common import ItemNotFoundException, RepositoryException
 from app.models.categories import Category
+from app.models.orders import OrderItem
 from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import ReadPreviewProductSchema, ReadProductVariationSchema
@@ -148,6 +149,26 @@ class VariationProductRepository(BaseRepository):
         results: Result = await self.session.execute(query)
         products = results.scalars().all()
         return [product.to_read_model_with_preview() for product in products]
+
+    async def get_with_most_orders(self, pagination_in: Optional[PaginationIn]):
+        final_price_expr = self.model.price * (1 - self.model.discount_percentage / 100)
+        query = select(self.model).options(*self.default_preload)
+        query = query.add_columns(final_price_expr.label("final_price"))
+        query = query.outerjoin(OrderItem, OrderItem.product_id == self.model.id)
+        query = query.group_by(self.model.id)
+        query = query.order_by(desc(func.count(OrderItem.id)))
+        query = query.limit(pagination_in.limit).offset(pagination_in.offset)
+        result = await self.session.execute(query)
+        products = result.scalars().all()
+        return [product.to_read_model_with_preview() for product in products]
+
+    async def get(
+        self,
+        options: Optional[list] = None,
+        **filters: Any,
+    ) -> BaseModel:
+        instance = await self._get_model(options=options, **filters)
+        return instance.to_read_base_model()
 
     def _apply_custom_filters(
         self,

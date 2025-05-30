@@ -51,6 +51,7 @@ from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProdu
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, FetchFiltersUseCase
+from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase, FetchPopularProductsUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductUseCase
@@ -122,6 +123,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCreateProductUseCase, CreateProductUseCase)
     container.register(AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase)
     container.register(AbstractUpdateProductUseCase, UpdateProductUseCase)
+    container.register(AbstractFetchPopularProductsUseCase, FetchPopularProductsUseCase)
 
     # User
     container.register(AbstractUserService, UserService)

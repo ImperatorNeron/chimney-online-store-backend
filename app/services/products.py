@@ -80,11 +80,32 @@ class AbstractProductService(ABC):
     ) -> ReadUniqueProductSchema: ...
 
     @abstractmethod
+    async def get_unique_product_by_id(
+        self,
+        product_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadUniqueProductSchema: ...
+
+    @abstractmethod
     async def get_product_variations(
         self,
         product_id: int,
         uow: AbstractUnitOfWork,
     ) -> list[ReadProductVariationSchema]: ...
+
+    @abstractmethod
+    async def get_variation(
+        self,
+        variation_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadProductVariationSchema: ...
+
+    @abstractmethod
+    async def list_popular(
+        self,
+        uow: AbstractUnitOfWork,
+        pagination_in: Optional[PaginationIn],
+    ) -> list[ReadPreviewProductSchema]: ...
 
     # Create =========================================
     @abstractmethod
@@ -117,6 +138,7 @@ class AbstractProductService(ABC):
         variation_id: int,
         product_in: BaseUpdateVariationSchema,
         uow: AbstractUnitOfWork,
+        static_discount: int,
     ) -> ReadProductVariationSchema: ...
 
     # Delete =========================================
@@ -219,6 +241,32 @@ class ProductService(AbstractProductService):
             )
         return await uow.products.all(filters={"product_id": product_id})
 
+    async def get_unique_product_by_id(
+        self,
+        product_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadUniqueProductSchema:
+        if not await uow.unique_products.exists(id=product_id):
+            raise ForeignKeyConstraintViolationException(
+                {"product_id": "Продукту не існує."},
+                detail="Не існує даного продукту",
+            )
+        return await uow.unique_products.get(id=product_id)
+
+    async def get_variation(
+        self,
+        variation_id: int,
+        uow: AbstractUnitOfWork,
+    ) -> ReadProductVariationSchema:
+        return await uow.products.get(id=variation_id)
+
+    async def list_popular(
+        self,
+        uow: AbstractUnitOfWork,
+        pagination_in: Optional[PaginationIn],
+    ) -> list[ReadPreviewProductSchema]:
+        return await uow.products.get_with_most_orders(pagination_in=pagination_in)
+
     # Create =========================================
     async def create_unique(
         self,
@@ -247,11 +295,10 @@ class ProductService(AbstractProductService):
             raise ForeignKeyConstraintViolationException(
                 {"product_id": "Продукту не існує."},
             )
-        price_increase_percentage = 30
         updated_products = [
             CreateProductVariationSchema(
                 **product.model_dump(exclude={"price"}),
-                price=product.price * (1 + price_increase_percentage / 100),
+                price=round(product.price * (1 + 30 / 100)),
                 product_id=unique_product_id,
             )
             for product in products_in
@@ -275,8 +322,17 @@ class ProductService(AbstractProductService):
         variation_id: int,
         product_in: BaseUpdateVariationSchema,
         uow: AbstractUnitOfWork,
+        static_discount: int = 30,
     ) -> ReadProductVariationSchema:
-        return await uow.products.update(id=variation_id, item_in=product_in)
+        return await uow.products.update(
+            id=variation_id,
+            item_in=BaseUpdateVariationSchema(
+                **product_in.model_dump(
+                    exclude={"price"},
+                ),
+                price=round(product_in.price * (1 + static_discount / 100)),
+            ),
+        )
 
     # Delete =========================================
     async def delete_unique(

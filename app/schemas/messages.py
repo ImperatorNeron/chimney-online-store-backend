@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import Optional
 
 from markupsafe import escape
 from pydantic import BaseModel, Field, field_validator
@@ -18,7 +19,8 @@ class BaseMessageSchema(BaseModel):
         title="Phone number of the user",
         example="0991234567",
     )
-    message: str = Field(
+    message: Optional[str] = Field(
+        None,
         max_length=1000,
         title="Message from the user",
         example="Привіт!",

@@ -49,6 +49,6 @@ class SortOrderSchema(BaseModel):
         pattern="^(final_price|created_at)$",
     )
     ordering: str = Query(
-        default="asc",
+        default="desc",
         pattern="^(asc|desc)$",
     )

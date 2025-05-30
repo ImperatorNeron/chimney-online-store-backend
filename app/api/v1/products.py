@@ -2,13 +2,11 @@ import json
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
-from fastapi_cache.decorator import cache
 from pydantic import ValidationError
 
 from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
-from app.core.settings import settings
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import (
@@ -26,6 +24,7 @@ from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProdu
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
+from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase
@@ -40,7 +39,6 @@ router = APIRouter(prefix="/products", tags=["Products"])
     "",
     response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
 )
-@cache(expire=settings.cache.expire)
 async def get_products_list(
     filters: Annotated[ProductFiltersSchema, Depends()],
     sort_params: Annotated[SortOrderSchema, Depends()],
@@ -110,6 +108,26 @@ async def fetch_filters(
 ):
 
     return ApiResponseSchema(data=await use_case.execute(slug=slug, text=text, uow=uow))
+
+
+@router.get(
+    "/popular",
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
+)
+async def get_products_recommendations(
+    pagination_in: Annotated[PaginationIn, Depends()],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchPopularProductsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchPopularProductsUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            uow=uow,
+            pagination_in=pagination_in,
+        ),
+    )
 
 
 @router.get(

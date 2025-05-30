@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from fastapi_cache import FastAPICache
 
+from app.core.constants import CACHED_PRODUCT_KEYS
 from app.core.settings import settings
 from app.schemas.api_response import ListPaginatedResponse
 from app.schemas.filters import PaginationIn, PaginationOut, ProductFiltersSchema, SortOrderSchema
@@ -44,7 +45,7 @@ class FetchProductsUseCase(AbstractFetchProductsUseCase):
         }
         raw_key = json.dumps(key_data, sort_keys=True)
         key = "products:" + hashlib.sha256(raw_key.encode()).hexdigest()
-
+        CACHED_PRODUCT_KEYS.add(key)
         cached = await FastAPICache.get_backend().get(key)
         if cached:
             return ListPaginatedResponse.model_validate_json(cached)

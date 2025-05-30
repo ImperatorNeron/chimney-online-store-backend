@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 class Category(BaseModel, IdIntPkMixin):
     name: Mapped[str] = mapped_column(String(150))
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    file_path: Mapped[str] = mapped_column(String(512), nullable=True)
     parent_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=True,
@@ -43,6 +44,7 @@ class Category(BaseModel, IdIntPkMixin):
             id=self.id,
             name=self.name,
             slug=self.slug,
+            file_path=self.file_path,
             parent_id=self.parent_id,
         )
 

@@ -2,6 +2,9 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from fastapi_cache import FastAPICache
+
+from app.core.constants import CACHED_PRODUCT_KEYS
 from app.core.exceptions.base import BaseAppException
 from app.core.exceptions.common import ProductCreationException
 from app.schemas.product_images import CreateProductImageSchema
@@ -78,6 +81,10 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
                 products_in=variations_in,
                 uow=uow,
             )
+            for key in CACHED_PRODUCT_KEYS:
+                await FastAPICache.get_backend().set(key, None, expire=1)
+
+            CACHED_PRODUCT_KEYS.clear()
             return ReadAbsoluteProductSchema(
                 **unique_product.model_dump(),
                 images=new_images,

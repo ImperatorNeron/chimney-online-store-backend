@@ -21,5 +21,6 @@ class UniqueProductRepository(BaseRepository):
             limit=limit,
             offset=offset,
             options=self.default_preload,
+            order_by=["-created_at"],
         )
         return [model.to_read_full_model() for model in models]

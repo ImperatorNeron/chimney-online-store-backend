@@ -1,8 +1,11 @@
+import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from fastapi import UploadFile
+from fastapi_cache import FastAPICache
 
+from app.core.constants import CACHED_PRODUCT_KEYS
 from app.schemas.product_images import CreateProductImageSchema
 from app.schemas.products import (
     ReadAbsoluteProductSchema,
@@ -71,7 +74,8 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
                 )
             if created_images:
                 new_imgs = await self.product_image_service.bulk_create(
-                    images=created_images, uow=uow,
+                    images=created_images,
+                    uow=uow,
                 )
             else:
                 new_imgs = []
@@ -86,11 +90,18 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
                     )
                     new_variations.append(new_variation[0])
                 elif var.action == VariationAction.update:
+                    current_variation = await self.product_service.get_variation(
+                        variation_id=var.id,
+                        uow=uow,
+                    )
                     new_variations.append(
                         await self.product_service.update_variation(
                             variation_id=var.id,
                             product_in=var,
                             uow=uow,
+                            static_discount=(
+                                0 if current_variation.price == var.price else 30
+                            ),
                         ),
                     )
                 elif var.action == VariationAction.delete:
@@ -98,6 +109,13 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
                         product_variation_id=var.id,
                         uow=uow,
                     )
+            for key in CACHED_PRODUCT_KEYS:
+                await FastAPICache.get_backend().set(key, None, expire=1)
+
+            CACHED_PRODUCT_KEYS.clear()
+
+            product_key = f"product:{hashlib.sha256(product_in.slug.encode()).hexdigest()}"
+            await FastAPICache.get_backend().set(product_key, None, expire=1)
 
             return ReadAbsoluteProductSchema(
                 **updated_unique_product.model_dump(),

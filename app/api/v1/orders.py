@@ -98,7 +98,7 @@ async def update_order_info(
 @router.post(
     "",
     response_model=ApiResponseSchema[ReadOrderBaseSchema],
-    dependencies=[Depends(get_current_active_auth_superuser)],
+    dependencies=[],
 )
 @limiter.limit("10/minute")
 async def create_order(
