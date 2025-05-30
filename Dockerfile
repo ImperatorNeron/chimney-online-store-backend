@@ -17,9 +17,11 @@ RUN pip install --upgrade pip && \
     pip install poetry
 
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-root --no-interaction --no-ansi
+    poetry install --no-root --no-interaction --no-ansi --only main
 
 COPY . /app/
-COPY entrypoint.sh /entrypoint.sh
 
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+CMD ["sh", "/entrypoint.sh"]

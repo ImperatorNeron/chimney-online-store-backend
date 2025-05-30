@@ -21,6 +21,5 @@ wait_for_port() {
 }
 
 wait_for_port "${APP_CONFIG__DATABASE__host}" "${APP_CONFIG__DATABASE__port}"
-# wait_for_port "${APP_CONFIG__TEST_DATABASE__host}" "${APP_CONFIG__DATABASE__port}"
 
-uvicorn --factory app.main:create_app --reload --host 0.0.0.0 --port 8000
+uvicorn --factory app.main:create_app --host 0.0.0.0 --port 8000
