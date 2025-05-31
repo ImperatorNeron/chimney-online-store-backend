@@ -57,7 +57,11 @@ async def validate_token_type(
     jwt_token_type = payload.get("token_type")
 
     if jwt_token_type != current_token_type:
-        logger.warning("Token type mismatch: expected '%s', got '%s'", current_token_type, jwt_token_type)
+        logger.warning(
+            "Token type mismatch: expected '%s', got '%s'",
+            current_token_type,
+            jwt_token_type,
+        )
         raise InvalidTokenTypeException()
 
 
@@ -242,7 +246,12 @@ async def handle_anonymous_cart(
         return await fetch_cart.execute(uow=uow, session_id=session_id)
     except ItemNotFoundException:
         logger.info("Session cart not found, creating new one and deleting old cookie")
-        response.delete_cookie(key="cart_session_id")
+        response.delete_cookie(
+            key="cart_session_id",
+            secure=True,
+            httponly=True,
+            samesite="None",
+        )
         return await _create_anonymous_cart(
             response=response,
             uow=uow,
@@ -291,7 +300,12 @@ async def get_user_cart(
                 session_cart=session_cart,
                 uow=uow,
             )
-            response.delete_cookie("cart_session_id")
+            response.delete_cookie(
+                "cart_session_id",
+                secure=True,
+                httponly=True,
+                samesite="None",
+            )
         return user_cart
     return await handle_anonymous_cart(
         request=request,
