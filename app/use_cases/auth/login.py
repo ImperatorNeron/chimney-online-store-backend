@@ -50,8 +50,8 @@ class LoginUserUseCase:
                 value=await self.token_service.create_refresh_token(pk=user.id),
                 max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60,
                 httponly=True,
-                secure=False,
-                samesite="lax",
+                secure=True,
+                samesite="None",
             )
 
             access_token = await self.token_service.create_access_token(

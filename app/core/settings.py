@@ -56,8 +56,8 @@ class SessionSettings(BaseModel):
     urlsafe_token_length: int = 32
     session_key: str = "cart_session_id"
     session_httponly: bool = True
-    session_secure: bool = False  # Change
-    same_site: str = "Lax"  # Change
+    session_secure: bool = True  # Change
+    same_site: str = "None"  # Change
 
 
 class ImageSettings(BaseModel):
