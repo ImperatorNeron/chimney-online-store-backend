@@ -56,7 +56,8 @@ class LoginUserUseCase:
             cookie_value = (
                 f"refresh_token={await self.token_service.create_refresh_token(pk=user.id)};"
                 f" Max-Age={settings.auth_jwt.refresh_token_expire_days * 24 * 60};"
-                f" Path=/; HttpOnly; Secure; SameSite={settings.session.same_site}; Partitioned;"
+                f" Path=/; HttpOnly; "
+                # f"Secure; SameSite={settings.session.same_site}; Partitioned;"
             )
             response.headers.append("set-cookie", cookie_value)
 
