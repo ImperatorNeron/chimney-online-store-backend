@@ -187,7 +187,7 @@ def set_session_cookie(response: Response, session_id: str) -> None:
         f"{settings.session.session_key}={session_id};"
         f" Max-Age={settings.session.session_expire_seconds};"
         f" Path=/; HttpOnly;"
-        # f"Secure; SameSite={settings.session.same_site}; Partitioned;"
+        f"Secure; SameSite={settings.session.same_site};"
     )
     response.headers.append("set-cookie", cookie_value)
 
@@ -263,9 +263,8 @@ async def handle_anonymous_cart(
             f"cart_session_id=; "
             f"Path=/; "
             f"HttpOnly; "
-            # f"Secure; "
-            # f"SameSite={settings.session.same_site}; "
-            # f"Partitioned; "
+            f"Secure; "
+            f"SameSite={settings.session.same_site}; "
             f"Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
         )
         response.headers.append("set-cookie", cookie_value)
@@ -327,9 +326,8 @@ async def get_user_cart(
                 f"cart_session_id=; "
                 f"Path=/; "
                 f"HttpOnly; "
-                # f"Secure; "
-                # f"SameSite={settings.session.same_site}; "
-                # f"Partitioned; "
+                f"Secure; "
+                f"SameSite={settings.session.same_site}; "
                 f"Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
             )
             response.headers.append("set-cookie", cookie_value)
