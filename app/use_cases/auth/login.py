@@ -45,21 +45,14 @@ class LoginUserUseCase:
                 raise InvalidCredentialsException()
 
             # TODO: add to settings
-            # response.set_cookie(
-            #     key="refresh_token",
-            #     value=await self.token_service.create_refresh_token(pk=user.id),
-            #     max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60,
-            #     secure=settings.session.session_secure,
-            #     httponly=settings.session.session_httponly,
-            #     samesite=settings.session.same_site,
-            # )
-            cookie_value = (
-                f"refresh_token={await self.token_service.create_refresh_token(pk=user.id)};"
-                f" Max-Age={settings.auth_jwt.refresh_token_expire_days * 24 * 60};"
-                f" Path=/; HttpOnly; "
-                f"Secure; SameSite={settings.session.same_site};"
+            response.set_cookie(
+                key="refresh_token",
+                value=await self.token_service.create_refresh_token(pk=user.id),
+                max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60,
+                secure=settings.session.session_secure,
+                httponly=settings.session.session_httponly,
+                samesite=settings.session.same_site,
             )
-            response.headers.append("set-cookie", cookie_value)
 
             access_token = await self.token_service.create_access_token(
                 pk=user.id,
