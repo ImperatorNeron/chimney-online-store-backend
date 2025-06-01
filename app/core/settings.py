@@ -57,7 +57,7 @@ class SessionSettings(BaseModel):
     session_key: str = "cart_session_id"
     session_httponly: bool = True
     session_secure: bool = True
-    same_site: str = "none"
+    same_site: str = "lax"
 
 
 class ImageSettings(BaseModel):
