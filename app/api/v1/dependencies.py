@@ -175,14 +175,20 @@ async def refresh_check(
 
 
 def set_session_cookie(response: Response, session_id: str) -> None:
-    response.set_cookie(
-        key=settings.session.session_key,
-        value=session_id,
-        max_age=settings.session.session_expire_seconds,
-        httponly=settings.session.session_httponly,
-        secure=settings.session.session_secure,
-        samesite=settings.session.same_site,
+    # response.set_cookie(
+    #     key=settings.session.session_key,
+    #     value=session_id,
+    #     max_age=settings.session.session_expire_seconds,
+    #     httponly=settings.session.session_httponly,
+    #     secure=settings.session.session_secure,
+    #     samesite=settings.session.same_site,
+    # )
+    cookie_value = (
+        f"{settings.session.session_key}={session_id};"
+        f" Max-Age={settings.session.session_expire_seconds};"
+        f" Path=/; HttpOnly; Secure; SameSite={settings.session.same_site}; Partitioned;"
     )
+    response.headers.append("Set-Cookie", cookie_value)
 
 
 async def _get_user_cart_or_create_new(
@@ -246,12 +252,22 @@ async def handle_anonymous_cart(
         return await fetch_cart.execute(uow=uow, session_id=session_id)
     except ItemNotFoundException:
         logger.info("Session cart not found, creating new one and deleting old cookie")
-        response.delete_cookie(
-            key="cart_session_id",
-            secure=settings.session.session_secure,
-            httponly=settings.session.session_httponly,
-            samesite=settings.session.same_site,
+        # response.delete_cookie(
+        #     key="cart_session_id",
+        #     secure=settings.session.session_secure,
+        #     httponly=settings.session.session_httponly,
+        #     samesite=settings.session.same_site,
+        # )
+        cookie_value = (
+            f"cart_session_id=; "
+            f"Path=/; "
+            f"HttpOnly; "
+            f"Secure; "
+            f"SameSite={settings.session.same_site}; "
+            f"Partitioned; "
+            f"Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
         )
+        response.headers.append("Set-Cookie", cookie_value)
         return await _create_anonymous_cart(
             response=response,
             uow=uow,
@@ -300,12 +316,22 @@ async def get_user_cart(
                 session_cart=session_cart,
                 uow=uow,
             )
-            response.delete_cookie(
-                "cart_session_id",
-                secure=settings.session.session_secure,
-                httponly=settings.session.session_httponly,
-                samesite=settings.session.same_site,
+            # response.delete_cookie(
+            #     "cart_session_id",
+            #     secure=settings.session.session_secure,
+            #     httponly=settings.session.session_httponly,
+            #     samesite=settings.session.same_site,
+            # )
+            cookie_value = (
+                f"cart_session_id=; "
+                f"Path=/; "
+                f"HttpOnly; "
+                f"Secure; "
+                f"SameSite={settings.session.same_site}; "
+                f"Partitioned; "
+                f"Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
             )
+            response.headers.append("Set-Cookie", cookie_value)
         return user_cart
     return await handle_anonymous_cart(
         request=request,

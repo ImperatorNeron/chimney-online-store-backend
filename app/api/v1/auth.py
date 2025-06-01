@@ -76,9 +76,19 @@ async def check_refresh_token(
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie(
-        key="refresh_token",
-        secure=settings.session.session_secure,
-        httponly=settings.session.session_httponly,
-        samesite=settings.session.same_site,
+    # response.delete_cookie(
+    #     key="refresh_token",
+    #     secure=settings.session.session_secure,
+    #     httponly=settings.session.session_httponly,
+    #     samesite=settings.session.same_site,
+    # )
+    cookie_value = (
+        f"refresh_token=; "
+        f"Path=/; "
+        f"HttpOnly; "
+        f"Secure; "
+        f"SameSite={settings.session.same_site}; "
+        f"Partitioned; "
+        f"Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
     )
+    response.headers.append("Set-Cookie", cookie_value)
