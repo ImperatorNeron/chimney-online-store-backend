@@ -91,4 +91,4 @@ async def logout(response: Response):
         f"Partitioned; "
         f"Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
     )
-    response.headers.append("Set-Cookie", cookie_value)
+    response.headers.append("set-cookie", cookie_value)

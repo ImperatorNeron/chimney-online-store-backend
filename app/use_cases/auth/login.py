@@ -58,7 +58,7 @@ class LoginUserUseCase:
                 f" Max-Age={settings.auth_jwt.refresh_token_expire_days * 24 * 60};"
                 f" Path=/; HttpOnly; Secure; SameSite={settings.session.same_site}; Partitioned;"
             )
-            response.headers.append("Set-Cookie", cookie_value)
+            response.headers.append("set-cookie", cookie_value)
 
             access_token = await self.token_service.create_access_token(
                 pk=user.id,
