@@ -1,11 +1,9 @@
 import logging
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from slowapi.errors import RateLimitExceeded
@@ -38,14 +36,6 @@ def create_app() -> FastAPI:
         default_response_class=ORJSONResponse,
         debug=True,
         lifespan=lifespan,
-    )
-
-    os.makedirs(settings.images.upload_dir, exist_ok=True)
-    logger.info(f"Upload directory ensured at: {settings.images.upload_dir}")
-    application.mount(
-        "/uploads",
-        StaticFiles(directory=settings.images.upload_dir),
-        name="uploads",
     )
 
     application.add_middleware(

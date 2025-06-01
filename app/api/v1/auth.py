@@ -6,6 +6,7 @@ from punq import Container
 from app.api.v1.dependencies import get_current_auth_user_for_refresh, refresh_check
 from app.core.containers import get_container
 from app.core.limiter import limiter
+from app.core.settings import settings
 from app.schemas.api_response import ApiResponseSchema
 from app.schemas.tokens import TokenInfoSchema
 from app.schemas.users import LoginUserSchema, ReadUserSchema, RegisterUserSchema
@@ -77,7 +78,7 @@ async def check_refresh_token(
 async def logout(response: Response):
     response.delete_cookie(
         key="refresh_token",
-        secure=True,
-        httponly=True,
-        samesite="None",
+        secure=settings.session.session_secure,
+        httponly=settings.session.session_httponly,
+        samesite=settings.session.same_site,
     )

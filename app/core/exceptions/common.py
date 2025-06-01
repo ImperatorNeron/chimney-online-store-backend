@@ -300,3 +300,23 @@ class EmptyCartException(BaseAppException):
             status_code=status.HTTP_409_CONFLICT,
             meta=meta or {},
         )
+
+
+class FileUploadException(BaseAppException):
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="file_upload_error",
+            detail="Неможливо завантажити фото на сервер!",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            meta=meta or {},
+        )
+
+
+class FileDeletionException(BaseAppException):
+    def __init__(self, meta: Optional[dict] = None):
+        super().__init__(
+            error_code="file_deletion_error",
+            detail="Неможливо видалити фото!",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            meta=meta or {},
+        )

@@ -46,7 +46,7 @@ from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderU
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.orders.update import AbstractUpdateOrderUseCase, UpdateOrderUseCase
-from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
+from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductWithSupabaseUseCase
 from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase
@@ -54,7 +54,7 @@ from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, Fe
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase, FetchPopularProductsUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase
-from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductUseCase
+from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductWithSupabaseUseCase
 from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
 
 
@@ -120,9 +120,9 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase)
     container.register(AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase)
     container.register(AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase)
-    container.register(AbstractCreateProductUseCase, CreateProductUseCase)
+    container.register(AbstractCreateProductUseCase, CreateProductWithSupabaseUseCase)
     container.register(AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase)
-    container.register(AbstractUpdateProductUseCase, UpdateProductUseCase)
+    container.register(AbstractUpdateProductUseCase, UpdateProductWithSupabaseUseCase)
     container.register(AbstractFetchPopularProductsUseCase, FetchPopularProductsUseCase)
 
     # User

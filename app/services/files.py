@@ -7,8 +7,14 @@ import aiofiles
 import magic
 from fastapi import UploadFile
 
-from app.core.exceptions.common import FileTooLargeException, UnsupportedMediaException
+from app.core.exceptions.common import (
+    FileDeletionException,
+    FileTooLargeException,
+    FileUploadException,
+    UnsupportedMediaException,
+)
 from app.core.settings import settings
+from app.core.supabase import supabase_client
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +37,13 @@ class AbstractFileUploadService(ABC):
     @abstractmethod
     async def bwrite_file(self, file: UploadFile, path: str) -> None:
         pass
+
+    @abstractmethod
+    async def write_to_supabase(self, file: UploadFile, unique_product_slug: str) -> str:
+        pass
+
+    @abstractmethod
+    async def delete_from_supabase(self, files: list): ...
 
 
 class FileUploadService(AbstractFileUploadService):
@@ -86,3 +99,25 @@ class FileUploadService(AbstractFileUploadService):
         async with aiofiles.open(path, "wb") as f:
             while chunk := await file.read(8192):
                 await f.write(chunk)
+
+    async def delete_from_supabase(self, files: list):
+        for file in files:
+            try:
+                supabase_client.storage.from_("images").remove([file.file_path])
+            except Exception as e:
+                logger.error("Failed to delete images: %s", e, exc_info=True)
+                raise FileDeletionException()
+
+    async def write_to_supabase(self, file: UploadFile, unique_product_slug: str) -> str:
+        try:
+            file_name = self.__secure_filename(filename=file.filename)
+            contents = await file.read()
+            file_path = f"uploads/{unique_product_slug}/{file_name}"
+            supabase_client.storage.from_(settings.bucket.name).upload(
+                file_path,
+                contents,
+            )
+            return file_path
+        except Exception as e:
+            logger.error("Failed to upload images: %s", e, exc_info=True)
+            raise FileUploadException()

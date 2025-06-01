@@ -248,9 +248,9 @@ async def handle_anonymous_cart(
         logger.info("Session cart not found, creating new one and deleting old cookie")
         response.delete_cookie(
             key="cart_session_id",
-            secure=True,
-            httponly=True,
-            samesite="None",
+            secure=settings.session.session_secure,
+            httponly=settings.session.session_httponly,
+            samesite=settings.session.same_site,
         )
         return await _create_anonymous_cart(
             response=response,
@@ -302,9 +302,9 @@ async def get_user_cart(
             )
             response.delete_cookie(
                 "cart_session_id",
-                secure=True,
-                httponly=True,
-                samesite="None",
+                secure=settings.session.session_secure,
+                httponly=settings.session.session_httponly,
+                samesite=settings.session.same_site,
             )
         return user_cart
     return await handle_anonymous_cart(

@@ -56,12 +56,12 @@ class SessionSettings(BaseModel):
     urlsafe_token_length: int = 32
     session_key: str = "cart_session_id"
     session_httponly: bool = True
-    session_secure: bool = True  # Change
-    same_site: str = "None"  # Change
+    session_secure: bool = True
+    same_site: str = "None"
 
 
 class ImageSettings(BaseModel):
-    upload_dir: Path = BASE_DIR / "images"
+    upload_dir: Path = "uploads"
     max_size: int = 10 * 1024 * 1024
     allowed_mime_types: list = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
     allowed_extensions: list = [".jpg", ".jpeg", ".png", ".webp"]
@@ -81,6 +81,12 @@ class CacheSettings(BaseModel):
     expire: int = 600
 
 
+class SupabaseBucket(BaseModel):
+    supabase_url: str
+    supabase_key: str
+    name: str
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -91,6 +97,7 @@ class Settings(BaseSettings):
     api_version_prefix: str = "/api/v1"
     database: DatabaseSettings
     allow_origins: str
+    bucket: SupabaseBucket
     auth_jwt: AuthJWT = AuthJWT()
     session: SessionSettings = SessionSettings()
     images: ImageSettings = ImageSettings()
