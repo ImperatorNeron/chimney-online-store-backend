@@ -154,7 +154,7 @@ async def fetch_absolute_product(
 
 
 @router.post(
-    "/",
+    "",
     response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
     dependencies=[Depends(get_current_active_auth_superuser)],
 )
