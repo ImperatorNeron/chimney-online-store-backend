@@ -10,6 +10,7 @@ class Message(IdIntPkMixin, CreateDateTimeMixin, BaseModel):
     user_name: Mapped[str] = mapped_column(String(100))
     phone_number: Mapped[str] = mapped_column(String(20))
     message: Mapped[str] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(10), server_default="new", default="new")
 
     def to_read_model(self):
         return ReadMessageSchema(
@@ -18,4 +19,5 @@ class Message(IdIntPkMixin, CreateDateTimeMixin, BaseModel):
             phone_number=self.phone_number,
             message=self.message,
             created_at=self.created_at,
+            status=self.status,
         )

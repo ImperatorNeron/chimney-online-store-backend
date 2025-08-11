@@ -52,7 +52,12 @@ class BaseMessageSchema(BaseModel):
 class ReadMessageSchema(BaseMessageSchema):
     id: int  # noqa
     created_at: datetime = Field(title="Timestamp when the message was created")
+    status: str = Field(title="Поточний статус", default="new")
 
 
 class CreateMessageSchema(BaseMessageSchema):
     pass
+
+
+class ChangeMessageStatusSchema(BaseModel):
+    status: str = Field(title="Поточний статус", default="new")

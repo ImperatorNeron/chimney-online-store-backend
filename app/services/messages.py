@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
 
 from app.schemas.filters import PaginationIn
-from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
+from app.schemas.messages import (
+    ChangeMessageStatusSchema,
+    CreateMessageSchema,
+    ReadMessageSchema,
+)
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -32,6 +36,14 @@ class AbstractMessageService(ABC):
         self,
         uow: AbstractUnitOfWork,
         message_in: CreateMessageSchema,
+    ) -> ReadMessageSchema: ...
+
+    @abstractmethod
+    async def change_message_status(
+        self,
+        message_id: int,
+        message_in: ChangeMessageStatusSchema,
+        uow: AbstractUnitOfWork,
     ) -> ReadMessageSchema: ...
 
     @abstractmethod
@@ -74,6 +86,14 @@ class MessageService(AbstractMessageService):
         message_in: CreateMessageSchema,
     ) -> ReadMessageSchema:
         return await uow.messages.create(item_in=message_in)
+
+    async def change_message_status(
+        self,
+        message_id: int,
+        message_in: ChangeMessageStatusSchema,
+        uow: AbstractUnitOfWork,
+    ) -> ReadMessageSchema:
+        return await uow.messages.update(id=message_id, item_in=message_in)
 
     async def delete_message(
         self,

@@ -7,7 +7,10 @@ from app.core.containers import get_container
 from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn
-from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
+from app.schemas.messages import ChangeMessageStatusSchema, CreateMessageSchema, ReadMessageSchema
+from app.use_cases.messages.change_message_status import (
+    AbstractChangeMessageStatusUseCase,
+)
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase
 from app.use_cases.messages.delete import AbstractDeleteMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase
@@ -93,4 +96,23 @@ async def delete_message(
     await use_case.execute(
         message_id=message_id,
         uow=uow,
+    )
+
+
+@router.patch(
+    "/change-status/{message_id}",
+    response_model=ApiResponseSchema[ReadMessageSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def change_message_status(
+    message_id: int,
+    message_in: ChangeMessageStatusSchema,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractChangeMessageStatusUseCase,
+        Depends(lambda: get_container().resolve(AbstractChangeMessageStatusUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(message_id=message_id, message_in=message_in, uow=uow),
     )
