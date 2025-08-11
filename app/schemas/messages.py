@@ -57,3 +57,7 @@ class ReadMessageSchema(BaseMessageSchema):
 
 class CreateMessageSchema(BaseMessageSchema):
     pass
+
+
+class ChangeMessageStatusSchema(BaseModel):
+    status: str = Field(title="Поточний статус", default="new")
