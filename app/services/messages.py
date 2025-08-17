@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
 
-from app.schemas.filters import PaginationIn
-from app.schemas.messages import (
-    ChangeMessageStatusSchema,
-    CreateMessageSchema,
-    ReadMessageSchema,
-)
+from app.schemas.filters import MessageFiltersSchema, MessageSortOrderSchema, PaginationIn
+from app.schemas.messages import ChangeMessageStatusSchema, CreateMessageSchema, ReadMessageSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -14,7 +10,9 @@ class AbstractMessageService(ABC):
     @abstractmethod
     async def list_all_messages(
         self,
+        filters: MessageFiltersSchema,
         pagination_in: PaginationIn,
+        sort_params: MessageSortOrderSchema,
         uow: AbstractUnitOfWork,
     ) -> list[ReadMessageSchema]: ...
 
@@ -58,20 +56,29 @@ class MessageService(AbstractMessageService):
 
     async def list_all_messages(
         self,
+        filters: MessageFiltersSchema,
         pagination_in: PaginationIn,
+        sort_params: MessageSortOrderSchema,
         uow: AbstractUnitOfWork,
     ) -> list[ReadMessageSchema]:
+        order_by = (
+            f"-{sort_params.field}"
+            if sort_params.ordering == "desc"
+            else sort_params.field
+        )
         return await uow.messages.all(
-            order_by=["-created_at"],
+            order_by=[order_by],
             limit=pagination_in.limit,
             offset=pagination_in.offset,
+            filters=filters.model_dump(),
         )
 
     async def get_total_messages(
         self,
+        filters: MessageFiltersSchema,
         uow: AbstractUnitOfWork,
     ) -> int:
-        return await uow.messages.count()
+        return await uow.messages.count(**filters.model_dump())
 
     async def get_message(
         self,
