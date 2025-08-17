@@ -6,11 +6,9 @@ from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
-from app.schemas.filters import PaginationIn
+from app.schemas.filters import MessageFiltersSchema, MessageSortOrderSchema, PaginationIn
 from app.schemas.messages import ChangeMessageStatusSchema, CreateMessageSchema, ReadMessageSchema
-from app.use_cases.messages.change_message_status import (
-    AbstractChangeMessageStatusUseCase,
-)
+from app.use_cases.messages.change_message_status import AbstractChangeMessageStatusUseCase
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase
 from app.use_cases.messages.delete import AbstractDeleteMessageUseCase
 from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase
@@ -28,6 +26,8 @@ router = APIRouter(prefix="/messages", tags=["Messages"])
     dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def get_messages_list(
+    filters: Annotated[MessageFiltersSchema, Depends()],
+    sort_params: Annotated[MessageSortOrderSchema, Depends()],
     pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -36,7 +36,13 @@ async def get_messages_list(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(pagination_in=pagination_in, uow=uow),
+        sort_params=sort_params,
+        data=await use_case.execute(
+            filters=filters,
+            pagination_in=pagination_in,
+            sort_params=sort_params,
+            uow=uow,
+        ),
     )
 
 
@@ -55,7 +61,10 @@ async def get_message(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(message_id=message_id, uow=uow),
+        data=await use_case.execute(
+            message_id=message_id,
+            uow=uow,
+        ),
     )
 
 
@@ -114,5 +123,9 @@ async def change_message_status(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(message_id=message_id, message_in=message_in, uow=uow),
+        data=await use_case.execute(
+            message_id=message_id,
+            message_in=message_in,
+            uow=uow,
+        ),
     )

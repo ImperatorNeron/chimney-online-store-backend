@@ -52,3 +52,19 @@ class SortOrderSchema(BaseModel):
         default="desc",
         pattern="^(asc|desc)$",
     )
+
+
+class MessageSortOrderSchema(BaseModel):
+    field: str = Query(
+        default="created_at",
+        pattern="^created_at$",
+    )
+    ordering: str = Query(
+        default="desc",
+        pattern="^(asc|desc)$",
+    )
+
+
+class MessageFiltersSchema(BaseModel):
+    status: Optional[str] = Query(default=None, pattern="^(new|progress|read)$")
+    text: Optional[str] = Query(default=None)
