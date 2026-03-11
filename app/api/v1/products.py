@@ -8,7 +8,13 @@ from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
-from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
+from app.schemas.filters import (
+    PaginationIn,
+    ProductFiltersSchema,
+    SortOrderSchema,
+    UniqueProductFiltersSchema,
+    UniqueProductSortOrderSchema,
+)
 from app.schemas.products import (
     BaseCreateProductVariationSchema,
     CreateUniqueProductSchema,
@@ -20,12 +26,16 @@ from app.schemas.products import (
     UpdateVariationSchema,
 )
 from app.use_cases.products.create import AbstractCreateProductUseCase
-from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase
+from app.use_cases.products.fetch_absolute_one import (
+    AbstractFetchAbsoluteProductUseCase,
+)
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase
-from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
+from app.use_cases.products.unique.delete_unique import (
+    AbstractDeleteUniqueProductUseCase,
+)
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -78,8 +88,10 @@ async def get_products_by_likes_list(
     ],
 )
 async def get_unique_product_list(
-    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    filters: Annotated[UniqueProductFiltersSchema, Depends()],
+    sort_params: Annotated[UniqueProductSortOrderSchema, Depends()],
     pagination_in: Annotated[PaginationIn, Depends()],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractFetchUniqueProductsUseCase,
         Depends(lambda: get_container().resolve(AbstractFetchUniqueProductsUseCase)),
@@ -87,8 +99,10 @@ async def get_unique_product_list(
 ):
     return ApiResponseSchema(
         data=await use_case.execute(
-            uow=uow,
+            filters=filters,
             pagination_in=pagination_in,
+            sort_params=sort_params,
+            uow=uow,
         ),
     )
 

@@ -6,7 +6,13 @@ from app.core.exceptions.common import (
     ItemNotFoundException,
     UniqueConstraintViolationsException,
 )
-from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
+from app.schemas.filters import (
+    PaginationIn,
+    ProductFiltersSchema,
+    SortOrderSchema,
+    UniqueProductFiltersSchema,
+    UniqueProductSortOrderSchema,
+)
 from app.schemas.products import (
     BaseCreateProductVariationSchema,
     BaseUpdateVariationSchema,
@@ -35,6 +41,9 @@ class AbstractProductService(ABC):
     @abstractmethod
     async def list_all_unique(
         self,
+        filters: UniqueProductFiltersSchema,
+        sort_params: UniqueProductSortOrderSchema,
+        pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
     ) -> list[ReadUniqueProductSchema]: ...
 
@@ -56,6 +65,7 @@ class AbstractProductService(ABC):
     async def get_unique_products_count(
         self,
         uow: AbstractUnitOfWork,
+        filters: Optional[UniqueProductFiltersSchema],
     ) -> int: ...
 
     @abstractmethod
@@ -175,12 +185,21 @@ class ProductService(AbstractProductService):
 
     async def list_all_unique(
         self,
-        pagination_in: Optional[PaginationIn],
+        filters: UniqueProductFiltersSchema,
+        sort_params: UniqueProductSortOrderSchema,
+        pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
     ) -> list[ReadUniqueProductSchema]:
+        order_by = (
+            f"-{sort_params.field}"
+            if sort_params.ordering == "desc"
+            else sort_params.field
+        )
         return await uow.unique_products.all(
+            order_by=[order_by],
             limit=pagination_in.limit,
             offset=pagination_in.offset,
+            filters=filters.model_dump(),
         )
 
     async def get_products_by_ids(
@@ -200,8 +219,9 @@ class ProductService(AbstractProductService):
     async def get_unique_products_count(
         self,
         uow: AbstractUnitOfWork,
+        filters: Optional[UniqueProductFiltersSchema],
     ) -> int:
-        return await uow.unique_products.count()
+        return await uow.unique_products.count(**filters.model_dump(),)
 
     async def get_filters(
         self,

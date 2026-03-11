@@ -68,3 +68,11 @@ class MessageSortOrderSchema(BaseModel):
 class MessageFiltersSchema(BaseModel):
     status: Optional[str] = Query(default=None, pattern="^(new|progress|read)$")
     text: Optional[str] = Query(default=None)
+
+
+class UniqueProductSortOrderSchema(MessageSortOrderSchema): ...
+
+
+class UniqueProductFiltersSchema(BaseModel):
+    category_id: Optional[int] = Query(default=None)
+    text: Optional[str] = Query(default=None)
