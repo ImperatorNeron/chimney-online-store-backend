@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -56,7 +57,7 @@ class SessionSettings(BaseModel):
     urlsafe_token_length: int = 32
     session_key: str = "cart_session_id"
     session_httponly: bool = True
-    session_secure: bool = True
+    session_secure: bool | None = None
     same_site: str = "lax"
 
 
@@ -89,11 +90,13 @@ class SupabaseBucket(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env.template", ".env"),
+        env_file=(".env",),
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="APP_CONFIG__",
+        extra="ignore",
     )
+    environment: Literal["dev", "prod", "test"] = "dev"
     api_version_prefix: str = "/api/v1"
     database: DatabaseSettings
     allow_origins: str
@@ -103,6 +106,10 @@ class Settings(BaseSettings):
     images: ImageSettings = ImageSettings()
     logging: LoggingSettings = LoggingSettings()
     cache: CacheSettings = CacheSettings()
+
+    def model_post_init(self, __context: object) -> None:
+        if self.session.session_secure is None:
+            self.session.session_secure = self.environment == "prod"
 
 
 settings = Settings()

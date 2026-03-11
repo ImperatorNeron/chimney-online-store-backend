@@ -1,6 +1,7 @@
 .git
 __pycache__
 .env
+.env.template
 *.pyc
 docker_compose/
 .pytest_cache/
@@ -8,4 +9,4 @@ docker_compose/
 *.log
 logs/         
 app/logs/  
-**/*.log   
+**/*.log

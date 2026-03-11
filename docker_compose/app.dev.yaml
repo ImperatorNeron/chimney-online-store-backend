@@ -1,0 +1,13 @@
+services:
+  main-app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: main-app
+    ports:
+      - "8000:8000"
+    command: "sh /entrypoint.sh"
+    volumes:
+      - ..:/app
+    env_file:
+      - ../.env

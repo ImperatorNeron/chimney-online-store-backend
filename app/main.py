@@ -34,7 +34,7 @@ def create_app() -> FastAPI:
         title="Chimney online shop API",
         docs_url="/api/docs",
         default_response_class=ORJSONResponse,
-        debug=True,
+        debug=settings.environment != "prod",
         lifespan=lifespan,
     )
 
