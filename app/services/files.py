@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -20,34 +21,21 @@ from app.core.supabase import supabase_client
 logger = logging.getLogger(__name__)
 
 
-class AbstractFileUploadService(ABC):
+class AbstractFileStorageService(ABC):
 
     @abstractmethod
-    async def verify_file(self, file: UploadFile) -> bool:
-        pass
+    async def upload(self, file: UploadFile, path: str) -> str:
+        """
+        Upload file and return public URL
+        """
 
     @abstractmethod
     async def cleanup_files(self, files: list) -> None:
-        pass
+        """
+        Delete files from storage
+        """
 
-    @abstractmethod
-    def get_metadata(self, file: UploadFile) -> dict:
-        pass
-
-    @abstractmethod
-    async def bwrite_file(self, file: UploadFile, path: str) -> None:
-        pass
-
-    @abstractmethod
-    async def write_to_supabase(self, file: UploadFile, unique_product_slug: str) -> str:
-        pass
-
-    @abstractmethod
-    async def delete_from_supabase(self, files: list): ...
-
-
-class FileUploadService(AbstractFileUploadService):
-
+    # TODO: maybe think about moving methods below to apart service or mixin
     async def __mime_type_check(self, file: UploadFile) -> None:
         mime = magic.Magic(mime=True)
         content = await file.read(1024)
@@ -80,6 +68,21 @@ class FileUploadService(AbstractFileUploadService):
         await self.__extension_check(file)
         return True
 
+    def get_path(self, file: UploadFile, unique_product_slug: str) -> dict:
+        filename = self.__secure_filename(file.filename)
+        return os.path.join(settings.images.upload_dir, unique_product_slug, filename)
+
+
+class LocalFileStorage(AbstractFileStorageService):
+
+    # TODO: check if try/except is needed
+    async def upload(self, file: UploadFile, path: str) -> str:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        async with aiofiles.open(path, "wb") as f:
+            while chunk := await file.read(8192):
+                await f.write(chunk)
+
     async def cleanup_files(self, files: list) -> None:
         for file in files:
             try:
@@ -87,37 +90,24 @@ class FileUploadService(AbstractFileUploadService):
             except (FileNotFoundError, PermissionError, OSError) as e:
                 logger.error("Failed to create product: %s", e, exc_info=True)
 
-    def get_metadata(self, file: UploadFile) -> dict:
-        filename = self.__secure_filename(file.filename)
-        filepath = settings.images.upload_dir / filename
-        return {
-            "name": str(filename),
-            "path": str(filepath),
-        }
 
-    async def bwrite_file(self, file: UploadFile, path: str) -> None:
-        async with aiofiles.open(path, "wb") as f:
-            while chunk := await file.read(8192):
-                await f.write(chunk)
+class SupabaseFileStorage(AbstractFileStorageService):
 
-    async def delete_from_supabase(self, files: list):
-        for file in files:
-            try:
-                supabase_client.storage.from_("images").remove([file.file_path])
-            except Exception as e:
-                logger.error("Failed to delete images: %s", e, exc_info=True)
-                raise FileDeletionException()
-
-    async def write_to_supabase(self, file: UploadFile, unique_product_slug: str) -> str:
+    async def upload(self, file: UploadFile, path: str) -> str:
         try:
-            file_name = self.__secure_filename(filename=file.filename)
             contents = await file.read()
-            file_path = f"uploads/{unique_product_slug}/{file_name}"
-            supabase_client.storage.from_(settings.bucket.name).upload(
-                file_path,
-                contents,
-            )
-            return file_path
+            supabase_client.storage.from_(settings.bucket.name).upload(path, contents)
+            return path
         except Exception as e:
             logger.error("Failed to upload images: %s", e, exc_info=True)
             raise FileUploadException()
+
+    async def cleanup_files(self, files: list) -> None:
+        for file in files:
+            try:
+                supabase_client.storage.from_(settings.bucket.name).remove(
+                    [file.file_path]
+                )
+            except Exception as e:
+                logger.error("Failed to delete images: %s", e, exc_info=True)
+                raise FileDeletionException()

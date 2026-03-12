@@ -47,6 +47,25 @@ def create_app() -> FastAPI:
     )
     logger.info("CORS middleware added.")
 
+    if settings.environment != "prod":
+        try:
+            from fastapi.staticfiles import StaticFiles
+            from pathlib import Path
+            
+            upload_dir = Path("app", "uploads")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            
+            application.mount(
+                "/media", 
+                StaticFiles(directory=upload_dir),
+                name="media",
+            )
+            logger.info(f"Development mode: Static files mounted from 'uploads/' → /media")
+        except Exception as e:
+            logger.error(f"Failed to mount static files in development mode: {e}")
+    else:
+        logger.info("Production mode: Static files disabled, using Supabase storage")
+
     application.add_exception_handler(BaseAppException, base_exception_handler)
     application.add_exception_handler(
         UniqueConstraintViolationsException,

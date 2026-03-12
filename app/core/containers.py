@@ -2,12 +2,13 @@ from functools import lru_cache
 
 import punq
 
+from app.core.settings import settings
 from app.services.auth import AbstractAuthService, AuthService
 from app.services.cart_items import AbstractCartItemService, CartItemService
 from app.services.carts import AbstractCartService, CartService
 from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.faq import AbstractFAQService, FAQService
-from app.services.files import AbstractFileUploadService, FileUploadService
+from app.services.files import AbstractFileStorageService, LocalFileStorage, SupabaseFileStorage
 from app.services.likes import AbstractLikeService, LikeService
 from app.services.messages import AbstractMessageService, MessageService
 from app.services.orders import AbstractOrderService, OrderService
@@ -47,7 +48,7 @@ from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderU
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.orders.update import AbstractUpdateOrderUseCase, UpdateOrderUseCase
-from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductWithSupabaseUseCase
+from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase
@@ -55,7 +56,7 @@ from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase, Fe
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase, FetchPopularProductsUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase
-from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductWithSupabaseUseCase
+from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductUseCase
 from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
 
 
@@ -66,6 +67,11 @@ def get_container() -> punq.Container:
 
 def _initialize_container() -> punq.Container:
     container = punq.Container()
+
+    if settings.environment != "prod":
+        container.register(AbstractFileStorageService, LocalFileStorage)
+    else:
+        container.register(AbstractFileStorageService, SupabaseFileStorage)
 
     # Auth
     container.register(AbstractAuthService, AuthService)
@@ -116,15 +122,14 @@ def _initialize_container() -> punq.Container:
     # Product
     container.register(AbstractProductService, ProductService)
     container.register(AbstractProductImageService, ProductImageService)
-    container.register(AbstractFileUploadService, FileUploadService)
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
     container.register(AbstractFetchFiltersUseCase, FetchFiltersUseCase)
     container.register(AbstractFetchProductsByIdsUseCase, FetchProductsByIdsUseCase)
     container.register(AbstractDeleteUniqueProductUseCase, DeleteUniqueProductUseCase)
     container.register(AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase)
-    container.register(AbstractCreateProductUseCase, CreateProductWithSupabaseUseCase)
+    container.register(AbstractCreateProductUseCase, CreateProductUseCase)
     container.register(AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase)
-    container.register(AbstractUpdateProductUseCase, UpdateProductWithSupabaseUseCase)
+    container.register(AbstractUpdateProductUseCase, UpdateProductUseCase)
     container.register(AbstractFetchPopularProductsUseCase, FetchPopularProductsUseCase)
 
     # User

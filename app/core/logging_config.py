@@ -4,7 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 from app.core.settings import settings
 
-
+# TODO: Add support to supabase/local depends on env mode
 def setup_logging():
     log_dir = settings.logging.log_dir
     os.makedirs(log_dir, exist_ok=True)
