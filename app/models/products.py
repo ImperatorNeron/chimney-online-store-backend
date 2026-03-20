@@ -83,7 +83,7 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     length: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     thickness: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     angle: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    metal_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    metal_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     extra_attrs: Mapped[dict] = mapped_column(JSONB, nullable=True)
 
     product: Mapped[UniqueProduct] = relationship(back_populates="variations")

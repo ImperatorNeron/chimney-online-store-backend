@@ -27,7 +27,7 @@ class ProductFiltersSchema(BaseModel):
     length: Optional[str] = Query(max_length=20, default=None)
     thickness: Optional[str] = Query(max_length=20, default=None)
     angle: Optional[str] = Query(max_length=20, default=None)
-    metal_type: Optional[str] = Query(max_length=20, default=None)
+    metal_type: Optional[str] = Query(max_length=50, default=None)
 
     @field_validator("category_slug")
     @classmethod

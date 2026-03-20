@@ -30,7 +30,7 @@ class ReadProductSchema(BaseProductSchema):
     length: Optional[str] = Field(max_length=20)
     thickness: Optional[str] = Field(max_length=20)
     angle: Optional[str] = Field(max_length=20)
-    metal_type: Optional[str] = Field(max_length=20)
+    metal_type: Optional[str] = Field(max_length=50)
 
 
 class ReadPreviewProductSchema(ReadProductSchema):
@@ -100,7 +100,7 @@ class ReadFiltersSchema(BaseModel):
     length: Optional[str] = Field(max_length=20)
     thickness: Optional[str] = Field(max_length=20)
     angle: Optional[str] = Field(max_length=20)
-    metal_type: Optional[str] = Field(max_length=20)
+    metal_type: Optional[str] = Field(max_length=50)
     min_price: Optional[str] = Field(max_length=20)
     max_price: Optional[str] = Field(max_length=20)
 
@@ -119,7 +119,7 @@ class ReadProductVariationSchema(BaseModel):
     length: Optional[str] = Field(max_length=20)
     thickness: Optional[str] = Field(max_length=20)
     angle: Optional[str] = Field(max_length=20)
-    metal_type: Optional[str] = Field(max_length=20)
+    metal_type: Optional[str] = Field(max_length=50)
 
 
 class BaseCreateProductVariationSchema(BaseModel):

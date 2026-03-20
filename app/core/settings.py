@@ -79,7 +79,7 @@ class LoggingSettings(BaseModel):
 
 
 class CacheSettings(BaseModel):
-    expire: int = 600
+    expire: int = 0
 
 
 class SupabaseBucket(BaseModel):

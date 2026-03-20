@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: ${APP_CONFIG__DATABASE__password}
     container_name: postgresql-container
     ports:
-      - "${APP_CONFIG__DATABASE__port}:5432"
+      - "${APP_CONFIG__DATABASE__external_port}:5432"
     volumes:
       - postgresql_data_chimney:/var/lib/postgresql/data
       - ../init.sql:/docker-entrypoint-initdb.d/init.sql

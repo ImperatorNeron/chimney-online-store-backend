@@ -52,7 +52,7 @@ def create_app() -> FastAPI:
             from fastapi.staticfiles import StaticFiles
             from pathlib import Path
             
-            upload_dir = Path("app", "uploads")
+            upload_dir = Path("uploads")
             upload_dir.mkdir(parents=True, exist_ok=True)
             
             application.mount(

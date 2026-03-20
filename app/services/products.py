@@ -318,7 +318,8 @@ class ProductService(AbstractProductService):
         updated_products = [
             CreateProductVariationSchema(
                 **product.model_dump(exclude={"price"}),
-                price=round(product.price * (1 + 30 / 100)),
+                # price=round(product.price * (1 + 30 / 100)),
+                price=product.price,
                 product_id=unique_product_id,
             )
             for product in products_in
