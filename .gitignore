@@ -164,6 +164,5 @@ cython_debug/
 certificates/
 images/
 Emoji.md
-app/migrations/versions/
 logs/
 uploads/

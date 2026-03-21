@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 ENVIRONMENT="${APP_CONFIG__ENVIRONMENT:-dev}"
@@ -12,10 +13,7 @@ wait_for_port() {
     local timeout=10
     local start_time=$(date +%s)
 
-    local nc_command="nc"
-    type $nc_command >/dev/null 2>&1 || nc_command="ncat"
-
-    while ! $nc_command -z "$host" "$port" >/dev/null 2>&1; do
+    while ! (echo > /dev/tcp/"$host"/"$port") 2>/dev/null; do
         sleep 1
         local current_time=$(date +%s)
         local elapsed_time=$((current_time - start_time))
@@ -32,8 +30,13 @@ if [ "$WAIT_FOR_DB" = "1" ]; then
     wait_for_port "${APP_CONFIG__DATABASE__host}" "${APP_CONFIG__DATABASE__port}"
 fi
 
+if [ "$ENVIRONMENT" = "prod" ] && [ "$RUN_MIGRATIONS" = "1" ]; then
+    echo "Running migrations..."
+    alembic upgrade head
+fi
+
 if [ "$ENVIRONMENT" = "prod" ]; then
-    exec uvicorn --factory app.main:create_app --host "$HOST" --port "$PORT" --workers "$WEB_CONCURRENCY"
+    exec gunicorn -w "$WEB_CONCURRENCY" -k uvicorn.workers.UvicornWorker --bind "$HOST:$PORT" "app.main:create_app()"
 else
     exec uvicorn --factory app.main:create_app --host "$HOST" --port "$PORT" --reload
 fi
