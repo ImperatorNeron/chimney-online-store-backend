@@ -27,20 +27,15 @@ RUN apk add --no-cache \
     libpq \
     tini
 
-# Створюємо непривілейованого користувача
-RUN addgroup -g 1001 -S appuser && \
-    adduser -S appuser -u 1001 -G appuser
-
 WORKDIR /app
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-COPY --chown=appuser:appuser . /app
+COPY . /app
 
-COPY --chown=appuser:appuser entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-USER appuser
 
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
