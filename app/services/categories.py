@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
 
-from app.core.exceptions.common import ForeignKeyConstraintViolationException, UniqueConstraintViolationsException
-from app.schemas.categories import CreateCategorySchema, ReadCategorySchema, UpdateCategorySchema
+from app.core.exceptions.common import (
+    ForeignKeyConstraintViolationException,
+    UniqueConstraintViolationsException,
+)
+from app.schemas.categories import (
+    CreateCategorySchema,
+    ReadCategorySchema,
+    UpdateCategorySchema,
+)
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -48,6 +55,13 @@ class AbstractCategoryService(ABC):
         slugs: list[list[str]],
         uow: AbstractUnitOfWork,
     ) -> list[str]: ...
+
+    @abstractmethod
+    async def get_children_by_parent_ids(
+        self,
+        parent_ids: list[int],
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadCategorySchema]: ...
 
 
 class CategoryService(AbstractCategoryService):
@@ -118,3 +132,10 @@ class CategoryService(AbstractCategoryService):
         uow: AbstractUnitOfWork,
     ) -> list[list[str]]:
         return await uow.categories.get_category_names_from_slugs(slugs=slugs)
+
+    async def get_children_by_parent_ids(
+        self,
+        parent_ids: list[int],
+        uow: AbstractUnitOfWork,
+    ) -> list[ReadCategorySchema]:
+        return await uow.categories.all(filters={"parent_id__in": parent_ids})

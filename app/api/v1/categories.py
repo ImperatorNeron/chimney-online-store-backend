@@ -7,11 +7,18 @@ from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.core.containers import get_container
 from app.core.settings import settings
 from app.schemas.api_response import ApiResponseSchema
-from app.schemas.categories import CreateCategorySchema, ReadCategorySchema, UpdateCategorySchema
+from app.schemas.categories import (
+    CreateCategorySchema,
+    ReadCategorySchema,
+    UpdateCategorySchema,
+)
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase
 from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase
-from app.use_cases.categories.get_names_from_slugs import AbstractFetchNamesFromSlugsUseCase
+from app.use_cases.categories.fetch_children import AbstractFetchChildCategoriesUseCase
+from app.use_cases.categories.get_names_from_slugs import (
+    AbstractFetchNamesFromSlugsUseCase,
+)
 from app.use_cases.categories.update import AbstractUpdateCategoryUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
@@ -41,6 +48,24 @@ async def get_categories_list_by_slugs(
     slugs: list[str] = Query(...),
 ):
     return ApiResponseSchema(data=await use_case.execute(slugs=slugs, uow=uow))
+
+
+@router.get("/children", response_model=ApiResponseSchema[list[ReadCategorySchema]])
+@cache(expire=settings.cache.expire)
+async def get_child_categories(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchChildCategoriesUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchChildCategoriesUseCase)),
+    ],
+    parent_ids: list[int] = Query(...),
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            parent_ids=parent_ids,
+            uow=uow,
+        ),
+    )
 
 
 @router.post(
