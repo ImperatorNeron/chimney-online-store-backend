@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from app.mappers.faq import FaqCreateMapper, FaqReadMapper, FaqUpdateMapper
 from app.schemas.faq import CreateFAQSchema, ReadFAQSchema, UpdadeFAQSchema
 from app.utils.unit_of_work import AbstractUnitOfWork
 
@@ -48,21 +49,21 @@ class FAQService(AbstractFAQService):
         self,
         uow: AbstractUnitOfWork,
     ) -> list[ReadFAQSchema]:
-        return await uow.faq.all()
+        return FaqReadMapper.to_dto_list(await uow.faq.all())
 
     async def get_one(
         self,
         faq_id: int,
         uow: AbstractUnitOfWork,
     ) -> ReadFAQSchema:
-        return await uow.faq.get(id=faq_id)
+        return FaqReadMapper.to_dto(await uow.faq.get(id=faq_id))
 
     async def create(
         self,
         faq_in: CreateFAQSchema,
         uow: AbstractUnitOfWork,
     ) -> ReadFAQSchema:
-        return await uow.faq.create(item_in=faq_in)
+        return FaqReadMapper.to_dto(await uow.faq.create(item_in=FaqCreateMapper.to_model(faq_in)))
 
     async def update(
         self,
@@ -70,7 +71,7 @@ class FAQService(AbstractFAQService):
         faq_id: int,
         uow: AbstractUnitOfWork,
     ) -> ReadFAQSchema:
-        return await uow.faq.update(id=faq_id, item_in=faq_in)
+        return FaqReadMapper.to_dto(await uow.faq.update(id=faq_id, item_in=FaqUpdateMapper.to_model(faq_in)))
 
     async def delete(
         self,
