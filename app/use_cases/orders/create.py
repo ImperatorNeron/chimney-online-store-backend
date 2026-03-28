@@ -50,7 +50,7 @@ class CreateOrderUseCase(AbstractCreateOrderUseCase):
                 **order_in.model_dump(),
                 user_id=user_id,
             )
-            order = await self.order_service.create(order_in=new_order_in, uow=uow)
+            order = await self.order_service.create(item_in=new_order_in, uow=uow)
 
             await self.order_service.bulk_create(
                 items=[

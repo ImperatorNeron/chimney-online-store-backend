@@ -4,6 +4,7 @@ from typing import Any, Generic, Type, TypeVar
 from pydantic import BaseModel
 
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
+from app.utils.sql_repo import AbstractRepository
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -81,7 +82,7 @@ class AbstractCRUDService(
 class RepositoryMixin:
     repository_name: str | None = None
 
-    def _repository(self, uow: AbstractUnitOfWork):
+    def _repository(self, uow: AbstractUnitOfWork) -> AbstractRepository:
         return getattr(uow, self.repository_name)
 
 
@@ -139,7 +140,7 @@ class Create(
     AbstractCreate[DTOReadType, DTOCreateType],
     RepositoryMixin,
 ):
-    read_mapper: Type[BaseReadMapper] = None
+    read_create_mapper: Type[BaseReadMapper] = None
     create_mapper: Type[BaseUpsertMapper] = None
 
     async def _create_validation(self, *args, **kwargs):
@@ -151,7 +152,7 @@ class Create(
         uow: AbstractUnitOfWork,
     ) -> DTOReadType:
         await self._create_validation(item_in=item_in, uow=uow)
-        return self.read_mapper.to_dto(
+        return self.read_create_mapper.to_dto(
             await self._repository(uow).create(
                 item_in=self.create_mapper.to_model(item_in),
             ),
@@ -159,7 +160,7 @@ class Create(
 
 
 class Update(AbstractUpdate[DTOReadType, DTOUpdateType], RepositoryMixin):
-    read_mapper: Type[BaseReadMapper] = None
+    read_update_mapper: Type[BaseReadMapper] = None
     update_mapper: Type[BaseUpsertMapper] = None
 
     async def _update_validation(self, *args, **kwargs):
@@ -172,7 +173,7 @@ class Update(AbstractUpdate[DTOReadType, DTOUpdateType], RepositoryMixin):
         uow: AbstractUnitOfWork,
     ) -> DTOReadType:
         await self._update_validation(item_id=item_id, item_in=item_in, uow=uow)
-        return self.read_mapper.to_dto(
+        return self.read_update_mapper.to_dto(
             await self._repository(uow).update(
                 id=item_id,
                 item_in=self.update_mapper.to_model(item_in),
@@ -201,7 +202,9 @@ class Count(AbstractCount, RepositoryMixin):
         uow: AbstractUnitOfWork,
         filters: BaseModel | None = None,
     ) -> int:
-        return await self._repository(uow).count(**filters.model_dump())
+        return await self._repository(uow).count(
+            **filters.model_dump() if filters is not None else {},
+        )
 
 
 class CRUDService(

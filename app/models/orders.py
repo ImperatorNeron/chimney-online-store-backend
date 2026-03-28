@@ -4,7 +4,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
 from app.models.products import ProductVariation
-from app.schemas.orders import ReadOrderBaseSchema, ReadOrderItemBaseSchema, ReadOrderItemSchema, ReadOrderSchema
 
 
 class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
@@ -43,37 +42,6 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         cascade="all, delete",
     )
 
-    def to_read_model(self) -> ReadOrderSchema:
-        data = {
-            **self._get_base_fields(),
-            "items": [item.to_read_model() for item in self.items],
-        }
-        return ReadOrderSchema(**data)
-
-    def to_read_model_without_items(self) -> ReadOrderBaseSchema:
-        return ReadOrderBaseSchema(**self._get_base_fields())
-
-    def _get_base_fields(self) -> dict:
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "status": self.status,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "patronymic": self.patronymic,
-            "phone_number": self.phone_number,
-            "email": self.email,
-            "address": self.address,
-            "waybill_number": self.waybill_number,
-            "shipping_method": self.shipping_method,
-            "payment_method": self.payment_method,
-            "price_discount": (
-                float(self.price_discount) if self.price_discount else 0.0
-            ),
-        }
-
 
 class OrderItem(BaseModel, IdIntPkMixin):
     __table_args__ = (
@@ -90,25 +58,6 @@ class OrderItem(BaseModel, IdIntPkMixin):
     price_at_order: Mapped[float] = mapped_column(Numeric(10, 2))
     order: Mapped[Order] = relationship("Order", back_populates="items")
     product: Mapped["ProductVariation"] = relationship(
-        "ProductVariation", back_populates="order_items",
+        "ProductVariation",
+        back_populates="order_items",
     )
-
-    def to_read_model(self):
-        return ReadOrderItemSchema(
-            **self._get_base_fields(),
-            product=self.product.to_read_model(),
-        )
-
-    def to_read_base_model(self):
-        return ReadOrderItemBaseSchema(
-            **self._get_base_fields(),
-            product_id=self.product_id,
-        )
-
-    def _get_base_fields(self) -> dict:
-        return {
-            "id": self.id,
-            "order_id": self.order_id,
-            "quantity": self.quantity,
-            "price_at_order": self.price_at_order,
-        }

@@ -17,6 +17,7 @@ class AbstractMessageService(
 
 class MessageService(AbstractMessageService, CRUDService):
     repository_name: str = "messages"
-    read_mapper: Type[MessageReadMapper] = MessageReadMapper
+    _read_mapper: Type[MessageReadMapper] = MessageReadMapper
+    read_mapper = read_create_mapper = read_update_mapper = _read_mapper
     create_mapper: Type[MessageCreateMapper] = MessageCreateMapper
     update_mapper: Type[MessageStatusUpdateMapper] = MessageStatusUpdateMapper

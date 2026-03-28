@@ -1,6 +1,14 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from typing import Type
 
-from app.schemas.filters import PaginationIn
+from app.mappers.orders import (
+    OrderBaseReadMapper,
+    OrderCreateMapper,
+    OrderItemBaseReadMapper,
+    OrderItemCreateMapper,
+    OrderReadMapper,
+    OrderUpdateMapper,
+)
 from app.schemas.orders import (
     CreateOrderItemSchema,
     CreateOrderSchema,
@@ -10,17 +18,16 @@ from app.schemas.orders import (
     ReadOrderSchema,
     UpdateOrderSchema,
 )
+from app.services.base import AbstractCount, AbstractCreate, AbstractRead, AbstractUpdate, Count, Create, Read, Update
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
-class AbstractOrderService(ABC):
-
-    @abstractmethod
-    async def list_all(
-        self,
-        pagination_in: PaginationIn,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadOrderSchema]: ...
+class AbstractOrderService(
+    AbstractRead[ReadOrderSchema],
+    AbstractCreate[ReadOrderBaseSchema, CreateOrderSchema],
+    AbstractUpdate[ReadOrderBaseSchema, UpdateOrderSchema],
+    AbstractCount,
+):
 
     @abstractmethod
     async def get_order_history(
@@ -49,59 +56,44 @@ class AbstractOrderService(ABC):
     ) -> int: ...
 
     @abstractmethod
-    async def create(
-        self,
-        order_in: CreateOrderSchema,
-        uow: AbstractUnitOfWork,
-    ) -> ReadOrderBaseSchema: ...
-
-    @abstractmethod
     async def bulk_create(
         self,
         cart_items: list[CreateOrderItemSchema],
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderItemBaseSchema]: ...
 
-    @abstractmethod
-    async def update_info(
-        self,
-        order_id: int,
-        order_in: UpdateOrderSchema,
-        uow: AbstractUnitOfWork,
-    ) -> ReadOrderBaseSchema: ...
 
-    @abstractmethod
-    async def get_total_orders(
-        self,
-        uow: AbstractUnitOfWork,
-    ) -> int: ...
-
-
-class OrderService(AbstractOrderService):
-
-    async def list_all(
-        self,
-        pagination_in: PaginationIn,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadOrderSchema]:
-        return await uow.order.all(
-            limit=pagination_in.limit,
-            offset=pagination_in.offset,
-        )
+class OrderService(
+    AbstractOrderService,
+    Read[ReadOrderSchema],
+    Create[ReadOrderBaseSchema, CreateOrderSchema],
+    Update[ReadOrderBaseSchema, UpdateOrderSchema],
+    Count,
+):
+    repository_name: str = "order"
+    read_mapper: Type[OrderReadMapper] = OrderReadMapper
+    _read_mapper: Type[OrderBaseReadMapper] = OrderBaseReadMapper
+    read_create_mapper = read_update_mapper = _read_mapper
+    create_mapper: Type[OrderCreateMapper] = OrderCreateMapper
+    update_mapper: Type[OrderUpdateMapper] = OrderUpdateMapper
 
     async def get_order_history(
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderSchema]:
-        return await uow.order.finished_orders_by_user_id(user_id=user_id)
+        return self.read_mapper.to_dto_list(
+            await uow.order.finished_orders_by_user_id(user_id=user_id),
+        )
 
     async def get_active_orders(
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderSchema]:
-        return await uow.order.current_orders_by_user_id(user_id=user_id)
+        return self.read_mapper.to_dto_list(
+            await uow.order.current_orders_by_user_id(user_id=user_id),
+        )
 
     async def get_total_price(
         self,
@@ -118,33 +110,13 @@ class OrderService(AbstractOrderService):
     ) -> int:
         return sum(item.quantity for item in order_items)
 
-    async def create(
-        self,
-        order_in: CreateOrderSchema,
-        uow: AbstractUnitOfWork,
-    ) -> ReadOrderBaseSchema:
-        return await uow.order.create(order_in=order_in)
-
     async def bulk_create(
         self,
         items: list[CreateOrderItemSchema],
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderItemBaseSchema]:
-        return await uow.order_item.bulk_create(data_list=items)
-
-    async def update_info(
-        self,
-        order_id: int,
-        order_in: UpdateOrderSchema,
-        uow: AbstractUnitOfWork,
-    ) -> ReadOrderBaseSchema:
-        return await uow.order.update(
-            order_id=order_id,
-            order_in=order_in,
+        return OrderItemBaseReadMapper.to_dto_list(
+            await uow.order_item.bulk_create(
+                instances=OrderItemCreateMapper.to_model_list(items),
+            ),
         )
-
-    async def get_total_orders(
-        self,
-        uow: AbstractUnitOfWork,
-    ) -> int:
-        return await uow.order.count()

@@ -31,10 +31,14 @@ class BaseUpsertMapper(AbstractMapper[ORMType, DTOType]):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         for base in cls.__orig_bases__:
-            if hasattr(base, '__origin__') and base.__origin__ is BaseUpsertMapper:
+            if hasattr(base, "__origin__") and base.__origin__ is BaseUpsertMapper:
                 cls.orm_class = base.__args__[0]
                 break
 
     @classmethod
     def to_model(cls, dto_obj: DTOType) -> ORMType:
         return cls.orm_class(**dto_obj.model_dump(exclude_none=True))
+
+    @classmethod
+    def to_model_list(cls, dto_objs: list[DTOType]) -> list[ORMType]:
+        return [cls.to_model(obj) for obj in dto_objs]

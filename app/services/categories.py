@@ -51,7 +51,8 @@ class AbstractCategoryService(
 class CategoryService(AbstractCategoryService, CRUDService):
 
     repository_name: str = "categories"
-    read_mapper: Type[CategoryReadMapper] = CategoryReadMapper
+    _read_mapper: Type[CategoryReadMapper] = CategoryReadMapper
+    read_mapper = read_create_mapper = read_update_mapper = _read_mapper
     read_name_slug_mapper: Type[CategoryNameSlugMapper] = CategoryNameSlugMapper
     create_mapper: Type[CategoryCreateMapper] = CategoryCreateMapper
     update_mapper: Type[CategoryUpdateMapper] = CategoryUpdateMapper

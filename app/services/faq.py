@@ -12,6 +12,7 @@ class AbstractFAQService(AbstractCRUDService[ReadFAQSchema, CreateFAQSchema, Upd
 # Maybe repository_name is not complitely good and maybe another class attrs could be passed somehow in init
 class FAQService(AbstractFAQService, CRUDService):
     repository_name: str = "faq"
-    read_mapper: Type[FaqReadMapper] = FaqReadMapper
+    _read_mapper: Type[FaqReadMapper] = FaqReadMapper
+    read_mapper = read_create_mapper = read_update_mapper = _read_mapper
     create_mapper: Type[FaqCreateMapper] = FaqCreateMapper
     update_mapper: Type[FaqUpdateMapper] = FaqUpdateMapper

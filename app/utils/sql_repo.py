@@ -140,8 +140,26 @@ class BaseRepository(AbstractRepository):
         options: Optional[list] = None,
     ) -> list[Model]:
         """Внутрішній метод для отримання списку моделей."""
-        query = select(self.model)
+        query = await self._apply_listing(
+            select(self.model),
+            filters=filters,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
+            options=options,
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 
+    async def _apply_listing(
+        self,
+        query,
+        filters: Optional[dict] = None,
+        order_by: Optional[list[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        options: Optional[list] = None,
+    ):
         if filters:
             query = self._apply_filters(query, filters)
 
@@ -157,8 +175,7 @@ class BaseRepository(AbstractRepository):
         if options:
             query = query.options(*options)
 
-        result = await self.session.execute(query)
-        return list(result.scalars().all())
+        return query
 
     async def all(  # noqa
         self,
@@ -191,7 +208,7 @@ class BaseRepository(AbstractRepository):
         try:
             # Копіюємо всі атрибути з item_in, крім id та службових полів SQLAlchemy
             for key, value in item_in.__dict__.items():
-                if not key.startswith('_') and key != 'id':
+                if not key.startswith("_") and key != "id":
                     setattr(instance, key, value)
             await self.session.flush([instance])
             await self.session.refresh(instance)

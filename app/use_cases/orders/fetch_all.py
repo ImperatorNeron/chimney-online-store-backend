@@ -28,7 +28,7 @@ class FetchOrdersUseCase(AbstractFetchOrdersUseCase):
         uow: AbstractUnitOfWork,
     ) -> ListPaginatedResponse[ReadExtendedOrderSchema]:
         async with uow:
-            count = await self.order_service.get_total_orders(uow=uow)
+            count = await self.order_service.count(uow=uow)
             orders = await self.order_service.list_all(
                 uow=uow,
                 pagination_in=pagination_in,

@@ -31,8 +31,8 @@ class UpdateOrderUseCase(AbstractUpdateOrderUseCase):
         async with uow:
             order_in.waybill_number = order_in.waybill_number or None
 
-            return await self.order_service.update_info(
-                order_id=order_id,
-                order_in=order_in,
+            return await self.order_service.update(
+                item_id=order_id,
+                item_in=order_in,
                 uow=uow,
             )

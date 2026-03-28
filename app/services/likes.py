@@ -25,7 +25,8 @@ class LikeService(
     Delete,
 ):
     repository_name: str = "like"
-    read_mapper: Type[LikeReadMapper] = LikeReadMapper
+    _read_mapper: Type[LikeReadMapper] = LikeReadMapper
+    read_mapper = read_create_mapper = read_update_mapper = _read_mapper
     create_mapper: Type[LikeCreateMapper] = LikeCreateMapper
 
     async def get_ids_list(self, user_id: int, uow: AbstractUnitOfWork) -> list[int]:
