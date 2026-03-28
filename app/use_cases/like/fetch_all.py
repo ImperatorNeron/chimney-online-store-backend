@@ -25,4 +25,7 @@ class FetchLikesUseCase(AbstractFetchLikesUseCase):
         uow: AbstractUnitOfWork,
     ) -> list[int]:
         async with uow:
-            return await self.like_service.fetch_all(user_id=user_id, uow=uow)
+            return await self.like_service.get_ids_list(
+                user_id=user_id,
+                uow=uow,
+            )

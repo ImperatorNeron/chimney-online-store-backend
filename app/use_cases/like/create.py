@@ -27,6 +27,6 @@ class CreateLikeUseCase(AbstractCreateLikeUseCase):
     ) -> ReadLikeSchema:
         async with uow:
             return await self.like_service.create(
-                like_in=like_in,
+                item_in=like_in,
                 uow=uow,
             )

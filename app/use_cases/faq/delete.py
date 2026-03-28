@@ -26,4 +26,4 @@ class DeleteFAQUseCase(AbstractDeleteFAQUseCase):
         uow: AbstractUnitOfWork,
     ) -> None:
         async with uow:
-            return await self.faq_service.delete(uow=uow, item_id=faq_id)
+            return await self.faq_service.delete(uow=uow, id=faq_id)

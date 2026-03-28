@@ -5,7 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin
-from app.schemas.likes import ReadLikeSchema
 
 
 if TYPE_CHECKING:
@@ -29,10 +28,3 @@ class Like(BaseModel, IdIntPkMixin):
     __table_args__ = (
         UniqueConstraint("user_id", "product_id", name="uq_like_user_id_product_id"),
     )
-
-    def to_read_model(self):
-        return ReadLikeSchema(
-            id=self.id,
-            user_id=self.user_id,
-            product_id=self.product_id,
-        )

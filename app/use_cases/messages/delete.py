@@ -27,6 +27,6 @@ class DeleteMessageUseCase(AbstractDeleteMessageUseCase):
     ):
         async with uow:
             await self.messages_service.delete(
-                item_id=message_id,
+                id=message_id,
                 uow=uow,
             )

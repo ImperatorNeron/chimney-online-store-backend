@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Type, TypeVar
+from typing import Any, Generic, Type, TypeVar
 
 from pydantic import BaseModel
 
@@ -53,8 +53,8 @@ class AbstractDelete(ABC):
     @abstractmethod
     async def delete(
         self,
-        item_id: int,
         uow: AbstractUnitOfWork,
+        **conditions: Any,
     ) -> None: ...
 
 
@@ -92,7 +92,7 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
         self,
         uow: AbstractUnitOfWork,
         # TODO: We can add base classes, something like ducktyping
-        filters: BaseModel | None = None,
+        filters: BaseModel | dict | None = None,
         pagination_in: BaseModel | None = None,
         # TODO: better to recieve list
         order_by: BaseModel | None = None,
@@ -111,9 +111,16 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
             limit = pagination_in.limit
             offset = pagination_in.offset
 
+        filters_dict = None
+        if filters is not None:
+            if isinstance(filters, BaseModel):
+                filters_dict = filters.model_dump()
+            elif isinstance(filters, dict):
+                filters_dict = filters
+
         return self.read_mapper.to_dto_list(
             await self._repository(uow).all(
-                filters=filters.model_dump() if filters is not None else None,
+                filters=filters_dict,
                 order_by=order_by_fields,
                 limit=limit,
                 offset=offset,
@@ -180,11 +187,11 @@ class Delete(AbstractDelete, RepositoryMixin):
 
     async def delete(
         self,
-        item_id: int,
         uow: AbstractUnitOfWork,
+        **conditions,
     ) -> None:
-        await self._delete_validation(item_id=item_id)
-        return await self._repository(uow).delete(id=item_id)
+        await self._delete_validation(**conditions)
+        return await self._repository(uow).delete(**conditions)
 
 
 class Count(AbstractCount, RepositoryMixin):
