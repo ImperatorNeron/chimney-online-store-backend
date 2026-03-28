@@ -28,6 +28,6 @@ class CreateCategoryUseCase(AbstractCreateCategoryUseCase):
     ):
         async with uow:
             return await self.category_service.create(
-                category_in=category_in,
+                item_in=category_in,
                 uow=uow,
             )

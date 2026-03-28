@@ -52,10 +52,14 @@ class FetchAbsoluteProductUseCase(ABC):
                 product_id=unique_product.id,
                 uow=uow,
             )
+
             categories = await self.category_service.get_category_hierarchy(
                 category_id=unique_product.category_id,
                 uow=uow,
             )
+            # TODO: use ReadCategoryNameSlugSchema directly. For now it is what it is
+            categories = [[category.name, category.slug] for category in categories]
+
             result = ReadAbsoluteProductSchema(
                 **unique_product.model_dump(),
                 images=images,

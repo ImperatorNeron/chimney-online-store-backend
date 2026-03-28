@@ -12,7 +12,8 @@ class AbstractFetchNamesFromSlugsUseCase(ABC):
         self,
         slugs: list[str],
         uow: AbstractUnitOfWork,
-    ) -> list[list[str]]: ...
+        # TODO: change to ReadCategoryNameSlugSchema
+    ) -> list[list[str, str]]: ...
 
 
 @dataclass
@@ -24,9 +25,10 @@ class FetchNamesFromSlugsUseCase(AbstractFetchNamesFromSlugsUseCase):
         self,
         slugs: list[str],
         uow: AbstractUnitOfWork,
-    ) -> list[list[str]]:
+    ) -> list[list[str, str]]:
         async with uow:
-            return await self.category_service.get_category_names_from_slugs(
+            results = await self.category_service.get_category_names_from_slugs(
                 slugs=slugs,
                 uow=uow,
             )
+            return [[category.name, category.slug] for category in results]

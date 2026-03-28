@@ -5,7 +5,6 @@ from sqlalchemy.orm import backref, Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin
-from app.schemas.categories import ReadCategorySchema
 
 
 if TYPE_CHECKING:
@@ -38,15 +37,6 @@ class Category(BaseModel, IdIntPkMixin):
     __table_args__ = (
         UniqueConstraint("name", "parent_id", name="uix_category_parent_name"),
     )
-
-    def to_read_model(self):
-        return ReadCategorySchema(
-            id=self.id,
-            name=self.name,
-            slug=self.slug,
-            file_path=self.file_path,
-            parent_id=self.parent_id,
-        )
 
     def __repr__(self):
         return (

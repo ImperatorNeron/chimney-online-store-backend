@@ -1,8 +1,10 @@
+from typing import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
 from app.models.categories import Category
-from app.utils.sql_repository import BaseRepository
+from app.utils.sql_repo import BaseRepository
 
 
 class CategoryRepository(BaseRepository):
@@ -10,39 +12,30 @@ class CategoryRepository(BaseRepository):
 
     model = Category
 
-    async def get_category_hierarchy(self, category_id: int) -> list[list[str, str]]:
+    async def get_category_hierarchy(self, category_id: int) -> list[Category]:
         parent_alias = aliased(self.model)
         cte = (
-            select(
-                self.model.id, self.model.name, self.model.slug, self.model.parent_id,
-            )
+            select(self.model)
             .where(self.model.id == category_id)
             .cte(name="category_cte", recursive=True)
         )
         cte_alias = aliased(cte)
 
         cte = cte.union_all(
-            select(
-                parent_alias.id,
-                parent_alias.name,
-                parent_alias.slug,
-                parent_alias.parent_id,
-            ).where(parent_alias.id == cte_alias.c.parent_id),
+            select(parent_alias).where(parent_alias.id == cte_alias.c.parent_id),
         )
 
-        query = select(cte.c.id, cte.c.name, cte.c.slug)
-        result = await self.session.execute(query)
-        rows = result.all()
-        return [(row.name, row.slug) for row in rows]
+        result = await self.session.execute(select(cte.c))
+        return result.all()
 
     async def get_category_names_from_slugs(
         self,
         slugs: list[str],
-    ) -> list[list[str, str]]:
-        if not slugs:
-            return []
+    ) -> Sequence[Category]:
+        return await self.all(filters={"slug__in": slugs})
 
-        query = select(self.model.name, self.model.slug).where(Category.slug.in_(slugs))
-        result = await self.session.execute(query)
-        rows = result.all()
-        return [[name, slug] for name, slug in rows]
+    async def get_children_by_parent_ids(
+        self,
+        parent_ids: list[int],
+    ):
+        return await self.all(filters={"parent_id__in": parent_ids})

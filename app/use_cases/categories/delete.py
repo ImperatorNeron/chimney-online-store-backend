@@ -18,4 +18,4 @@ class DeleteCategoryUseCase(AbstractDeleteCategoryUseCase):
 
     async def execute(self, category_id: int, uow: AbstractUnitOfWork):
         async with uow:
-            await self.category_service.delete(category_id=category_id, uow=uow)
+            await self.category_service.delete(item_id=category_id, uow=uow)

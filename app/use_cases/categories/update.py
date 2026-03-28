@@ -30,7 +30,7 @@ class UpdateCategoryUseCase(AbstractUpdateCategoryUseCase):
     ):
         async with uow:
             return await self.category_service.update(
-                category_id=category_id,
-                category_in=category_in,
+                item_id=category_id,
+                item_in=category_in,
                 uow=uow,
             )

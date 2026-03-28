@@ -1,60 +1,44 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from typing import Type
 
-from app.core.exceptions.common import (
-    ForeignKeyConstraintViolationException,
-    UniqueConstraintViolationsException,
+from app.core.exceptions.common import ForeignKeyConstraintViolationException, UniqueConstraintViolationsException
+from app.mappers.categories import (
+    CategoryCreateMapper,
+    CategoryNameSlugMapper,
+    CategoryReadMapper,
+    CategoryUpdateMapper,
 )
 from app.schemas.categories import (
     CreateCategorySchema,
+    ReadCategoryNameSlugSchema,
     ReadCategorySchema,
     UpdateCategorySchema,
 )
+from app.services.base import AbstractCRUDService, CRUDService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
-class AbstractCategoryService(ABC):
-
-    @abstractmethod
-    async def list_all(
-        self,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadCategorySchema]: ...
-
-    @abstractmethod
-    async def create(
-        self,
-        category_in: CreateCategorySchema,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadCategorySchema]: ...
-
-    @abstractmethod
-    async def update(
-        self,
-        category_id: int,
-        category_in: UpdateCategorySchema,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadCategorySchema]: ...
-
-    @abstractmethod
-    async def delete(
-        self,
-        category_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> None: ...
+class AbstractCategoryService(
+    AbstractCRUDService[
+        CategoryReadMapper,
+        CreateCategorySchema,
+        UpdateCategorySchema,
+    ],
+):
 
     @abstractmethod
     async def get_category_hierarchy(
         self,
         category_id: int,
         uow: AbstractUnitOfWork,
-    ) -> list[list[str]]: ...
+    ) -> list[ReadCategoryNameSlugSchema]: ...
 
     @abstractmethod
     async def get_category_names_from_slugs(
         self,
         slugs: list[list[str]],
         uow: AbstractUnitOfWork,
-    ) -> list[str]: ...
+    ) -> list[ReadCategoryNameSlugSchema]: ...
 
     @abstractmethod
     async def get_children_by_parent_ids(
@@ -64,78 +48,76 @@ class AbstractCategoryService(ABC):
     ) -> list[ReadCategorySchema]: ...
 
 
-class CategoryService(AbstractCategoryService):
+class CategoryService(AbstractCategoryService, CRUDService):
 
-    async def list_all(
-        self,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadCategorySchema]:
-        return await uow.categories.all()
+    repository_name: str = "categories"
+    read_mapper: Type[CategoryReadMapper] = CategoryReadMapper
+    read_name_slug_mapper: Type[CategoryNameSlugMapper] = CategoryNameSlugMapper
+    create_mapper: Type[CategoryCreateMapper] = CategoryCreateMapper
+    update_mapper: Type[CategoryUpdateMapper] = CategoryUpdateMapper
 
-    async def create(
+    async def _create_validation(
         self,
-        category_in: CreateCategorySchema,
+        item_in: CreateCategorySchema,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadCategorySchema]:
-        if await uow.categories.exists(slug=category_in.slug):
+    ):
+        if await uow.categories.exists(slug=item_in.slug):
             raise UniqueConstraintViolationsException(
                 {"slug": "Категорія з цим url вже існує."},
             )
-        if category_in.parent_id and not await uow.categories.exists(
-            id=category_in.parent_id,
+
+        if item_in.parent_id and not await uow.categories.exists(id=item_in.parent_id):
+            raise ForeignKeyConstraintViolationException(
+                {"parent_id": "Категорія не існує."},
+            )
+
+    async def _update_validation(
+        self,
+        *args,
+        item_in: UpdateCategorySchema,
+        uow: AbstractUnitOfWork,
+        **kwargs,
+    ):
+        if item_in.slug is not None and await uow.categories.exists(
+            slug=item_in.slug,
+        ):
+            raise UniqueConstraintViolationsException(
+                {"slug": "Категорія з цим url вже існує."},
+            )
+        if item_in.parent_id is not None and not await uow.categories.exists(
+            id=item_in.parent_id,
         ):
             raise ForeignKeyConstraintViolationException(
                 {"parent_id": "Категорія не існує."},
             )
-        return await uow.categories.create(item_in=category_in)
-
-    async def update(
-        self,
-        category_id: int,
-        category_in: UpdateCategorySchema,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadCategorySchema]:
-        if category_in.slug is not None and await uow.categories.exists(
-            slug=category_in.slug,
-        ):
-            raise UniqueConstraintViolationsException(
-                {"slug": "Категорія з цим url вже існує."},
-            )
-        if category_in.parent_id is not None and not await uow.categories.exists(
-            id=category_in.parent_id,
-        ):
-            raise ForeignKeyConstraintViolationException(
-                {"parent_id": "Категорія не існує."},
-            )
-        return await uow.categories.update(
-            id=category_id,
-            item_in=category_in,
-        )
-
-    async def delete(
-        self,
-        category_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> None:
-        return await uow.categories.delete(id=category_id)
 
     async def get_category_hierarchy(
         self,
         category_id: int,
         uow: AbstractUnitOfWork,
-    ) -> list[list[str]]:
-        return await uow.categories.get_category_hierarchy(category_id=category_id)
+    ) -> list[ReadCategoryNameSlugSchema]:
+        return self.read_name_slug_mapper.to_dto_list(
+            await uow.categories.get_category_hierarchy(category_id=category_id),
+        )
 
     async def get_category_names_from_slugs(
         self,
         slugs: list[str],
         uow: AbstractUnitOfWork,
-    ) -> list[list[str]]:
-        return await uow.categories.get_category_names_from_slugs(slugs=slugs)
+    ) -> list[ReadCategoryNameSlugSchema]:
+
+        if not slugs:
+            return []
+
+        return self.read_name_slug_mapper.to_dto_list(
+            await uow.categories.get_category_names_from_slugs(slugs=slugs),
+        )
 
     async def get_children_by_parent_ids(
         self,
         parent_ids: list[int],
         uow: AbstractUnitOfWork,
     ) -> list[ReadCategorySchema]:
-        return await uow.categories.all(filters={"parent_id__in": parent_ids})
+        return self.read_mapper.to_dto_list(
+            await uow.categories.get_children_by_parent_ids(parent_ids),
+        )

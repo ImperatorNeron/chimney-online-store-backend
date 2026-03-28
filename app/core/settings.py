@@ -56,8 +56,8 @@ class SessionSettings(BaseModel):
     session_expire_seconds: int = 30 * 24 * 3600
     urlsafe_token_length: int = 32
     session_key: str = "cart_session_id"
-    session_httponly: bool = True
-    session_secure: bool | None = None
+    session_httponly: bool = False
+    session_secure: bool | None = False
     same_site: str = "lax"
 
 
