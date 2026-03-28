@@ -17,6 +17,9 @@ class AbstractRead(ABC, Generic[DTOReadType]):
     async def list_all(
         self,
         uow: AbstractUnitOfWork,
+        filters: BaseModel | None = None,
+        pagination_in: BaseModel | None = None,
+        order_by: BaseModel | None = None,
     ) -> list[DTOReadType]: ...
 
     @abstractmethod
@@ -55,11 +58,21 @@ class AbstractDelete(ABC):
     ) -> None: ...
 
 
+class AbstractCount(ABC):
+    @abstractmethod
+    async def count(
+        self,
+        uow: AbstractUnitOfWork,
+        filters: BaseModel | None = None,
+    ) -> int: ...
+
+
 class AbstractCRUDService(
     AbstractRead[DTOReadType],
     AbstractCreate[DTOReadType, DTOCreateType],
     AbstractUpdate[DTOReadType, DTOUpdateType],
     AbstractDelete,
+    AbstractCount,
     Generic[DTOReadType, DTOCreateType, DTOUpdateType],
 ):
     pass
@@ -78,8 +91,34 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
     async def list_all(
         self,
         uow: AbstractUnitOfWork,
+        # TODO: We can add base classes, something like ducktyping
+        filters: BaseModel | None = None,
+        pagination_in: BaseModel | None = None,
+        # TODO: better to recieve list
+        order_by: BaseModel | None = None,
     ) -> list[DTOReadType]:
-        return self.read_mapper.to_dto_list(await self._repository(uow).all())
+        # TODO: we need to fix order_by, for now it is one field
+        order_by_fields = []
+        if order_by is not None:
+            directioned_field = order_by.field
+            if order_by.ordering == "desc":
+                directioned_field = f"-{directioned_field}"
+            order_by_fields.append(directioned_field)
+
+        limit = None
+        offset = None
+        if pagination_in is not None:
+            limit = pagination_in.limit
+            offset = pagination_in.offset
+
+        return self.read_mapper.to_dto_list(
+            await self._repository(uow).all(
+                filters=filters.model_dump() if filters is not None else None,
+                order_by=order_by_fields,
+                limit=limit,
+                offset=offset,
+            ),
+        )
 
     async def get_one(
         self,
@@ -117,7 +156,8 @@ class Update(AbstractUpdate[DTOReadType, DTOUpdateType], RepositoryMixin):
     ) -> DTOReadType:
         return self.read_mapper.to_dto(
             await self._repository(uow).update(
-                id=item_id, item_in=self.update_mapper.to_model(item_in),
+                id=item_id,
+                item_in=self.update_mapper.to_model(item_in),
             ),
         )
 
@@ -132,12 +172,23 @@ class Delete(AbstractDelete, RepositoryMixin):
         return await self._repository(uow).delete(id=item_id)
 
 
+class Count(AbstractCount, RepositoryMixin):
+
+    async def count(
+        self,
+        uow: AbstractUnitOfWork,
+        filters: BaseModel | None = None,
+    ) -> int:
+        return await self._repository(uow).count(**filters.model_dump())
+
+
 class CRUDService(
     AbstractCRUDService[DTOReadType, DTOCreateType, DTOUpdateType],
     Read[DTOReadType],
     Create[DTOReadType, DTOCreateType],
     Update[DTOReadType, DTOUpdateType],
     Delete,
+    Count,
     Generic[DTOReadType, DTOCreateType, DTOUpdateType],
 ):
     pass

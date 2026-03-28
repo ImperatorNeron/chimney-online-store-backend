@@ -1,7 +1,4 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.schemas.messages import ReadMessageSchema
@@ -30,7 +27,7 @@ class FetchMessageUseCase(AbstractFetchMessageUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadMessageSchema:
         async with uow:
-            return await self.messages_service.get_message(
-                message_id=message_id,
+            return await self.messages_service.get_one(
+                item_id=message_id,
                 uow=uow,
             )

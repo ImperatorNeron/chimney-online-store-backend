@@ -33,14 +33,14 @@ class FetchMessagesUseCase(AbstractFetchMessagesUseCase):
         uow: AbstractUnitOfWork,
     ) -> ListPaginatedResponse[ReadMessageSchema]:
         async with uow:
-            count = await self.messages_service.get_total_messages(
+            count = await self.messages_service.count(
                 uow=uow,
                 filters=filters,
             )
-            items = await self.messages_service.list_all_messages(
+            items = await self.messages_service.list_all(
                 pagination_in=pagination_in,
                 filters=filters,
-                sort_params=sort_params,
+                order_by=sort_params,
                 uow=uow,
             )
             return ListPaginatedResponse(

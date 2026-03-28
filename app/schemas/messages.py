@@ -59,5 +59,5 @@ class CreateMessageSchema(BaseMessageSchema):
     pass
 
 
-class ChangeMessageStatusSchema(BaseModel):
+class UpdateMessageStatusSchema(BaseModel):
     status: str = Field(title="Поточний статус", default="new")

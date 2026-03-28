@@ -35,7 +35,7 @@ class CreateMessageUseCase(AbstractCreateMessageUseCase):
         )
 
         async with uow:
-            return await self.message_service.create_message(
-                message_in=message_in,
+            return await self.message_service.create(
+                item_in=message_in,
                 uow=uow,
             )
