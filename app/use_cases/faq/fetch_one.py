@@ -27,4 +27,4 @@ class FetchFAQUseCase(AbstractFetchFAQUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadFAQSchema:
         async with uow:
-            return await self.faq_service.get_one(uow=uow, faq_id=faq_id)
+            return await self.faq_service.get_one(uow=uow, item_id=faq_id)

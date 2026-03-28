@@ -1,81 +1,17 @@
-from abc import ABC, abstractmethod
+from typing import Type
 
 from app.mappers.faq import FaqCreateMapper, FaqReadMapper, FaqUpdateMapper
 from app.schemas.faq import CreateFAQSchema, ReadFAQSchema, UpdadeFAQSchema
-from app.utils.unit_of_work import AbstractUnitOfWork
+from app.services.base import AbstractCRUDService, CRUDService
 
 
-class AbstractFAQService(ABC):
-
-    @abstractmethod
-    async def list_all(
-        self,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadFAQSchema]: ...
-
-    @abstractmethod
-    async def get_one(
-        self,
-        faq_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFAQSchema: ...
-
-    @abstractmethod
-    async def create(
-        self,
-        faq_in: CreateFAQSchema,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFAQSchema: ...
-
-    @abstractmethod
-    async def update(
-        self,
-        faq_in: UpdadeFAQSchema,
-        faq_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFAQSchema: ...
-
-    @abstractmethod
-    async def delete(
-        self,
-        faq_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> None: ...
+class AbstractFAQService(AbstractCRUDService[ReadFAQSchema, CreateFAQSchema, UpdadeFAQSchema]):
+    pass
 
 
-class FAQService(AbstractFAQService):
-
-    async def list_all(
-        self,
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadFAQSchema]:
-        return FaqReadMapper.to_dto_list(await uow.faq.all())
-
-    async def get_one(
-        self,
-        faq_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFAQSchema:
-        return FaqReadMapper.to_dto(await uow.faq.get(id=faq_id))
-
-    async def create(
-        self,
-        faq_in: CreateFAQSchema,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFAQSchema:
-        return FaqReadMapper.to_dto(await uow.faq.create(item_in=FaqCreateMapper.to_model(faq_in)))
-
-    async def update(
-        self,
-        faq_in: UpdadeFAQSchema,
-        faq_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadFAQSchema:
-        return FaqReadMapper.to_dto(await uow.faq.update(id=faq_id, item_in=FaqUpdateMapper.to_model(faq_in)))
-
-    async def delete(
-        self,
-        faq_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> None:
-        return await uow.faq.delete(id=faq_id)
+# Maybe repository_name is not complitely good and maybe another class attrs could be passed somehow in init
+class FAQService(AbstractFAQService, CRUDService):
+    repository_name: str = "faq"
+    read_mapper: Type[FaqReadMapper] = FaqReadMapper
+    create_mapper: Type[FaqCreateMapper] = FaqCreateMapper
+    update_mapper: Type[FaqUpdateMapper] = FaqUpdateMapper

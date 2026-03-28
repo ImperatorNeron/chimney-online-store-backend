@@ -27,4 +27,4 @@ class CreateFAQUseCase(AbstractCreateFAQUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadFAQSchema:
         async with uow:
-            return await self.faq_service.create(uow=uow, faq_in=faq_in)
+            return await self.faq_service.create(uow=uow, item_in=faq_in)

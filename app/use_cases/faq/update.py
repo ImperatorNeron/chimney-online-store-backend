@@ -29,4 +29,4 @@ class UpdateFAQUseCase(AbstractUpdateFAQUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadFAQSchema:
         async with uow:
-            return await self.faq_service.update(uow=uow, faq_id=faq_id, faq_in=faq_in)
+            return await self.faq_service.update(uow=uow, item_id=faq_id, item_in=faq_in)
