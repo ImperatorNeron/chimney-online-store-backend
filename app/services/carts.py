@@ -1,17 +1,17 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from typing import Type
 
+from app.mappers.carts import CartCreateMapper, CartReadMapper, CartWithItemsReadMapper
 from app.schemas.cart_items import ReadCartItemWithProductSchema, ReadCartItemWithTotalPriceSchema
 from app.schemas.carts import CreateCartSchema, ReadCartSchema
-from app.utils.unit_of_work import AbstractUnitOfWork
+from app.services.base import AbstractCreate, AbstractDelete, AbstractRead, Create, Delete, Read
 
 
-class AbstractCartService(ABC):
-    @abstractmethod
-    async def get_cart(
-        self,
-        uow: AbstractUnitOfWork,
-        **kwargs: dict,
-    ) -> ReadCartSchema: ...
+class AbstractCartService(
+    AbstractRead[ReadCartSchema],
+    AbstractCreate[ReadCartSchema, CreateCartSchema],
+    AbstractDelete,
+):
 
     @abstractmethod
     def get_total_quantity(self, items: list[ReadCartItemWithProductSchema]) -> int: ...
@@ -22,46 +22,20 @@ class AbstractCartService(ABC):
         items: list[ReadCartItemWithTotalPriceSchema],
     ) -> float: ...
 
-    @abstractmethod
-    async def create_cart(
-        self,
-        uow: AbstractUnitOfWork,
-        cart_in: CreateCartSchema,
-    ) -> ReadCartSchema: ...
 
-    @abstractmethod
-    async def delete_cart(
-        self,
-        uow: AbstractUnitOfWork,
-        cart_id: int,
-    ) -> None: ...
-
-
-class CartService(AbstractCartService):
-
-    async def get_cart(
-        self,
-        uow: AbstractUnitOfWork,
-        **kwargs: dict,
-    ) -> ReadCartSchema:
-        return await uow.cart.get_with_items(**kwargs)
+class CartService(
+    AbstractCartService,
+    Read[ReadCartSchema],
+    Create[ReadCartSchema, CreateCartSchema],
+    Delete,
+):
+    repository_name: str = "cart"
+    read_mapper: Type[CartWithItemsReadMapper] = CartWithItemsReadMapper
+    read_create_mapper: Type[CartReadMapper] = CartReadMapper
+    create_mapper: Type[CartCreateMapper] = CartCreateMapper
 
     def get_total_quantity(self, items: list[ReadCartItemWithProductSchema]) -> int:
         return sum(item.quantity for item in items)
 
     def get_total_price(self, items: list[ReadCartItemWithTotalPriceSchema]) -> float:
         return round(sum(item.total_price for item in items), 2)
-
-    async def create_cart(
-        self,
-        uow: AbstractUnitOfWork,
-        cart_in: CreateCartSchema,
-    ) -> ReadCartSchema:
-        return await uow.cart.create(item_in=cart_in)
-
-    async def delete_cart(
-        self,
-        uow: AbstractUnitOfWork,
-        cart_id: int,
-    ) -> None:
-        await uow.cart.delete(id=cart_id)

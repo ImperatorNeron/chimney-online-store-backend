@@ -27,4 +27,4 @@ class CreateCartUseCase(AbstractCreateCartUseCase):
         cart_in: CreateCartSchema,
     ) -> ReadCartSchema:
         async with uow:
-            return await self.cart_service.create_cart(uow=uow, cart_in=cart_in)
+            return await self.cart_service.create(uow=uow, item_in=cart_in)

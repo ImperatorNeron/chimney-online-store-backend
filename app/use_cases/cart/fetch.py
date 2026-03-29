@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from app.schemas.carts import ReadFullCartSchema
+from app.mappers.carts import CartItemWithTotalPriceReadMapper
+from app.schemas.carts import BaseCartSchema, ReadFullCartSchema
 from app.services.cart_items import AbstractCartItemService
 from app.services.carts import AbstractCartService
 from app.utils.unit_of_work import AbstractUnitOfWork
@@ -23,18 +24,18 @@ class FetchCartUseCase(AbstractFetchCartUseCase):
     cart_service: AbstractCartService
     cart_item_service: AbstractCartItemService
 
+    # TODO: kwargs to explicit filtering
     async def execute(
         self,
         uow: AbstractUnitOfWork,
-        **kwargs: dict,
+        cart_identifiers: BaseCartSchema,
     ) -> ReadFullCartSchema:
         async with uow:
-            cart = await self.cart_service.get_cart(**kwargs, uow=uow)
+            cart = await self.cart_service.get_one(conditions=cart_identifiers, uow=uow)
             total_quantity = self.cart_service.get_total_quantity(cart.items)
-            items_with_total_amount = [
-                self.cart_item_service.get_cart_item_with_total_amount(item)
-                for item in cart.items
-            ]
+            items_with_total_amount = CartItemWithTotalPriceReadMapper.to_dto_list(
+                cart.items,
+            )
             total_price = self.cart_service.get_total_price(items_with_total_amount)
             return ReadFullCartSchema(
                 id=cart.id,

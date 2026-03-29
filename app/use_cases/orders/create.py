@@ -68,5 +68,5 @@ class CreateOrderUseCase(AbstractCreateOrderUseCase):
                 f"Order {order.id} created for user {user_id} with {len(cart.items)} items",
             )
 
-            await self.cart_service.delete_cart(cart_id=cart.id, uow=uow)
+            await self.cart_service.delete(id=cart.id, uow=uow)
             return order

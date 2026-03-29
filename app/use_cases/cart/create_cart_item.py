@@ -27,7 +27,7 @@ class AddToCartUseCase(AbstractAddToCartUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadCartItemSchema:
         async with uow:
-            return await self.cart_item_service.create_cart_item(
+            return await self.cart_item_service.create(
                 uow=uow,
-                cart_item_in=cart_item_in,
+                item_in=cart_item_in,
             )

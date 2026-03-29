@@ -1,12 +1,9 @@
-from typing import Optional
-
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions.common import InvalidRequestParametersException
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.products import ProductVariation, UniqueProduct
-from app.utils.sql_repository import BaseRepository
+from app.utils.sql_repo import BaseRepository
 
 
 class CartRepository(BaseRepository):
@@ -20,24 +17,5 @@ class CartRepository(BaseRepository):
         .selectinload(UniqueProduct.images),
     ]
 
-    async def get_with_items(
-        self,
-        user_id: Optional[int] = None,
-        session_id: Optional[str] = None,
-    ):
-        filters = {}
-        if user_id:
-            filters["user_id"] = user_id
-        elif session_id:
-            filters["session_id"] = session_id
-        else:
-            raise InvalidRequestParametersException(
-                required_params=["user_id", "session_id"],
-            )
-
-        cart = await self._get_model(
-            options=self.default_preload,
-            **filters,
-        )
-
-        return cart.to_read_model_with_items()
+    async def get(self, **conditions) -> Cart:
+        return await self._get_model(options=self.default_preload, **conditions)

@@ -26,8 +26,8 @@ class AbstractRead(ABC, Generic[DTOReadType]):
     @abstractmethod
     async def get_one(
         self,
-        item_id: int,
         uow: AbstractUnitOfWork,
+        conditions: BaseModel | dict,
     ) -> DTOReadType: ...
 
 
@@ -130,10 +130,12 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
 
     async def get_one(
         self,
-        item_id: int,
         uow: AbstractUnitOfWork,
+        conditions: BaseModel | dict,
     ) -> DTOReadType:
-        return self.read_mapper.to_dto(await self._repository(uow).get(id=item_id))
+        if isinstance(conditions, BaseModel):
+            conditions = conditions.model_dump()
+        return self.read_mapper.to_dto(await self._repository(uow).get(**conditions))
 
 
 class Create(

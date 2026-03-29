@@ -28,8 +28,8 @@ class DeleteFromCartUseCase(AbstractDeleteFromCartUseCase):
         uow: AbstractUnitOfWork,
     ) -> None:
         async with uow:
-            return await self.cart_item_service.delete_cart_item(
-                cart_item_id=cart_item_id,
+            return await self.cart_item_service.delete(
+                id=cart_item_id,
                 cart_id=cart_id,
                 uow=uow,
             )

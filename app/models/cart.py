@@ -5,7 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin
-from app.schemas.carts import ReadCartSchema
 
 
 if TYPE_CHECKING:
@@ -32,10 +31,3 @@ class Cart(IdIntPkMixin, BaseModel):
         back_populates="cart",
         cascade="all, delete",
     )
-
-    def to_read_model(self):
-        return ReadCartSchema(id=self.id)
-
-    def to_read_model_with_items(self):
-        items = [item.to_read_model_with_product() for item in self.items]
-        return ReadCartSchema(id=self.id, items=items)

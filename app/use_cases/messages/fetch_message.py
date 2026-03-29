@@ -28,6 +28,6 @@ class FetchMessageUseCase(AbstractFetchMessageUseCase):
     ) -> ReadMessageSchema:
         async with uow:
             return await self.messages_service.get_one(
-                item_id=message_id,
+                conditions={"id": message_id},
                 uow=uow,
             )

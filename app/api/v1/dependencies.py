@@ -1,6 +1,6 @@
 import logging
 import secrets
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import Depends, Request, Response
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer
@@ -17,7 +17,7 @@ from app.core.exceptions.common import (
     UserNotFoundException,
 )
 from app.core.settings import settings
-from app.schemas.carts import CreateCartSchema, ReadFullCartSchema
+from app.schemas.carts import BaseCartSchema, CreateCartSchema, ReadFullCartSchema
 from app.schemas.users import ReadUserSchema
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
@@ -72,7 +72,9 @@ async def get_user_by_token_sub(
 ) -> ReadUserSchema:
     service: AbstractUserService = container.resolve(AbstractUserService)
     async with uow:
-        user = await service.get_one(uow=uow, item_id=int(payload.get("sub")))
+        user = await service.get_one(
+            uow=uow, conditions={"id": int(payload.get("sub"))},
+        )
     if user is None:
         logger.warning("User not found with id: %s", payload.get("sub"))
         raise UserNotFoundException()
@@ -189,15 +191,17 @@ async def _get_user_cart_or_create_new(
     uow: AbstractUnitOfWork,
     fetch_cart: AbstractFetchCartUseCase,
     create_cart: AbstractCreateCartUseCase,
-    **cart_data: Any,
+    cart_identifiers: BaseCartSchema,
 ) -> ReadFullCartSchema:
     try:
-        return await fetch_cart.execute(uow=uow, **cart_data)
+        return await fetch_cart.execute(uow=uow, cart_identifiers=cart_identifiers)
     except ItemNotFoundException:
-        logger.info("Cart not found, creating new one: %s", cart_data)
+        logger.info(
+            "Cart not found, creating new one: %s", cart_identifiers.model_dump(),
+        )
         cart = await create_cart.execute(
             uow=uow,
-            cart_in=CreateCartSchema(**cart_data),
+            cart_in=CreateCartSchema(**cart_identifiers.model_dump()),
         )
         return ReadFullCartSchema(
             **cart.model_dump(exclude={"items"}),
@@ -243,7 +247,9 @@ async def handle_anonymous_cart(
             create_cart=create_cart,
         )
     try:
-        return await fetch_cart.execute(uow=uow, session_id=session_id)
+        return await fetch_cart.execute(
+            uow=uow, cart_identifiers=BaseCartSchema(session_id=session_id),
+        )
     except ItemNotFoundException:
         logger.info("Session cart not found, creating new one and deleting old cookie")
         response.delete_cookie(
@@ -288,13 +294,15 @@ async def get_user_cart(
             uow=uow,
             fetch_cart=fetch_cart,
             create_cart=create_cart,
-            user_id=int(payload.get("sub")),
+            cart_identifiers=BaseCartSchema(user_id=int(payload.get("sub"))),
         )
 
         if session_id:
             # TODO: додати обробку можливих помилок
             # TODO: всередині приймати не **kwargs а нормальні значення session_id or user_id
-            session_cart = await fetch_cart.execute(uow=uow, session_id=session_id)
+            session_cart = await fetch_cart.execute(
+                uow=uow, cart_identifiers=BaseCartSchema(session_id=session_id),
+            )
             user_cart = await merge_carts.execute(
                 user_cart=user_cart,
                 session_cart=session_cart,
