@@ -121,7 +121,7 @@ class LoginUserSchema(UsernameField, PasswordField):
     pass
 
 
-class UserUpdateSchema(BaseUserFields):
+class UpdateUserSchema(BaseUserFields):
     hashed_password: Optional[bytes] = Field(None, title="Hashed user's password")
 
 

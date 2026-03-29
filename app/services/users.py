@@ -1,84 +1,69 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from typing import Type
 
-from pydantic import BaseModel
-
-from app.schemas.users import ReadUserSchema, ReadUserWithPasswordSchema, UserUpdateSchema
+from app.mappers.users import UserReadMapper, UserUpdateMapper
+from app.schemas.users import ReadUserWithPasswordSchema, UpdateUserSchema
+from app.services.base import AbstractRead, AbstractUpdate, Read, Update
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
-class AbstractUserService(ABC):
+class AbstractUserService(
+    AbstractRead[ReadUserWithPasswordSchema],
+    AbstractUpdate[ReadUserWithPasswordSchema, UpdateUserSchema],
+):
 
     @abstractmethod
     async def get_user_by_username(
         self,
         uow: AbstractUnitOfWork,
         username: str,
-    ) -> BaseModel: ...
+    ) -> ReadUserWithPasswordSchema | None: ...
 
     @abstractmethod
     async def get_user_by_email(
         self,
         uow: AbstractUnitOfWork,
         email: str,
-    ) -> BaseModel: ...
+    ) -> ReadUserWithPasswordSchema | None: ...
 
     @abstractmethod
     async def get_user_by_phone_number(
         self,
         uow: AbstractUnitOfWork,
         phone_number: str,
-    ) -> BaseModel: ...
-
-    @abstractmethod
-    async def get_user_by_id(
-        self,
-        uow: AbstractUnitOfWork,
-        id: int,  # noqa
-    ) -> BaseModel: ...
-
-    @abstractmethod
-    async def update_user(
-        self,
-        user_in: UserUpdateSchema,
-        user_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> BaseModel: ...
+    ) -> ReadUserWithPasswordSchema | None: ...
 
 
-class UserService(AbstractUserService):
+class UserService(
+    AbstractUserService,
+    Read[ReadUserWithPasswordSchema],
+    Update[ReadUserWithPasswordSchema, UpdateUserSchema],
+):
+    repository_name: str = "users"
+    _read_mapper: Type[UserReadMapper] = UserReadMapper
+    read_mapper = read_update_mapper = _read_mapper
+    update_mapper: Type[UserUpdateMapper] = UserUpdateMapper
 
     async def get_user_by_username(
         self,
         uow: AbstractUnitOfWork,
         username: str,
-    ) -> ReadUserSchema:
-        return await uow.users.get_or_none(username=username)
+    ) -> ReadUserWithPasswordSchema | None:
+        if (user := await uow.users.get_or_none(username=username)) is not None:
+            return self.read_mapper.to_dto(user)
 
     async def get_user_by_email(
         self,
         uow: AbstractUnitOfWork,
         email: str,
-    ) -> ReadUserSchema:
-        return await uow.users.get_or_none(email=email)
+    ) -> ReadUserWithPasswordSchema | None:
+        if (user := await uow.users.get_or_none(email=email)) is not None:
+            return self.read_mapper.to_dto(user)
 
     async def get_user_by_phone_number(
         self,
         uow: AbstractUnitOfWork,
         phone_number: str,
-    ) -> ReadUserSchema:
-        return await uow.users.get_or_none(phone_number=phone_number)
-
-    async def get_user_by_id(
-        self,
-        uow: AbstractUnitOfWork,
-        id: int,  # noqa
-    ) -> ReadUserSchema:
-        return await uow.users.get(id=id)
-
-    async def update_user(
-        self,
-        user_in: UserUpdateSchema,
-        user_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadUserWithPasswordSchema:
-        return await uow.users.update(id=user_id, item_in=user_in)
+    ) -> ReadUserWithPasswordSchema | None:
+        if (user := await uow.users.get_or_none(phone_number=phone_number)) is not None:
+            return self.read_mapper.to_dto(user)

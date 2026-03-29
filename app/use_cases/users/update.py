@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.core.exceptions.common import EmailAlreadyExistsException, PhoneNumberAlreadyExistsException
-from app.schemas.users import ReadUserSchema, UserUpdateSchema, UserUpdateWithPasswordSchema
+from app.schemas.users import ReadUserSchema, UpdateUserSchema, UserUpdateWithPasswordSchema
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
 from app.utils.unit_of_work import AbstractUnitOfWork
@@ -71,9 +71,9 @@ class UpdateUserUseCase(AbstractUpdateUserUseCase):
                 update_data["hashed_password"] = hashed_password
                 logger.info(f"User {user_id} is changing password")
 
-            new_user_data = await self.user_service.update_user(
-                user_in=UserUpdateSchema(**update_data),
-                user_id=user_id,
+            new_user_data = await self.user_service.update(
+                item_in=UpdateUserSchema(**update_data),
+                item_id=user_id,
                 uow=uow,
             )
             logger.info(

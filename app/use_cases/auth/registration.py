@@ -75,9 +75,9 @@ class RegisterUserUseCase:
                         meta={"phone_number": user_in.phone_number},
                     )
 
-            user = await self.auth_service.register(
+            user = await self.auth_service.create(
                 uow=uow,
-                user_in=CreateUserSchema(
+                item_in=CreateUserSchema(
                     **user_in.model_dump(exclude={"password", "confirm_password"}),
                     hashed_password=self.token_service.hash_password(
                         user_in.password,

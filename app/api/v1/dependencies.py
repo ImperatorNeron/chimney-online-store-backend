@@ -72,7 +72,7 @@ async def get_user_by_token_sub(
 ) -> ReadUserSchema:
     service: AbstractUserService = container.resolve(AbstractUserService)
     async with uow:
-        user = await service.get_user_by_id(uow=uow, id=int(payload.get("sub")))
+        user = await service.get_one(uow=uow, item_id=int(payload.get("sub")))
     if user is None:
         logger.warning("User not found with id: %s", payload.get("sub"))
         raise UserNotFoundException()

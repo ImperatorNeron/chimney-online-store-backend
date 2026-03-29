@@ -1,5 +1,5 @@
 from app.models.users import User
-from app.utils.sql_repository import BaseRepository
+from app.utils.sql_repo import BaseRepository
 
 
 class UserRepository(BaseRepository):

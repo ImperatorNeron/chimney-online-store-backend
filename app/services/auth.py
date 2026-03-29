@@ -1,24 +1,15 @@
-from abc import ABC, abstractmethod
+from typing import Type
 
-from app.schemas.users import CreateUserSchema, ReadUserSchema
-from app.utils.unit_of_work import AbstractUnitOfWork
-
-
-class AbstractAuthService(ABC):
-
-    @abstractmethod
-    async def register(
-        self,
-        uow: AbstractUnitOfWork,
-        user_in: CreateUserSchema,
-    ) -> ReadUserSchema: ...
+from app.mappers.users import UserCreateMapper, UserReadMapper
+from app.schemas.users import CreateUserSchema, ReadUserWithPasswordSchema
+from app.services.base import AbstractCreate, Create
 
 
-class AuthService(AbstractAuthService):
+class AbstractAuthService(AbstractCreate[ReadUserWithPasswordSchema, CreateUserSchema]):
+    pass
 
-    async def register(
-        self,
-        uow: AbstractUnitOfWork,
-        user_in: CreateUserSchema,
-    ) -> ReadUserSchema:
-        return await uow.users.create(item_in=user_in)
+
+class AuthService(AbstractAuthService, Create[ReadUserWithPasswordSchema, CreateUserSchema]):
+    repository_name: str = "users"
+    read_create_mapper: Type[UserReadMapper] = UserReadMapper
+    create_mapper: Type[UserCreateMapper] = UserCreateMapper
