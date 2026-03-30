@@ -25,6 +25,7 @@ async def upload_and_create_product_images(
     logger: logging.Logger,
     log_error_message: str,
 ) -> list[ReadProductImageSchema]:
+    # TODO: after create/update it would be cool to delete photos in bucket
     image_data: list[CreateProductImageSchema] = []
     try:
         for img in images:

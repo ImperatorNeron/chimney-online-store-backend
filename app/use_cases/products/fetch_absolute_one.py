@@ -44,7 +44,8 @@ class FetchAbsoluteProductUseCase(ABC):
                 slug=product_slug,
                 uow=uow,
             )
-            images = await self.product_image_service.get_images(
+            # TODO: May be wrong annotation. In real it takes product_id
+            images = await self.product_image_service.list_all(
                 product_id=unique_product.id,
                 uow=uow,
             )
