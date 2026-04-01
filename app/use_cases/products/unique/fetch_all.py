@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 from app.schemas.api_response import ListPaginatedResponse
 from app.schemas.filters import PaginationIn, PaginationOut, UniqueProductFiltersSchema, UniqueProductSortOrderSchema
-from app.schemas.products import ReadUniqueProductSchema
-from app.services.products import AbstractProductService
+from app.schemas.products import ReadFullUniqueProductSchema
+from app.services.unique_products import AbstractUniqueProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -17,13 +17,13 @@ class AbstractFetchUniqueProductsUseCase(ABC):
         sort_params: UniqueProductSortOrderSchema,
         pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
-    ) -> ListPaginatedResponse[ReadUniqueProductSchema]: ...
+    ) -> ListPaginatedResponse[ReadFullUniqueProductSchema]: ...
 
 
 @dataclass
 class FetchUniqueProductsUseCase(AbstractFetchUniqueProductsUseCase):
 
-    product_service: AbstractProductService
+    unique_product_service: AbstractUniqueProductService
 
     async def execute(
         self,
@@ -31,15 +31,15 @@ class FetchUniqueProductsUseCase(AbstractFetchUniqueProductsUseCase):
         sort_params: UniqueProductSortOrderSchema,
         pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
-    ) -> ListPaginatedResponse[ReadUniqueProductSchema]:
+    ) -> ListPaginatedResponse[ReadFullUniqueProductSchema]:
         async with uow:
-            products = await self.product_service.list_all_unique(
+            products = await self.unique_product_service.list_all(
                 filters=filters,
-                sort_params=sort_params,
+                order_by=sort_params,
                 pagination_in=pagination_in,
                 uow=uow,
             )
-            count = await self.product_service.get_unique_products_count(
+            count = await self.unique_product_service.count(
                 filters=filters,
                 uow=uow,
             )

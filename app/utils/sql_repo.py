@@ -67,7 +67,8 @@ class AbstractRepository(ABC):
 
 
 class BaseRepository(AbstractRepository):
-    model: Model = None
+    model: Model | None = None
+    all_models_default_preload: list | None = None
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -140,13 +141,18 @@ class BaseRepository(AbstractRepository):
         options: Optional[list] = None,
     ) -> list[Model]:
         """Внутрішній метод для отримання списку моделей."""
+        used_options = None
+        if options is not None:
+            used_options = options
+        elif self.all_models_default_preload is not None:
+            used_options = self.all_models_default_preload
         query = await self._apply_listing(
             select(self.model),
             filters=filters,
             order_by=order_by,
             limit=limit,
             offset=offset,
-            options=options,
+            options=used_options,
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())

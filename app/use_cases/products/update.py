@@ -1,7 +1,7 @@
 import hashlib
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import logging
 
 from fastapi import UploadFile
 
@@ -14,11 +14,9 @@ from app.schemas.products import (
 from app.services.files import AbstractFileStorageService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
+from app.services.unique_products import AbstractUniqueProductService
+from app.use_cases.products._shared import invalidate_products_cache, upload_and_create_product_images
 from app.utils.unit_of_work import AbstractUnitOfWork
-from app.use_cases.products._shared import (
-    invalidate_products_cache,
-    upload_and_create_product_images,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +39,7 @@ class AbstractUpdateProductUseCase(ABC):
 @dataclass
 class UpdateProductUseCase(AbstractUpdateProductUseCase):
     product_service: AbstractProductService
+    unique_product_service: AbstractUniqueProductService
     product_image_service: AbstractProductImageService
     file_service: AbstractFileStorageService
 
@@ -54,9 +53,9 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadAbsoluteProductSchema:
         async with uow:
-            updated_unique_product = await self.product_service.update_unique(
-                unique_product_id=product_id,
-                product_in=product_in,
+            updated_unique_product = await self.unique_product_service.update(
+                item_id=product_id,
+                item_in=product_in,
                 uow=uow,
             )
 

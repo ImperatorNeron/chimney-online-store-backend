@@ -8,11 +8,9 @@ from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
 from app.schemas.products import (
     ReadFullProductSchema,
-    ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
     ReadProductSchema,
     ReadProductVariationSchema,
-    ReadUniqueProductSchema,
 )
 
 
@@ -39,24 +37,6 @@ class UniqueProduct(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         back_populates="product",
         cascade="all, delete-orphan",
     )
-
-    def to_read_model(self):
-        return ReadUniqueProductSchema(
-            id=self.id,
-            name=self.name,
-            slug=self.slug,
-            description=self.description,
-            category_id=self.category_id,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-        )
-
-    def to_read_full_model(self):
-        images_schemas = [image.to_read_model() for image in self.images]
-        return ReadFullUniqueProductSchema(
-            **self.to_read_model().model_dump(),
-            images=images_schemas,
-        )
 
 
 class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):

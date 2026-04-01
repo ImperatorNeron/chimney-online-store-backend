@@ -9,6 +9,7 @@ from app.schemas.products import ReadAbsoluteProductSchema
 from app.services.categories import AbstractCategoryService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
+from app.services.unique_products import AbstractUniqueProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -26,6 +27,7 @@ class AbstractFetchAbsoluteProductUseCase(ABC):
 class FetchAbsoluteProductUseCase(ABC):
 
     product_service: AbstractProductService
+    unique_product_service: AbstractUniqueProductService
     product_image_service: AbstractProductImageService
     category_service: AbstractCategoryService
 
@@ -40,9 +42,8 @@ class FetchAbsoluteProductUseCase(ABC):
             return ReadAbsoluteProductSchema.model_validate_json(cached)
 
         async with uow:
-            unique_product = await self.product_service.get_unique_product(
-                slug=product_slug,
-                uow=uow,
+            unique_product = await self.unique_product_service.get_one(
+                uow=uow, conditions={"slug": product_slug},
             )
             # TODO: May be wrong annotation. In real it takes product_id
             images = await self.product_image_service.list_all(

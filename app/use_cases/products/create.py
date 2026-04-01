@@ -4,19 +4,13 @@ from dataclasses import dataclass
 
 from fastapi import UploadFile
 
-from app.schemas.products import (
-    BaseCreateProductVariationSchema,
-    CreateUniqueProductSchema,
-    ReadAbsoluteProductSchema,
-)
+from app.schemas.products import BaseCreateProductVariationSchema, CreateUniqueProductSchema, ReadAbsoluteProductSchema
 from app.services.files import AbstractFileStorageService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
+from app.services.unique_products import AbstractUniqueProductService
+from app.use_cases.products._shared import invalidate_products_cache, upload_and_create_product_images
 from app.utils.unit_of_work import AbstractUnitOfWork
-from app.use_cases.products._shared import (
-    invalidate_products_cache,
-    upload_and_create_product_images,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +31,7 @@ class AbstractCreateProductUseCase(ABC):
 @dataclass
 class CreateProductUseCase(AbstractCreateProductUseCase):
     product_service: AbstractProductService
+    unique_product_service: AbstractUniqueProductService
     product_image_service: AbstractProductImageService
     file_service: AbstractFileStorageService
 
@@ -48,8 +43,8 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadAbsoluteProductSchema:
         async with uow:
-            unique_product = await self.product_service.create_unique(
-                product_in=product_in,
+            unique_product = await self.unique_product_service.create(
+                item_in=product_in,
                 uow=uow,
             )
 

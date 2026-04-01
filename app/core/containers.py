@@ -15,6 +15,7 @@ from app.services.orders import AbstractOrderService, OrderService
 from app.services.product_images import AbstractProductImageService, ProductImageService
 from app.services.products import AbstractProductService, ProductService
 from app.services.tokens import AbstractJWTTokenService, JWTTokenService
+from app.services.unique_products import AbstractUniqueProductService, UniqueProductService
 from app.services.users import AbstractUserService, UserService
 from app.use_cases.auth.login import LoginUserUseCase
 from app.use_cases.auth.refresh import RefreshTokenUseCase
@@ -28,10 +29,7 @@ from app.use_cases.cart.merge import AbstractMergeCartsUseCase, MergeCartsUseCas
 from app.use_cases.categories.create import AbstractCreateCategoryUseCase, CreateCategoryUseCase
 from app.use_cases.categories.delete import AbstractDeleteCategoryUseCase, DeleteCategoryUseCase
 from app.use_cases.categories.fetch_all import AbstractFetchCategoriesUseCase, FetchCategoriesUseCase
-from app.use_cases.categories.fetch_children import (
-    AbstractFetchChildCategoriesUseCase,
-    FetchChildCategoriesUseCase,
-)
+from app.use_cases.categories.fetch_children import AbstractFetchChildCategoriesUseCase, FetchChildCategoriesUseCase
 from app.use_cases.categories.get_names_from_slugs import AbstractFetchNamesFromSlugsUseCase, FetchNamesFromSlugsUseCase
 from app.use_cases.categories.update import AbstractUpdateCategoryUseCase, UpdateCategoryUseCase
 from app.use_cases.faq.create import AbstractCreateFAQUseCase, CreateFAQUseCase
@@ -126,6 +124,7 @@ def _initialize_container() -> punq.Container:
 
     # Product
     container.register(AbstractProductService, ProductService)
+    container.register(AbstractUniqueProductService, UniqueProductService)
     container.register(AbstractProductImageService, ProductImageService)
     container.register(AbstractFetchProductsUseCase, FetchProductsUseCase)
     container.register(AbstractFetchFiltersUseCase, FetchFiltersUseCase)
