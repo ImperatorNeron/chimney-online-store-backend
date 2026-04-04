@@ -62,11 +62,11 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
                 item_in=product_in,
                 uow=uow,
             )
-
-            await self.product_image_service.delete_by_ids(
-                ids=delete_images_ids,
-                uow=uow,
-            )
+            if delete_images_ids:
+                await self.product_image_service.bulk_delete(
+                    id__in=delete_images_ids,
+                    uow=uow,
+                )
 
             new_images = await upload_and_create_product_images(
                 images=images,

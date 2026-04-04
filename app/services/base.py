@@ -65,6 +65,13 @@ class AbstractDelete(ABC):
         **conditions: Any,
     ) -> None: ...
 
+    @abstractmethod
+    async def bulk_delete(
+        self,
+        uow: AbstractUnitOfWork,
+        **conditions,
+    ) -> None: ...
+
 
 class AbstractCount(ABC):
     @abstractmethod
@@ -105,6 +112,12 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
         # TODO: better to recieve list
         order_by: BaseModel | None = None,
     ) -> list[DTOReadType]:
+        await self._validate_list_all(
+            uow=uow,
+            filters=filters,
+            pagination_in=pagination_in,
+            order_by=order_by,
+        )
         # TODO: we need to fix order_by, for now it is one field
         order_by_fields = []
         if order_by is not None:
@@ -143,6 +156,9 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
         if isinstance(conditions, BaseModel):
             conditions = conditions.model_dump()
         return self.read_mapper.to_dto(await self._repository(uow).get(**conditions))
+
+    async def _validate_list_all(self, *args, **kwargs):
+        pass
 
 
 class Create(
@@ -201,7 +217,6 @@ class Update(AbstractUpdate[DTOReadType, DTOUpdateType], RepositoryMixin):
             id=item_id,
             item_in=self.update_mapper.to_model(item_in),
         )
-        print(res)
         return self.read_update_mapper.to_dto(
             res,
         )
@@ -209,16 +224,27 @@ class Update(AbstractUpdate[DTOReadType, DTOUpdateType], RepositoryMixin):
 
 class Delete(AbstractDelete, RepositoryMixin):
 
-    async def _delete_validation(self, *args, **kwargs):
-        pass
-
     async def delete(
         self,
         uow: AbstractUnitOfWork,
         **conditions,
     ) -> None:
         await self._delete_validation(**conditions)
-        return await self._repository(uow).delete(**conditions)
+        await self._repository(uow).delete(**conditions)
+
+    async def bulk_delete(
+        self,
+        uow: AbstractUnitOfWork,
+        **conditions,
+    ) -> None:
+        await self._bulk_delete_validation(**conditions)
+        await self._repository(uow).bulk_delete(**conditions)
+
+    async def _delete_validation(self, *args, **kwargs):
+        pass
+
+    async def _bulk_delete_validation(self, *args, **kwargs):
+        pass
 
 
 class Count(AbstractCount, RepositoryMixin):

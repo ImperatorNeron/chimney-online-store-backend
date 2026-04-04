@@ -138,7 +138,7 @@ class ProductService(
         product_id: int,
         uow: AbstractUnitOfWork,
     ) -> list[ReadProductVariationSchema]:
-        self._get_product_variants_validation(product_id=product_id, uow=uow)
+        await self._get_product_variants_validation(product_id=product_id, uow=uow)
         # Just use to not write the same type
         return self.read_create_mapper.to_dto_list(
             await uow.products.all(filters={"product_id": product_id}),

@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions.common import ItemNotFoundException, MultipleResultsFound, RepositoryException
@@ -12,6 +12,7 @@ from app.models.base import BaseModel as Model
 logger = logging.getLogger(__name__)
 
 
+# TODO: Add better namings, do it more flexible
 class AbstractRepository(ABC):
     """Abstract repository defining modern CRUD operations with ORM models."""
 
@@ -43,6 +44,10 @@ class AbstractRepository(ABC):
     @abstractmethod
     async def delete(self, id: int) -> None:  # noqa
         """Delete item by ID."""
+        ...
+
+    @abstractmethod
+    async def bulk_delete(self, **filters) -> None:  # noqa
         ...
 
     @abstractmethod
@@ -227,8 +232,16 @@ class BaseRepository(AbstractRepository):
         self,
         **filters: Any,
     ) -> None:  # noqa
+        # It deletes only 1 instance.
+        # TODO: figure out if we can cover more and check where we need to add validation of 1
         instance = await self._get_model(**filters)
         await self.session.delete(instance)
+
+    async def bulk_delete(self, **filters: Any):
+        query = delete(self.model)
+        self._apply_filters(query, filters)
+        await self.session.execute(query)
+        await self.session.flush()
 
     async def count(self, **filters: Any) -> int:
         query = select(func.count()).select_from(self.model)

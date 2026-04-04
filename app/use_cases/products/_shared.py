@@ -41,7 +41,7 @@ async def upload_and_create_product_images(
             )
         if not image_data:
             return []
-        return await product_image_service.bulk_create(images=image_data, uow=uow)
+        return await product_image_service.bulk_create(items_in=image_data, uow=uow)
     except BaseAppException:
         await file_service.cleanup_files(image_data)
         raise

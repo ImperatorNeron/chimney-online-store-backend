@@ -47,7 +47,7 @@ class FetchAbsoluteProductUseCase(ABC):
             )
             # TODO: May be wrong annotation. In real it takes product_id
             images = await self.product_image_service.list_all(
-                product_id=unique_product.id,
+                filters={"product_id": unique_product.id},
                 uow=uow,
             )
             variations = await self.product_service.get_product_variations(

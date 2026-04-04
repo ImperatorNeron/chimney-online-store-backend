@@ -117,6 +117,6 @@ class OrderService(
     ) -> list[ReadOrderItemBaseSchema]:
         return OrderItemBaseReadMapper.to_dto_list(
             await uow.order_item.bulk_create(
-                instances=OrderItemCreateMapper.to_model_list(items),
+                data_list=OrderItemCreateMapper.to_model_list(items),
             ),
         )
