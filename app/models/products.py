@@ -6,12 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 from app.models.mixins import IdIntPkMixin, UpdateCreateDateTimeMixin
-from app.schemas.products import (
-    ReadFullProductSchema,
-    ReadPreviewProductSchema,
-    ReadProductSchema,
-    ReadProductVariationSchema,
-)
 
 
 if TYPE_CHECKING:
@@ -80,57 +74,3 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-
-    def _get_common_fields(self) -> dict:
-        return {
-            "id": self.id,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "name": self.product.name,
-            "slug": self.product.slug,
-            "description": self.product.description,
-            "price": self.price,
-            "discount_price": round(
-                self.price - self.price * self.discount_percentage / 100,
-                2,
-            ),
-            "discount_percentage": self.discount_percentage,
-            "category_id": self.product.category_id,
-            "extra_attrs": self.extra_attrs,
-            "diameter": self.diameter,
-            "length": self.length,
-            "thickness": self.thickness,
-            "angle": self.angle,
-            "metal_type": self.metal_type,
-        }
-
-    def to_read_model(self):
-        return ReadProductSchema(**self._get_common_fields())
-
-    def to_read_base_model(self):
-        return ReadProductVariationSchema(
-            id=self.id,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            price=self.price,
-            discount_price=self.price - (self.price * self.discount_percentage) / 100,
-            discount_percentage=self.discount_percentage,
-            diameter=self.diameter,
-            length=self.length,
-            thickness=self.thickness,
-            angle=self.angle,
-            metal_type=self.metal_type,
-        )
-
-    def to_read_model_with_preview(self):
-        preview_image = (
-            self.product.images[0].to_read_model() if self.product.images else None
-        )
-        return ReadPreviewProductSchema(
-            **self._get_common_fields(),
-            preview=preview_image,
-        )
-
-    def to_read_full_model(self):
-        images_schemas = [image.to_read_model() for image in self.product.images]
-        return ReadFullProductSchema(**self._get_common_fields(), images=images_schemas)

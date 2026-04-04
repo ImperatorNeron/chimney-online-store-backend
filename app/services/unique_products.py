@@ -65,15 +65,15 @@ class UniqueProductService(
         self,
         *args,
         uow: AbstractUnitOfWork,
-        product_in: CreateUniqueProductSchema,
+        item_in: CreateUniqueProductSchema,
         **kwargs,
     ):
-        if await uow.unique_products.exists(slug=product_in.slug):
+        if await uow.unique_products.exists(slug=item_in.slug):
             raise UniqueConstraintViolationsException(
                 {"slug": "Продукт з цим url вже існує."},
                 detail="Продукт з цим slug вже існує",
             )
-        if not await uow.categories.exists(id=product_in.category_id):
+        if not await uow.categories.exists(id=item_in.category_id):
             raise ForeignKeyConstraintViolationException(
                 {"category_id": "Категорія не існує."},
                 detail="Не існує даної категорії",

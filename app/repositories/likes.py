@@ -1,5 +1,5 @@
 from app.models.likes import Like
-from app.utils.sql_repo import BaseRepository
+from app.utils.sql_repository import BaseRepository
 
 
 class LikeRepository(BaseRepository):

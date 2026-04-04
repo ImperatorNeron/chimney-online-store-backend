@@ -29,7 +29,7 @@ class FetchPopularProductsUseCase(AbstractFetchPopularProductsUseCase):
         pagination_in: PaginationIn,
     ) -> ListPaginatedResponse[ReadPreviewProductSchema]:
         async with uow:
-            results = await self.product_service.list_popular(
+            results = await self.product_service.get_popular_products(
                 uow=uow,
                 pagination_in=pagination_in,
             )

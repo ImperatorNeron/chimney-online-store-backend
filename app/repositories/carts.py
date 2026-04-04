@@ -3,7 +3,7 @@ from sqlalchemy.orm import selectinload
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.products import ProductVariation, UniqueProduct
-from app.utils.sql_repo import BaseRepository
+from app.utils.sql_repository import BaseRepository
 
 
 class CartRepository(BaseRepository):

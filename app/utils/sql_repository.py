@@ -2,8 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from pydantic import BaseModel
-from sqlalchemy import func, insert, Select, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions.common import ItemNotFoundException, MultipleResultsFound, RepositoryException
@@ -14,14 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractRepository(ABC):
-    """Abstract repository defining modern CRUD operations."""
+    """Abstract repository defining modern CRUD operations with ORM models."""
 
     @abstractmethod
     async def get(
         self,
         options: Optional[list] = None,
         **filters: Any,
-    ) -> BaseModel: ...
+    ) -> Model: ...
 
     @abstractmethod
     async def all(  # noqa
@@ -31,13 +30,13 @@ class AbstractRepository(ABC):
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         options: Optional[list] = None,
-    ) -> list[BaseModel]: ...
+    ) -> list[Model]: ...
 
     @abstractmethod
-    async def create(self, item_in: BaseModel) -> BaseModel: ...
+    async def create(self, item_in: Model) -> Model: ...
 
     @abstractmethod
-    async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa
+    async def update(self, id: int, item_in: Model) -> Model:  # noqa
         """Update existing item."""
         ...
 
@@ -57,24 +56,24 @@ class AbstractRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_or_none(self, **filters: Any) -> Optional[BaseModel]:
+    async def get_or_none(self, **filters: Any) -> Optional[Model]:
         """Get item or None if not found."""
         ...
 
     @abstractmethod
-    async def bulk_create(self, data_list: list[BaseModel]) -> list[BaseModel]:
+    async def bulk_create(self, data_list: list[Model]) -> list[Model]:
         """Create multiple items."""
         ...
 
 
-class BaseRepository:
-
-    model: Model = None
+class BaseRepository(AbstractRepository):
+    model: Model | None = None
+    all_models_default_preload: list | None = None
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    def _apply_filters(self, query: Select, filters: dict[str, Any]) -> Select:
+    def _apply_filters(self, query: select, filters: dict[str, Any]) -> select:
         for field, value in filters.items():
             if "__" in field:
                 field_name, operator = field.split("__")
@@ -89,7 +88,7 @@ class BaseRepository:
                 query = query.where(getattr(self.model, field) == value)
         return query
 
-    def _apply_ordering(self, query: Select, order_by: dict[str]) -> Select:
+    def _apply_ordering(self, query: select, order_by: list[str]) -> select:
         for field in order_by:
             direction = "asc"
             if field.startswith("-"):
@@ -106,7 +105,7 @@ class BaseRepository:
         options: Optional[list] = None,
         **filters: Any,
     ) -> Model:
-        """Загальний метод для отримання моделі з фільтрами."""
+        """Загальний метод для отримання однієї моделі з фільтрами."""
         query = select(self.model)
 
         if options:
@@ -130,9 +129,8 @@ class BaseRepository:
         self,
         options: Optional[list] = None,
         **filters: Any,
-    ) -> BaseModel:
-        instance = await self._get_model(options=options, **filters)
-        return instance.to_read_model()
+    ) -> Model:
+        return await self._get_model(options=options, **filters)
 
     async def _all_models(
         self,
@@ -142,9 +140,32 @@ class BaseRepository:
         offset: Optional[int] = None,
         options: Optional[list] = None,
     ) -> list[Model]:
-        """Внутрішній метод для отримання моделей."""
-        query = select(self.model)
+        """Внутрішній метод для отримання списку моделей."""
+        used_options = None
+        if options is not None:
+            used_options = options
+        elif self.all_models_default_preload is not None:
+            used_options = self.all_models_default_preload
+        query = await self._apply_listing(
+            select(self.model),
+            filters=filters,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
+            options=used_options,
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 
+    async def _apply_listing(
+        self,
+        query,
+        filters: Optional[dict] = None,
+        order_by: Optional[list[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        options: Optional[list] = None,
+    ):
         if filters:
             query = self._apply_filters(query, filters)
 
@@ -160,8 +181,7 @@ class BaseRepository:
         if options:
             query = query.options(*options)
 
-        result = await self.session.execute(query)
-        return list(result.scalars().all())
+        return query
 
     async def all(  # noqa
         self,
@@ -170,36 +190,35 @@ class BaseRepository:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         options: Optional[list] = None,
-    ) -> list[BaseModel]:
-        models = await self._all_models(
+    ) -> list[Model]:
+        return await self._all_models(
             filters=filters,
             order_by=order_by,
             limit=limit,
             offset=offset,
             options=options,
         )
-        return [model.to_read_model() for model in models]
 
-    async def create(self, item_in: BaseModel) -> BaseModel:
+    async def create(self, item_in: Model) -> Model:
         try:
-            stmt = (
-                insert(self.model).values(**item_in.model_dump()).returning(self.model)
-            )
-            result = await self.session.execute(stmt)
-            instance = result.scalar_one()
-            return instance.to_read_model()
+            self.session.add(item_in)
+            await self.session.flush()
+            await self.session.refresh(item_in)
+            return item_in
         except Exception as e:
             logger.error("Failed to create item: %s", e, exc_info=True)
             raise RepositoryException()
 
-    async def update(self, id: int, item_in: BaseModel) -> BaseModel:  # noqa
+    async def update(self, id: int, item_in: Model) -> Model:  # noqa
         instance = await self._get_model(id=id)
         try:
-            for field, value in item_in.model_dump(exclude_unset=True).items():
-                setattr(instance, field, value)
+            # Копіюємо всі атрибути з item_in, крім id та службових полів SQLAlchemy
+            for key, value in item_in.__dict__.items():
+                if not key.startswith("_") and key != "id":
+                    setattr(instance, key, value)
             await self.session.flush([instance])
             await self.session.refresh(instance)
-            return instance.to_read_model()
+            return instance
         except Exception as e:
             logger.error("Failed to update item: %s", e, exc_info=True)
             raise RepositoryException()
@@ -224,15 +243,16 @@ class BaseRepository:
         result = await self.session.execute(query)
         return result.scalar() is not None
 
-    async def get_or_none(self, **filters: Any) -> Optional[BaseModel]:
+    async def get_or_none(self, **filters: Any) -> Optional[Model]:
         query = select(self.model)
         query = self._apply_filters(query, filters)
         result = await self.session.execute(query)
         instance = result.scalars().first()
-        return instance.to_read_model() if instance else None
+        return instance if instance else None
 
-    async def bulk_create(self, data_list: list[BaseModel]) -> list[BaseModel]:
-        instances = [self.model(**data.model_dump()) for data in data_list]
-        self.session.add_all(instances)
-        await self.session.flush(instances)
-        return [instance.to_read_model() for instance in instances]
+    async def bulk_create(self, data_list: list[Model]) -> list[Model]:
+        self.session.add_all(data_list)
+        await self.session.flush()
+        for item in data_list:
+            await self.session.refresh(item)
+        return data_list

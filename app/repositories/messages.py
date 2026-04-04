@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import func, or_
 
 from app.models.messages import Message
-from app.utils.sql_repo import BaseRepository
+from app.utils.sql_repository import BaseRepository
 
 
 class MessageRepository(BaseRepository):

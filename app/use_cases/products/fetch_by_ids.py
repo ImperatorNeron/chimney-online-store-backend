@@ -27,4 +27,4 @@ class FetchProductsByIdsUseCase(AbstractFetchProductsByIdsUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadPreviewProductSchema:
         async with uow:
-            return await self.product_service.get_products_by_ids(ids=ids, uow=uow)
+            return await self.product_service.list_all(filters={"id__in": ids}, uow=uow)

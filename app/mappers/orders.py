@@ -1,4 +1,5 @@
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
+from app.mappers.products import ProductVariationReadMapper
 from app.models.orders import Order, OrderItem
 from app.schemas.orders import (
     CreateOrderItemSchema,
@@ -74,7 +75,7 @@ class OrderItemReadMapper(OrderItemBaseReadMapper):
         base = OrderItemBaseReadMapper.to_dto(orm_obj)
         return ReadOrderItemSchema(
             **base.model_dump(),
-            product=orm_obj.product.to_read_model(),  # TODO: also change related models with mappers
+            product=ProductVariationReadMapper.to_dto(orm_obj.product),  # TODO: also change related models with mappers
         )
 
 

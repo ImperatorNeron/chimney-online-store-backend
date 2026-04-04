@@ -1,10 +1,5 @@
-from abc import abstractmethod
-
 from sqlalchemy import MetaData
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    declared_attr,
-)
+from sqlalchemy.orm import DeclarativeBase, declared_attr
 
 from app.core.settings import settings
 
@@ -22,6 +17,3 @@ class BaseModel(DeclarativeBase):
         if table_title.endswith(("s", "x", "z", "ch", "sh")):
             return f"{table_title}es"
         return f"{table_title}s"
-
-    @abstractmethod
-    def to_read_model(self): ...

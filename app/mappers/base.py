@@ -17,11 +17,11 @@ class BaseReadMapper(AbstractMapper[ORMType, DTOType]):
 
     @staticmethod
     @abstractmethod
-    def to_dto(orm_obj: ORMType) -> DTOType: ...
+    def to_dto(orm_obj: ORMType, **kwargs) -> DTOType: ...
 
     @classmethod
-    def to_dto_list(cls, orm_objs: list[ORMType]) -> list[DTOType]:
-        return [cls.to_dto(obj) for obj in orm_objs]
+    def to_dto_list(cls, orm_objs: list[ORMType], **kwargs) -> list[DTOType]:
+        return [cls.to_dto(obj, **kwargs) for obj in orm_objs]
 
 
 class BaseUpsertMapper(AbstractMapper[ORMType, DTOType]):

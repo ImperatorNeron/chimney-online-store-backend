@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from fastapi import UploadFile
 
+from app.mappers.products import BaseProductVariationToProductVariationCreateMapper
 from app.schemas.products import BaseCreateProductVariationSchema, CreateUniqueProductSchema, ReadAbsoluteProductSchema
 from app.services.files import AbstractFileStorageService
 from app.services.product_images import AbstractProductImageService
@@ -60,9 +61,10 @@ class CreateProductUseCase(AbstractCreateProductUseCase):
                 log_error_message="Failed to create product: %s",
             )
 
-            product_variations = await self.product_service.create_variations(
-                unique_product_id=unique_product.id,
-                products_in=variations_in,
+            product_variations = await self.product_service.bulk_create(
+                items_in=BaseProductVariationToProductVariationCreateMapper.to_dto_list(
+                    variations_in, product_id=unique_product.id,
+                ),
                 uow=uow,
             )
             await invalidate_products_cache()

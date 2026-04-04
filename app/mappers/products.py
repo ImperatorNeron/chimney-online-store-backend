@@ -1,11 +1,18 @@
 import os
 
+from app.core import constants
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
+from app.models.base import BaseModel as Model
 from app.models.product_images import ProductImage
 from app.models.products import ProductVariation, UniqueProduct
+from app.schemas.filters import FiltersSchema, PriceRangeSchema
 from app.schemas.product_images import CreateProductImageSchema, ReadProductImageSchema
 from app.schemas.products import (
+    BaseCreateProductVariationSchema,
+    BaseUpdateVariationSchema,
+    CreateProductVariationSchema,
     CreateUniqueProductSchema,
+    FullUpdateVariationSchema,
     ReadFullProductSchema,
     ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
@@ -13,6 +20,7 @@ from app.schemas.products import (
     ReadProductVariationSchema,
     ReadUniqueProductSchema,
     UpdateUniqueProductSchema,
+    UpdateVariationSchema,
 )
 
 
@@ -33,10 +41,6 @@ class ProductImageCreateMapper(
     BaseUpsertMapper[ProductImage, CreateProductImageSchema],
 ):
     pass
-
-
-# class FaqUpdateMapper(BaseUpsertMapper[FAQ, UpdadeFAQSchema]):
-#     pass
 
 
 class UniqueProductReadMapper(BaseReadMapper[UniqueProduct, ReadUniqueProductSchema]):
@@ -136,7 +140,7 @@ class PreviewProductVariationReadMapper(
             else None
         )
         return ReadPreviewProductSchema(
-            ProductVariationReadMapper.to_dto(orm_obj=orm_obj),
+            **ProductVariationReadMapper.to_dto(orm_obj=orm_obj).model_dump(),
             preview=preview,
         )
 
@@ -149,4 +153,71 @@ class FullProductVariationReadMapper(
         return ReadFullProductSchema(
             ProductVariationReadMapper.to_dto(orm_obj=orm_obj),
             images=ProductImageReadMapper.to_dto_list(orm_objs=orm_obj.product.images),
+        )
+
+
+class ProductVariationCreateMapper(
+    BaseUpsertMapper[ProductVariation, FullUpdateVariationSchema],
+):
+    pass
+
+
+class ProductVariationUpdateMapper(
+    BaseUpsertMapper[ProductVariation, BaseUpdateVariationSchema],
+):
+    pass
+
+
+class ProductVariationToBaseProductVariationUpdateMapper(
+    BaseReadMapper[UpdateVariationSchema, BaseUpdateVariationSchema],
+):
+    @staticmethod
+    def to_dto(orm_obj: UpdateVariationSchema) -> BaseUpdateVariationSchema:
+        return BaseUpdateVariationSchema(**orm_obj.model_dump(exclude={"action", "id"}))
+
+
+class BaseProductVariationToProductVariationCreateMapper(
+    BaseReadMapper[BaseCreateProductVariationSchema, CreateProductVariationSchema],
+):
+    @staticmethod
+    def to_dto(
+        orm_obj: BaseCreateProductVariationSchema, **kwargs,
+    ) -> CreateProductVariationSchema:
+        return CreateProductVariationSchema(
+            **orm_obj.model_dump(), product_id=kwargs.get("product_id"),
+        )
+
+
+class ProductVariationToFullProductVariationUpdateMapper(
+    BaseReadMapper[UpdateVariationSchema, FullUpdateVariationSchema],
+):
+    @staticmethod
+    def to_dto(orm_obj: UpdateVariationSchema, **kwargs) -> FullUpdateVariationSchema:
+        return FullUpdateVariationSchema(
+            **orm_obj.model_dump(), product_id=kwargs.get("product_id"),
+        )
+
+
+class ProductFiltersReadMapper(BaseReadMapper[Model, FiltersSchema]):
+    @staticmethod
+    def to_dto(orm_obj: Model, **kwargs) -> FiltersSchema:
+        return FiltersSchema(
+            **{
+                attr: [
+                    str(v)
+                    for v in (getattr(orm_obj, attr) or [])
+                    if v is not None and v != ""
+                ]
+                for attr in constants.FILTERS
+            },
+        )
+
+
+class PriceRangeReadMapper(BaseReadMapper[Model, PriceRangeSchema]):
+
+    @staticmethod
+    def to_dto(orm_obj: Model, **kwargs) -> PriceRangeSchema:
+        return PriceRangeSchema(
+            min_price=round(orm_obj[0], 2) if orm_obj[0] is not None else 0,
+            max_price=round(orm_obj[1], 2) if orm_obj[1] is not None else 0,
         )

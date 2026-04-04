@@ -4,7 +4,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import selectinload
 
 from app.models.products import UniqueProduct
-from app.utils.sql_repo import BaseRepository
+from app.utils.sql_repository import BaseRepository
 
 
 class UniqueProductRepository(BaseRepository):

@@ -1,16 +1,15 @@
 import logging
 from typing import Any, Optional
 
-from pydantic import BaseModel
-from sqlalchemy import desc, distinct, func, or_, Result, Select, select
+from sqlalchemy import desc, distinct, func, or_, Select, select, Sequence
 from sqlalchemy.orm import aliased, selectinload
 
-from app.core.exceptions.common import ItemNotFoundException, RepositoryException
+from app.models.base import BaseModel as Model
 from app.models.categories import Category
 from app.models.orders import OrderItem
 from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
-from app.schemas.products import ReadPreviewProductSchema, ReadProductVariationSchema
+from app.schemas.products import ReadPreviewProductSchema
 from app.utils.sql_repository import BaseRepository
 
 
@@ -22,51 +21,9 @@ class VariationProductRepository(BaseRepository):
 
     model = ProductVariation
     default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
-    default_order = [model.id]
     filter_characteristics = ["diameter", "length", "thickness", "angle", "metal_type"]
 
-    async def bulk_create(self, data_list: list) -> list:
-        instances = [self.model(**data.model_dump()) for data in data_list]
-        self.session.add_all(instances)
-        await self.session.flush(instances)
-        return [instance.to_read_base_model() for instance in instances]
-
-    async def update(self, id: int, item_in: BaseModel):  # noqa
-        instance = await self._get_model(id=id)
-        try:
-            for field, value in item_in.model_dump(exclude_unset=True).items():
-                setattr(instance, field, value)
-            await self.session.flush([instance])
-            await self.session.refresh(instance)
-            return instance.to_read_base_model()
-        except Exception as e:
-            logger.error("Failed to update product: %s", e, exc_info=True)
-            raise RepositoryException()
-
-    async def get_full(
-        self,
-        product_slug: str,
-        product_variation_id: int,
-    ):
-        query = select(self.model)
-
-        if self.default_preload:
-            query = query.options(*self.default_preload)
-
-        query = query.where(
-            self.model.id == product_variation_id,
-            self.model.product.has(UniqueProduct.slug == product_slug),
-        )
-
-        result = await self.session.execute(query)
-        product_variation = result.scalars().first()
-
-        if not product_variation:
-            raise ItemNotFoundException()
-
-        return product_variation.to_read_full_model()
-
-    async def list_preview(
+    async def list_product_previews(
         self,
         pagination_in: Optional[PaginationIn],
         filters: Optional[ProductFiltersSchema],
@@ -78,35 +35,19 @@ class VariationProductRepository(BaseRepository):
             pagination_in=pagination_in,
         )
         result = await self.session.execute(query)
-        products = result.scalars().all()
-        return [product.to_read_model_with_preview() for product in products]
+        return result.scalars().all()
 
-    async def all(  # noqa
-        self,
-        filters: Optional[dict] = None,
-        order_by: Optional[list[str]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        options: Optional[list] = None,
-    ) -> list[ReadProductVariationSchema]:
-        models = await self._all_models(
-            filters=filters,
-            order_by=order_by,
-            limit=limit,
-            offset=offset,
-            options=options,
-        )
-        return [model.to_read_base_model() for model in models]
-
-    async def count_filtered(self, filters: Optional[ProductFiltersSchema]) -> int:
+    async def count(self, **filters: Any) -> int:
         query = select(func.count()).select_from(self.model)
-        query = self._apply_custom_filters(query=query, filters=filters)
+        query = self._apply_custom_filters(
+            query=query, filters=ProductFiltersSchema(**filters),
+        )
         return (await self.session.execute(query)).scalar_one()
 
     async def fetch_filters(
         self,
         filters: Optional[ProductFiltersSchema],
-    ):
+    ) -> Model:
         agg_cols = [
             func.array_agg(distinct(getattr(ProductVariation, attr))).label(attr)
             for attr in self.filter_characteristics
@@ -114,15 +55,12 @@ class VariationProductRepository(BaseRepository):
         query = select(*agg_cols)
         query = self._apply_custom_filters(query=query, filters=filters)
         result = await self.session.execute(query)
-        row = result.one()
-        return {
-            attr: list(getattr(row, attr) or []) for attr in self.filter_characteristics
-        }
+        return result.one()
 
     async def get_min_max_price(
         self,
         filters: Optional[ProductFiltersSchema],
-    ) -> dict[str, float | None]:
+    ) -> Model:
         discounted_price = self.model.price * (1 - self.model.discount_percentage / 100)
 
         query = select(
@@ -133,24 +71,11 @@ class VariationProductRepository(BaseRepository):
         query = self._apply_custom_filters(query=query, filters=filters)
 
         result = await self.session.execute(query)
-        min_price, max_price = result.one()
+        return result.one()
 
-        return {
-            "min_price": round(min_price, 2) if min_price is not None else 0,
-            "max_price": round(max_price, 2) if max_price is not None else 0,
-        }
-
-    async def list_products_by_ids(self, ids: list[int]):
-        query = (
-            select(self.model)
-            .options(*self.default_preload)
-            .where(self.model.id.in_(ids))
-        )
-        results: Result = await self.session.execute(query)
-        products = results.scalars().all()
-        return [product.to_read_model_with_preview() for product in products]
-
-    async def get_with_most_orders(self, pagination_in: Optional[PaginationIn]):
+    async def get_products_with_most_orders(
+        self, pagination_in: Optional[PaginationIn],
+    ) -> Sequence[Model]:
         final_price_expr = self.model.price * (1 - self.model.discount_percentage / 100)
         query = select(self.model).options(*self.default_preload)
         query = query.add_columns(final_price_expr.label("final_price"))
@@ -159,16 +84,7 @@ class VariationProductRepository(BaseRepository):
         query = query.order_by(desc(func.count(OrderItem.id)))
         query = query.limit(pagination_in.limit).offset(pagination_in.offset)
         result = await self.session.execute(query)
-        products = result.scalars().all()
-        return [product.to_read_model_with_preview() for product in products]
-
-    async def get(
-        self,
-        options: Optional[list] = None,
-        **filters: Any,
-    ) -> BaseModel:
-        instance = await self._get_model(options=options, **filters)
-        return instance.to_read_base_model()
+        return result.scalars().all()
 
     def _apply_custom_filters(
         self,

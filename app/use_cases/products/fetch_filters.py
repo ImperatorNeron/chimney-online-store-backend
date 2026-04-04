@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from app.schemas.filters import ProductFiltersSchema
+from app.schemas.filters import CatalogFiltersSchema, ProductFiltersSchema
 from app.schemas.products import ReadFiltersSchema
 from app.services.products import AbstractProductService
 from app.utils.unit_of_work import AbstractUnitOfWork
@@ -43,4 +43,9 @@ class FetchFiltersUseCase(AbstractFetchFiltersUseCase):
                 filters=initial_filters,
                 uow=uow,
             )
-            return {**filters, **price_range}
+            # This is correct Schema, but everything else is bad. This is just to save functionality
+            # TODO: need to return just schema(right one) and not dict
+            return CatalogFiltersSchema(
+                **filters.model_dump(),
+                **price_range.model_dump(),
+            ).model_dump()

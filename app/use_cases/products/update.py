@@ -5,6 +5,10 @@ from dataclasses import dataclass
 
 from fastapi import UploadFile
 
+from app.mappers.products import (
+    ProductVariationToBaseProductVariationUpdateMapper,
+    ProductVariationToFullProductVariationUpdateMapper,
+)
 from app.schemas.products import (
     ReadAbsoluteProductSchema,
     UpdateUniqueProductSchema,
@@ -81,32 +85,29 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
             for variation in variations:
                 match variation.action:
                     case VariationAction.create:
-                        new_variation = await self.product_service.create_variations(
-                            unique_product_id=product_id,
-                            products_in=[variation],
+                        new_variation = await self.product_service.bulk_create(
+                            items_in=[
+                                ProductVariationToFullProductVariationUpdateMapper.to_dto(
+                                    variation, product_id=product_id,
+                                ),
+                            ],
                             uow=uow,
                         )
+
                         new_variations.append(new_variation[0])
                     case VariationAction.update:
-                        current_variation = await self.product_service.get_variation(
-                            variation_id=variation.id,
-                            uow=uow,
-                        )
                         new_variations.append(
-                            await self.product_service.update_variation(
-                                variation_id=variation.id,
-                                product_in=variation,
-                                uow=uow,
-                                static_discount=(
-                                    0
-                                    if current_variation.price == variation.price
-                                    else 30
+                            await self.product_service.update(
+                                item_id=variation.id,
+                                item_in=ProductVariationToBaseProductVariationUpdateMapper.to_dto(
+                                    variation,
                                 ),
+                                uow=uow,
                             ),
                         )
                     case VariationAction.delete:
-                        await self.product_service.delete_variation(
-                            product_variation_id=variation.id,
+                        await self.product_service.delete(
+                            id=variation.id,
                             uow=uow,
                         )
 

@@ -4,7 +4,7 @@ from typing import Any, Generic, Type, TypeVar
 from pydantic import BaseModel
 
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
-from app.utils.sql_repo import AbstractRepository
+from app.utils.sql_repository import AbstractRepository
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -18,7 +18,7 @@ class AbstractRead(ABC, Generic[DTOReadType]):
     async def list_all(
         self,
         uow: AbstractUnitOfWork,
-        filters: BaseModel | None = None,
+        filters: BaseModel | dict | None = None,
         pagination_in: BaseModel | None = None,
         order_by: BaseModel | None = None,
     ) -> list[DTOReadType]: ...
@@ -36,6 +36,13 @@ class AbstractCreate(ABC, Generic[DTOReadType, DTOCreateType]):
     async def create(
         self,
         item_in: DTOCreateType,
+        uow: AbstractUnitOfWork,
+    ) -> DTOReadType: ...
+
+    @abstractmethod
+    async def bulk_create(
+        self,
+        items_in: list[DTOCreateType],
         uow: AbstractUnitOfWork,
     ) -> DTOReadType: ...
 
@@ -148,6 +155,9 @@ class Create(
     async def _create_validation(self, *args, **kwargs):
         pass
 
+    async def _bulk_create_validation(self, *args, **kwargs):
+        pass
+
     async def create(
         self,
         item_in: DTOCreateType,
@@ -157,6 +167,18 @@ class Create(
         return self.read_create_mapper.to_dto(
             await self._repository(uow).create(
                 item_in=self.create_mapper.to_model(item_in),
+            ),
+        )
+
+    async def bulk_create(
+        self,
+        items_in: list[DTOCreateType],
+        uow: AbstractUnitOfWork,
+    ) -> DTOReadType:
+        await self._bulk_create_validation(items_in=items_in, uow=uow)
+        return self.read_create_mapper.to_dto_list(
+            await self._repository(uow).bulk_create(
+                data_list=self.create_mapper.to_model_list(items_in),
             ),
         )
 
@@ -175,11 +197,13 @@ class Update(AbstractUpdate[DTOReadType, DTOUpdateType], RepositoryMixin):
         uow: AbstractUnitOfWork,
     ) -> DTOReadType:
         await self._update_validation(item_id=item_id, item_in=item_in, uow=uow)
+        res = await self._repository(uow).update(
+            id=item_id,
+            item_in=self.update_mapper.to_model(item_in),
+        )
+        print(res)
         return self.read_update_mapper.to_dto(
-            await self._repository(uow).update(
-                id=item_id,
-                item_in=self.update_mapper.to_model(item_in),
-            ),
+            res,
         )
 
 

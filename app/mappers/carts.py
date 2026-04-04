@@ -1,4 +1,5 @@
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
+from app.mappers.products import PreviewProductVariationReadMapper
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.schemas.cart_items import (
@@ -33,7 +34,7 @@ class CartItemWithProductReadMapper(
             id=orm_obj.id,
             cart_id=orm_obj.cart_id,
             quantity=orm_obj.quantity,
-            product=orm_obj.product.to_read_model_with_preview(),
+            product=PreviewProductVariationReadMapper.to_dto(orm_obj.product),
         )
 
 

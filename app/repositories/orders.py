@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 
 from app.models.orders import Order, OrderItem
 from app.models.products import ProductVariation
-from app.utils.sql_repo import BaseRepository
+from app.utils.sql_repository import BaseRepository
 
 
 logger = logging.getLogger(__name__)

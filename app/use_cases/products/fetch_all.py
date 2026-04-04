@@ -51,16 +51,13 @@ class FetchProductsUseCase(AbstractFetchProductsUseCase):
             return ListPaginatedResponse.model_validate_json(cached)
 
         async with uow:
-            products = await self.product_service.list_all(
+            products = await self.product_service.list_product_previews(
                 filters=filters,
                 sort_params=sort_params,
                 pagination_in=pagination_in,
                 uow=uow,
             )
-            count = await self.product_service.get_products_count(
-                uow=uow,
-                filters=filters,
-            )
+            count = await self.product_service.count(uow=uow, filters=filters)
             result = ListPaginatedResponse(
                 items=products,
                 pagination=PaginationOut(

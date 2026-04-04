@@ -150,6 +150,17 @@ class VariationAction(str, Enum):
     delete = "delete"
 
 
+class IDSchema(BaseModel):
+    id: Optional[int] = None  # noqa
+
+    @field_validator("id", mode="before")
+    def require_id_for_update_delete(cls, v, info):
+        action = info.data.get("action")
+        if action in ("update", "delete") and v is None:
+            raise ValueError("id is required for update/delete")
+        return v
+
+
 class BaseUpdateVariationSchema(BaseModel):
     price: Optional[float] = Field(ge=0, default=None)
     discount_percentage: Optional[int] = Field(ge=0, le=100, default=None)
@@ -160,20 +171,9 @@ class BaseUpdateVariationSchema(BaseModel):
     metal_type: Optional[str] = None
 
 
-class UpdateVariationSchema(BaseModel):
+class UpdateVariationSchema(BaseUpdateVariationSchema, IDSchema):
     action: VariationAction
-    id: Optional[int] = None  # noqa
-    price: Optional[float] = Field(ge=0, default=None)
-    discount_percentage: Optional[int] = Field(ge=0, le=100, default=None)
-    diameter: Optional[str] = None
-    length: Optional[str] = None
-    thickness: Optional[str] = None
-    angle: Optional[str] = None
-    metal_type: Optional[str] = None
 
-    @field_validator("id", mode="before")
-    def require_id_for_update_delete(cls, v, info):
-        action = info.data.get("action")
-        if action in ("update", "delete") and v is None:
-            raise ValueError("id is required for update/delete")
-        return v
+
+class FullUpdateVariationSchema(BaseUpdateVariationSchema, IDSchema):
+    product_id: int = Field(gt=0)

@@ -1,23 +1,48 @@
-from abc import ABC, abstractmethod
-from typing import Optional
+from abc import abstractmethod
+from typing import Optional, Type
 
 from app.core.exceptions.common import ForeignKeyConstraintViolationException
-from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
+from app.mappers.products import (
+    BaseProductVariationReadMapper,
+    PreviewProductVariationReadMapper,
+    PriceRangeReadMapper,
+    ProductFiltersReadMapper,
+    ProductVariationCreateMapper,
+    ProductVariationUpdateMapper,
+)
+from app.schemas.filters import FiltersSchema, PaginationIn, PriceRangeSchema, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import (
-    BaseCreateProductVariationSchema,
     BaseUpdateVariationSchema,
     CreateProductVariationSchema,
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
 )
+from app.services.base import (
+    AbstractCount,
+    AbstractCreate,
+    AbstractDelete,
+    AbstractRead,
+    AbstractUpdate,
+    Count,
+    Create,
+    Delete,
+    Read,
+    Update,
+)
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
-class AbstractProductService(ABC):
+class AbstractProductService(
+    AbstractRead[ReadPreviewProductSchema],
+    AbstractCount,
+    AbstractCreate[ReadProductVariationSchema, CreateProductVariationSchema],
+    AbstractUpdate[ReadProductVariationSchema, BaseUpdateVariationSchema],
+    AbstractDelete,
+):
 
     # Read =========================================
     @abstractmethod
-    async def list_all(
+    async def list_product_previews(
         self,
         filters: Optional[ProductFiltersSchema],
         sort_params: Optional[SortOrderSchema],
@@ -26,25 +51,11 @@ class AbstractProductService(ABC):
     ) -> list[ReadPreviewProductSchema]: ...
 
     @abstractmethod
-    async def get_products_by_ids(
-        self,
-        ids: list[int],
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadPreviewProductSchema]: ...
-
-    @abstractmethod
-    async def get_products_count(
-        self,
-        uow: AbstractUnitOfWork,
-        filters: Optional[ProductFiltersSchema],
-    ) -> int: ...
-
-    @abstractmethod
     async def get_filters(
         self,
         filters: ProductFiltersSchema,
         uow: AbstractUnitOfWork,
-    ) -> dict: ...
+    ) -> FiltersSchema: ...
 
     @abstractmethod
     async def get_min_max_price(
@@ -61,164 +72,104 @@ class AbstractProductService(ABC):
     ) -> list[ReadProductVariationSchema]: ...
 
     @abstractmethod
-    async def get_variation(
-        self,
-        variation_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadProductVariationSchema: ...
-
-    @abstractmethod
-    async def list_popular(
+    async def get_popular_products(
         self,
         uow: AbstractUnitOfWork,
         pagination_in: Optional[PaginationIn],
     ) -> list[ReadPreviewProductSchema]: ...
 
-    # Create =========================================
 
-    @abstractmethod
-    async def create_variations(
-        self,
-        unique_product_id: int,
-        products_in: list[BaseCreateProductVariationSchema],
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadProductVariationSchema]: ...
+class ProductService(
+    Read[ReadPreviewProductSchema],
+    Count,
+    AbstractProductService,
+    Create[ReadProductVariationSchema, CreateProductVariationSchema],
+    Update[ReadProductVariationSchema, BaseUpdateVariationSchema],
+    Delete,
+):
+    read_mapper: Type[PreviewProductVariationReadMapper] = (
+        PreviewProductVariationReadMapper
+    )
+    create_mapper: Type[ProductVariationCreateMapper] = ProductVariationCreateMapper
+    update_mapper: Type[ProductVariationUpdateMapper] = ProductVariationUpdateMapper
+    read_create_mapper: Type[BaseProductVariationReadMapper] = (
+        BaseProductVariationReadMapper
+    )
+    read_update_mapper: Type[BaseProductVariationReadMapper] = (
+        BaseProductVariationReadMapper
+    )
+    repository_name: str = "products"
 
-    # Update =========================================
-    @abstractmethod
-    async def update_variation(
-        self,
-        variation_id: int,
-        product_in: BaseUpdateVariationSchema,
-        uow: AbstractUnitOfWork,
-        static_discount: int,
-    ) -> ReadProductVariationSchema: ...
-
-    # Delete =========================================
-
-    @abstractmethod
-    async def delete_variation(
-        self,
-        product_variation_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> None: ...
-
-
-class ProductService(AbstractProductService):
-
-    # Read =========================================
-    async def list_all(
+    async def list_product_previews(
         self,
         filters: Optional[ProductFiltersSchema],
         sort_params: Optional[SortOrderSchema],
         uow: AbstractUnitOfWork,
         pagination_in: Optional[PaginationIn],
     ) -> list[ReadPreviewProductSchema]:
-        return await uow.products.list_preview(
-            pagination_in=pagination_in,
-            filters=filters,
-            sort_params=sort_params,
+        return self.read_mapper.to_dto_list(
+            await uow.products.list_product_previews(
+                pagination_in=pagination_in,
+                filters=filters,
+                sort_params=sort_params,
+            ),
         )
-
-    async def get_products_by_ids(
-        self,
-        ids: list[int],
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadPreviewProductSchema]:
-        return await uow.products.list_products_by_ids(ids=ids)
-
-    async def get_products_count(
-        self,
-        uow: AbstractUnitOfWork,
-        filters: Optional[ProductFiltersSchema],
-    ) -> int:
-        return await uow.products.count_filtered(filters=filters)
 
     async def get_filters(
         self,
         filters: ProductFiltersSchema,
         uow: AbstractUnitOfWork,
-    ) -> dict:
-        return await uow.products.fetch_filters(filters=filters)
+    ) -> FiltersSchema:
+        return ProductFiltersReadMapper.to_dto(
+            await uow.products.fetch_filters(filters=filters),
+        )
 
     async def get_min_max_price(
         self,
         filters: ProductFiltersSchema,
         uow: AbstractUnitOfWork,
-    ) -> list:
-        return await uow.products.get_min_max_price(filters=filters)
+    ) -> PriceRangeSchema:
+        return PriceRangeReadMapper.to_dto(
+            await uow.products.get_min_max_price(filters=filters),
+        )
 
     async def get_product_variations(
         self,
         product_id: int,
         uow: AbstractUnitOfWork,
     ) -> list[ReadProductVariationSchema]:
+        self._get_product_variants_validation(product_id=product_id, uow=uow)
+        # Just use to not write the same type
+        return self.read_create_mapper.to_dto_list(
+            await uow.products.all(filters={"product_id": product_id}),
+        )
+
+    async def get_popular_products(
+        self,
+        uow: AbstractUnitOfWork,
+        pagination_in: Optional[PaginationIn],
+    ) -> list[ReadPreviewProductSchema]:
+        return PreviewProductVariationReadMapper.to_dto_list(
+            await uow.products.get_products_with_most_orders(
+                pagination_in=pagination_in,
+            ),
+        )
+
+    async def _bulk_create_validation(
+        self, items_in: list[CreateProductVariationSchema], uow: AbstractUnitOfWork,
+    ):
+        if not await uow.unique_products.exists(id=items_in[0].product_id):
+            raise ForeignKeyConstraintViolationException(
+                {"product_id": "Продукту не існує."},
+            )
+
+    async def _get_product_variants_validation(
+        self,
+        product_id: int,
+        uow: AbstractUnitOfWork,
+    ):
         if not await uow.unique_products.exists(id=product_id):
             raise ForeignKeyConstraintViolationException(
                 {"product_id": "Продукту не існує."},
                 detail="Не існує даного продукту",
             )
-        return await uow.products.all(filters={"product_id": product_id})
-
-    async def get_variation(
-        self,
-        variation_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> ReadProductVariationSchema:
-        return await uow.products.get(id=variation_id)
-
-    async def list_popular(
-        self,
-        uow: AbstractUnitOfWork,
-        pagination_in: Optional[PaginationIn],
-    ) -> list[ReadPreviewProductSchema]:
-        return await uow.products.get_with_most_orders(pagination_in=pagination_in)
-
-    # Create =========================================
-
-    async def create_variations(
-        self,
-        unique_product_id: int,
-        products_in: list[BaseCreateProductVariationSchema],
-        uow: AbstractUnitOfWork,
-    ) -> list[ReadProductVariationSchema]:
-        if not await uow.unique_products.exists(id=unique_product_id):
-            raise ForeignKeyConstraintViolationException(
-                {"product_id": "Продукту не існує."},
-            )
-        updated_products = [
-            CreateProductVariationSchema(
-                **product.model_dump(exclude={"price"}),
-                price=product.price,
-                product_id=unique_product_id,
-            )
-            for product in products_in
-        ]
-        return await uow.products.bulk_create(data_list=updated_products)
-
-    # Update =========================================
-    async def update_variation(
-        self,
-        variation_id: int,
-        product_in: BaseUpdateVariationSchema,
-        uow: AbstractUnitOfWork,
-        static_discount: int = 30,
-    ) -> ReadProductVariationSchema:
-        return await uow.products.update(
-            id=variation_id,
-            item_in=BaseUpdateVariationSchema(
-                **product_in.model_dump(
-                    exclude={"price"},
-                ),
-                price=round(product_in.price * (1 + static_discount / 100)),
-            ),
-        )
-
-    # Delete =========================================
-
-    async def delete_variation(
-        self,
-        product_variation_id: int,
-        uow: AbstractUnitOfWork,
-    ) -> None:
-        await uow.products.delete(id=product_variation_id)

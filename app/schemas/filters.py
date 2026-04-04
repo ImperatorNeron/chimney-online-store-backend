@@ -70,9 +70,27 @@ class MessageFiltersSchema(BaseModel):
     text: Optional[str] = Query(default=None)
 
 
-class UniqueProductSortOrderSchema(MessageSortOrderSchema): ...
+class UniqueProductSortOrderSchema(MessageSortOrderSchema):
+    pass
 
 
 class UniqueProductFiltersSchema(BaseModel):
     category_id: Optional[int] = Query(default=None)
     text: Optional[str] = Query(default=None)
+
+
+class FiltersSchema(BaseModel):
+    diameter: list[str | None] = Query(max_length=20, default_factory=list)
+    length: list[str | None] = Query(max_length=20, default_factory=list)
+    thickness: list[str | None] = Query(max_length=20, default_factory=list)
+    angle: list[str | None] = Query(max_length=20, default_factory=list)
+    metal_type: list[str | None] = Query(max_length=50, default_factory=list)
+
+
+class PriceRangeSchema(BaseModel):
+    min_price: Optional[float] = Query(default=None, ge=0)
+    max_price: Optional[float] = Query(default=None, ge=0)
+
+
+class CatalogFiltersSchema(FiltersSchema, PriceRangeSchema):
+    pass
