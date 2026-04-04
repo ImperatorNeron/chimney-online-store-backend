@@ -4,6 +4,7 @@ from typing import Any, Optional
 from sqlalchemy import desc, distinct, func, or_, Select, select, Sequence
 from sqlalchemy.orm import aliased, selectinload
 
+from app.core import constants
 from app.models.base import BaseModel as Model
 from app.models.categories import Category
 from app.models.orders import OrderItem
@@ -20,8 +21,7 @@ class VariationProductRepository(BaseRepository):
     """Repository for performing CRUD operations on ProductVariation data."""
 
     model = ProductVariation
-    default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
-    filter_characteristics = ["diameter", "length", "thickness", "angle", "metal_type"]
+    all_models_default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
 
     async def list_product_previews(
         self,
@@ -50,7 +50,7 @@ class VariationProductRepository(BaseRepository):
     ) -> Model:
         agg_cols = [
             func.array_agg(distinct(getattr(ProductVariation, attr))).label(attr)
-            for attr in self.filter_characteristics
+            for attr in constants.FILTERS
         ]
         query = select(*agg_cols)
         query = self._apply_custom_filters(query=query, filters=filters)
@@ -77,7 +77,7 @@ class VariationProductRepository(BaseRepository):
         self, pagination_in: Optional[PaginationIn],
     ) -> Sequence[Model]:
         final_price_expr = self.model.price * (1 - self.model.discount_percentage / 100)
-        query = select(self.model).options(*self.default_preload)
+        query = select(self.model).options(*self.all_models_default_preload)
         query = query.add_columns(final_price_expr.label("final_price"))
         query = query.outerjoin(OrderItem, OrderItem.product_id == self.model.id)
         query = query.group_by(self.model.id)
@@ -139,7 +139,7 @@ class VariationProductRepository(BaseRepository):
                 discounted_price.between(filters.min_price, filters.max_price),
             )
 
-        for attr in self.filter_characteristics:
+        for attr in constants.FILTERS:
             value = getattr(filters, attr, None)
             if value:
                 query = query.where(getattr(self.model, attr) == value)
@@ -153,7 +153,7 @@ class VariationProductRepository(BaseRepository):
         pagination_in: PaginationIn,
     ) -> Select:
         final_price_expr = self.model.price * (1 - self.model.discount_percentage / 100)
-        query = select(self.model).options(*self.default_preload)
+        query = select(self.model).options(*self.all_models_default_preload)
         query = query.add_columns(final_price_expr.label("final_price"))
         query = self._apply_custom_filters(query=query, filters=filters)
 

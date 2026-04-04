@@ -17,5 +17,6 @@ class CartRepository(BaseRepository):
         .selectinload(UniqueProduct.images),
     ]
 
+    # TODO: add in base repo using of default_preload without overriding this func
     async def get(self, **conditions) -> Cart:
         return await self._get_model(options=self.default_preload, **conditions)
