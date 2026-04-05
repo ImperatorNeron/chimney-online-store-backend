@@ -5,8 +5,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.api.v1.dependencies import get_current_active_auth_superuser
+from app.api.v1.dependencies import get_current_active_auth_superuser, get_current_active_auth_user
 from app.main import create_app
+from app.schemas.users import ReadUserSchema
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
@@ -37,6 +38,20 @@ def patch_superuser(app):
         app.dependency_overrides[get_current_active_auth_superuser] = override_superuser
         yield
         app.dependency_overrides.pop(get_current_active_auth_superuser, None)
+
+    return _patch
+
+
+@pytest.fixture
+def patch_auth_user(app):
+    @asynccontextmanager
+    async def _patch(user: ReadUserSchema):
+        async def override_user():
+            return user
+
+        app.dependency_overrides[get_current_active_auth_user] = override_user
+        yield
+        app.dependency_overrides.pop(get_current_active_auth_user, None)
 
     return _patch
 
