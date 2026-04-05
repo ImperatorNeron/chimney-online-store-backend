@@ -46,6 +46,8 @@ class BaseMessageSchema(BaseModel):
     @field_validator("message")
     @classmethod
     def escape_html(cls, value):
+        if value is None:
+            return None
         return escape(value)
 
 

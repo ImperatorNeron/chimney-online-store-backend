@@ -1,9 +1,13 @@
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock
+
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.api.v1.dependencies import get_current_active_auth_superuser
 from app.main import create_app
-from app.utils.unit_of_work import TestUnitOfWork, UnitOfWork
+from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
 @pytest.fixture
@@ -12,14 +16,70 @@ async def app():
 
 
 @pytest.fixture
-async def uow():
-    async with TestUnitOfWork() as uow:
-        yield uow
+def patch_uow(app):
+    @asynccontextmanager
+    async def _patch(uow_instance):
+        async def get_mock_uow():
+            yield uow_instance
+        app.dependency_overrides[UnitOfWork] = get_mock_uow
+        yield
+        app.dependency_overrides.pop(UnitOfWork, None)
+    return _patch
+
+
+@pytest.fixture
+def patch_superuser(app):
+    @asynccontextmanager
+    async def _patch():
+        async def override_superuser():
+            return None
+
+        app.dependency_overrides[get_current_active_auth_superuser] = override_superuser
+        yield
+        app.dependency_overrides.pop(get_current_active_auth_superuser, None)
+
+    return _patch
+
+
+@pytest.fixture
+def mock_uow(mock_repo):
+    def _create(repos: dict[str, dict[str, any]]):
+        uow = AsyncMock(spec=AbstractUnitOfWork)
+
+        for repo_name, methods in repos.items():
+            repo = AsyncMock()
+            for method_name, return_value in methods.items():
+                setattr(repo, method_name, AsyncMock(return_value=return_value))
+
+            setattr(uow, repo_name, repo)
+
+        uow.__aenter__ = AsyncMock(return_value=uow)
+        uow.__aexit__ = AsyncMock(return_value=None)
+
+        uow.commit = AsyncMock()
+        uow.rollback = AsyncMock()
+
+        return uow
+
+    return _create
+
+
+@pytest.fixture
+def mock_repo():
+    def _create(methods: dict[str, any]):
+        repo = AsyncMock()
+
+        for name, value in methods.items():
+            method = AsyncMock(return_value=value)
+            setattr(repo, name, method)
+
+        return repo
+
+    return _create
 
 
 @pytest.fixture
 async def async_client(app: FastAPI):
-    app.dependency_overrides[UnitOfWork] = TestUnitOfWork
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
