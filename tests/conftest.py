@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import ASGITransport, AsyncClient
 
 from app.api.v1.dependencies import get_current_active_auth_superuser, get_current_active_auth_user
@@ -13,7 +15,12 @@ from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 @pytest.fixture
 async def app():
-    return create_app()
+    application = create_app()
+    try:
+        FastAPICache.get_prefix()
+    except AssertionError:
+        FastAPICache.init(InMemoryBackend(), prefix="test-cache")
+    return application
 
 
 @pytest.fixture
