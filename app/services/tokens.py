@@ -79,10 +79,12 @@ class JWTTokenService:
         public_key: str = settings.auth_jwt.public_key_path.read_text(),
         algorithm: str = settings.auth_jwt.algorithm,
     ) -> None:
+        if not token:
+            raise InvalidTokenException()
         try:
             payload = jwt.decode(token, public_key, [algorithm])
             return payload
-        except jwt.InvalidTokenError:
+        except (jwt.InvalidTokenError, TypeError):
             raise InvalidTokenException()
 
     @staticmethod

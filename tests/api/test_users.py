@@ -133,3 +133,13 @@ async def test_update_authenticated_user_profile_conflict_phone_number_exists(
     assert payload["data"] is None
     assert payload["errors"][0]["code"] == "phone_number_exists"
     uow.users.update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_authenticated_user_profile_blocked_without_user(async_client):
+    response = await async_client.get("/api/v1/users/me")
+
+    assert response.status_code == 401
+    payload = response.json()
+    assert payload["data"] is None
+    assert payload["errors"][0]["code"] == "invalid_token"
