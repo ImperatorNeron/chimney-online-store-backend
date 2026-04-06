@@ -58,7 +58,7 @@ class CreateOrderUseCase(AbstractCreateOrderUseCase):
                         order_id=order.id,
                         product_id=k.product.id,
                         quantity=k.quantity,
-                        price_at_order=k.total_price,
+                        price_at_order=k.quantity * k.product.discount_price,
                     )
                     for k in cart.items
                 ],

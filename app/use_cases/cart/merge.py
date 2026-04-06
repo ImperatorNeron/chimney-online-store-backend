@@ -49,6 +49,9 @@ class MergeCartsUseCase(AbstractMergeCartsUseCase):
                         uow=uow,
                     )
                     existing_item.quantity += session_item.quantity
+                    existing_item.total_price = (
+                        existing_item.quantity * existing_item.product.discount_price
+                    )
 
                 else:
                     new_cart_item = await self.cart_item_service.create(

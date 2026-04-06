@@ -47,7 +47,7 @@ class OrderFields(BaseModel):
         pattern=r"^[A-Za-zА-Яа-яІіЇїЄєҐґ\-' ]+$",
         examples=["Your Last Name"],
     )
-    patronymic: str = Field(
+    patronymic: Optional[str] = Field(
         default=None,
         min_length=1,
         max_length=50,
