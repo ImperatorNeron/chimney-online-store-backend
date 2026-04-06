@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.product_images import ReadProductImageSchema
 from app.schemas.validators import SlugValidatorMixin
@@ -153,13 +153,6 @@ class VariationAction(str, Enum):
 class IDSchema(BaseModel):
     id: Optional[int] = None  # noqa
 
-    @field_validator("id", mode="before")
-    def require_id_for_update_delete(cls, v, info):
-        action = info.data.get("action")
-        if action in ("update", "delete") and v is None:
-            raise ValueError("id is required for update/delete")
-        return v
-
 
 class BaseUpdateVariationSchema(BaseModel):
     price: Optional[float] = Field(ge=0, default=None)
@@ -173,6 +166,12 @@ class BaseUpdateVariationSchema(BaseModel):
 
 class UpdateVariationSchema(BaseUpdateVariationSchema, IDSchema):
     action: VariationAction
+
+    @model_validator(mode="after")
+    def validate_id_for_update_delete(self):
+        if self.action in (VariationAction.update, VariationAction.delete) and self.id is None:
+            raise ValueError("id is required for update/delete")
+        return self
 
 
 class FullUpdateVariationSchema(BaseUpdateVariationSchema, IDSchema):

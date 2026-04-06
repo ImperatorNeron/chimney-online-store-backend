@@ -112,7 +112,7 @@ class UpdateProductUseCase(AbstractUpdateProductUseCase):
                         )
 
             product_key = (
-                f"product:{hashlib.sha256(product_in.slug.encode()).hexdigest()}"
+                f"product:{hashlib.sha256(updated_unique_product.slug.encode()).hexdigest()}"
             )
             await invalidate_products_cache(extra_keys=[product_key])
 
