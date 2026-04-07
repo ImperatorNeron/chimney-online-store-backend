@@ -27,6 +27,34 @@ async def test_get_messages_list_success_default_params(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "ordering", "expected_order_by"),
+    [
+        ("user_name", "asc", ["user_name"]),
+        ("status", "desc", ["-status"]),
+    ],
+)
+async def test_get_messages_list_success_with_sorting(
+    async_client,
+    mock_uow,
+    patch_uow,
+    patch_superuser,
+    field,
+    ordering,
+    expected_order_by,
+):
+    msg = MessageFactory.build(id=1, status="new")
+    uow = mock_uow({"messages": {"all": [msg], "count": 1}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get(f"/api/v1/messages/?field={field}&ordering={ordering}")
+
+    assert response.status_code == 200
+    uow.messages.all.assert_awaited_once()
+    assert uow.messages.all.await_args.kwargs["order_by"] == expected_order_by
+
+
+@pytest.mark.asyncio
 async def test_get_messages_list_success_with_filters(
     async_client,
     mock_uow,

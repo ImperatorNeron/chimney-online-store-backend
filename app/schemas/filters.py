@@ -57,7 +57,7 @@ class SortOrderSchema(BaseModel):
 class MessageSortOrderSchema(BaseModel):
     field: str = Query(
         default="created_at",
-        pattern="^created_at$",
+        pattern="^(user_name|phone_number|created_at|message|status)$",
     )
     ordering: str = Query(
         default="desc",
