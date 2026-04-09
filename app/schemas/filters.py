@@ -84,6 +84,9 @@ class OrderSortOrderSchema(BaseModel):
 
 class OrderFiltersSchema(BaseModel):
     text: Optional[str] = Query(default=None)
+    status: Optional[str] = Query(default=None, pattern="^(pending|processing|shipped|delivered|cancelled)$")
+    shipping_method: Optional[str] = Query(default=None, pattern="^(nova_poshta|ukrposhta|courier)$")
+    payment_method: Optional[str] = Query(default=None, pattern="^(cash|card|online)$")
 
 
 class UniqueProductSortOrderSchema(MessageSortOrderSchema):

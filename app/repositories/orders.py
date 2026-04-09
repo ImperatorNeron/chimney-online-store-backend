@@ -38,6 +38,10 @@ class OrderRepository(BaseRepository):
 
             query = query.where(or_(*conditions))
 
+        for field in ("status", "shipping_method", "payment_method"):
+            if filters.get(field):
+                query = query.where(getattr(self.model, field) == filters[field])
+
         return query
 
     def _get_base_query(self):
