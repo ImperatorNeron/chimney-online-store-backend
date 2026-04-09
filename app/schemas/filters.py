@@ -89,8 +89,15 @@ class OrderFiltersSchema(BaseModel):
     payment_method: Optional[str] = Query(default=None, pattern="^(cash|card|online)$")
 
 
-class UniqueProductSortOrderSchema(MessageSortOrderSchema):
-    pass
+class UniqueProductSortOrderSchema(BaseModel):
+    field: str = Query(
+        default="created_at",
+        pattern="^(name|slug|category_id|created_at)$",
+    )
+    ordering: str = Query(
+        default="desc",
+        pattern="^(asc|desc)$",
+    )
 
 
 class UniqueProductFiltersSchema(BaseModel):
