@@ -70,6 +70,22 @@ class MessageFiltersSchema(BaseModel):
     text: Optional[str] = Query(default=None)
 
 
+class OrderSortOrderSchema(BaseModel):
+    field: str = Query(
+        default="created_at",
+        pattern="^(id|created_at|last_name|first_name|patronymic|phone_number|email"
+        "|status|shipping_method|payment_method|price_discount|is_paid)$",
+    )
+    ordering: str = Query(
+        default="desc",
+        pattern="^(asc|desc)$",
+    )
+
+
+class OrderFiltersSchema(BaseModel):
+    text: Optional[str] = Query(default=None)
+
+
 class UniqueProductSortOrderSchema(MessageSortOrderSchema):
     pass
 

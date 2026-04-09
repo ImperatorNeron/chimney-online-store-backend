@@ -31,6 +31,7 @@ class OrderBaseReadMapper(BaseReadMapper[Order, ReadOrderBaseSchema]):
             waybill_number=orm_obj.waybill_number,
             shipping_method=orm_obj.shipping_method,
             payment_method=orm_obj.payment_method,
+            is_paid=orm_obj.is_paid,
             price_discount=(
                 float(orm_obj.price_discount) if orm_obj.price_discount else 0.0
             ),

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.schemas.api_response import ListPaginatedResponse
-from app.schemas.filters import PaginationIn, PaginationOut
+from app.schemas.filters import OrderFiltersSchema, OrderSortOrderSchema, PaginationIn, PaginationOut
 from app.schemas.orders import ReadExtendedOrderSchema
 from app.services.orders import AbstractOrderService
 from app.utils.unit_of_work import AbstractUnitOfWork
@@ -13,9 +13,11 @@ class AbstractFetchOrdersUseCase(ABC):
     @abstractmethod
     async def execute(
         self,
+        filters: OrderFiltersSchema,
+        sort_params: OrderSortOrderSchema,
         pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
-    ) -> list[ReadExtendedOrderSchema]: ...
+    ) -> ListPaginatedResponse[ReadExtendedOrderSchema]: ...
 
 
 @dataclass
@@ -24,14 +26,18 @@ class FetchOrdersUseCase(AbstractFetchOrdersUseCase):
 
     async def execute(
         self,
+        filters: OrderFiltersSchema,
+        sort_params: OrderSortOrderSchema,
         pagination_in: PaginationIn,
         uow: AbstractUnitOfWork,
     ) -> ListPaginatedResponse[ReadExtendedOrderSchema]:
         async with uow:
-            count = await self.order_service.count(uow=uow)
+            count = await self.order_service.count(uow=uow, filters=filters)
             orders = await self.order_service.list_all(
                 uow=uow,
                 pagination_in=pagination_in,
+                filters=filters,
+                order_by=sort_params,
             )
             return ListPaginatedResponse(
                 items=[

@@ -107,6 +107,44 @@ async def test_get_orders_list_success_as_superuser(async_client, mock_uow, patc
     assert payload["items"][1]["id"] == 2
     assert payload["items"][1]["total_quantity"] == 1
     assert payload["items"][1]["total_price"] == 100
+    uow.order.all.assert_awaited_once()
+    assert uow.order.all.await_args.kwargs["order_by"] == ["-created_at"]
+
+
+@pytest.mark.asyncio
+async def test_get_orders_list_success_with_sorting(
+    async_client,
+    mock_uow,
+    patch_uow,
+    patch_superuser,
+):
+    o1 = OrderFactory.build(id=1, status="processing", user_id=1)
+    uow = mock_uow({"order": {"all": [o1], "count": 1}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/orders?field=id&ordering=asc")
+
+    assert response.status_code == 200
+    uow.order.all.assert_awaited_once()
+    assert uow.order.all.await_args.kwargs["order_by"] == ["id"]
+
+
+@pytest.mark.asyncio
+async def test_get_orders_list_success_with_text_search(
+    async_client,
+    mock_uow,
+    patch_uow,
+    patch_superuser,
+):
+    o1 = OrderFactory.build(id=1, status="processing", user_id=1, first_name="Ivan", last_name="Ivanov")
+    uow = mock_uow({"order": {"all": [o1], "count": 1}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/orders?text=Ivan")
+
+    assert response.status_code == 200
+    uow.order.all.assert_awaited_once()
+    assert uow.order.all.await_args.kwargs["filters"] == {"text": "Ivan"}
 
 
 @pytest.mark.asyncio
@@ -188,11 +226,21 @@ async def test_update_order_info_success_waybill_empty_becomes_none(
         status="processing",
         waybill_number=None,
         price_discount=10.0,
+        is_paid=True,
+        shipping_method="nova_poshta",
+        payment_method="cash",
+        first_name="Ivan",
+        last_name="Ivanov",
     )
 
     async def _update(*, id: int, item_in): # noqa
         assert id == 1
         assert getattr(item_in, "waybill_number", None) is None
+        assert getattr(item_in, "is_paid", None) is True
+        assert getattr(item_in, "shipping_method", None) == "nova_poshta"
+        assert getattr(item_in, "payment_method", None) == "cash"
+        assert getattr(item_in, "first_name", None) == "Ivan"
+        assert getattr(item_in, "last_name", None) == "Ivanov"
         return updated
 
     uow = mock_uow({"order": {"update": updated}})
@@ -201,7 +249,20 @@ async def test_update_order_info_success_waybill_empty_becomes_none(
     async with patch_uow(uow), patch_superuser():
         response = await async_client.patch(
             "/api/v1/orders/1",
-            json={"status": "processing", "waybill_number": "", "price_discount": 10.0},
+            json={
+                "status": "processing",
+                "waybill_number": "",
+                "price_discount": 10.0,
+                "is_paid": True,
+                "shipping_method": "nova_poshta",
+                "payment_method": "cash",
+                "first_name": "Ivan",
+                "last_name": "Ivanov",
+                "patronymic": "Ivanovych",
+                "email": "test@example.com",
+                "phone_number": "0961234567",
+                "address": "Kyiv, st. 1",
+            },
         )
 
     assert response.status_code == 200

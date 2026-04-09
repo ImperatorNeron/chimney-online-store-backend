@@ -12,7 +12,7 @@ from app.core.containers import get_container
 from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.carts import ReadFullCartSchema
-from app.schemas.filters import PaginationIn
+from app.schemas.filters import OrderFiltersSchema, OrderSortOrderSchema, PaginationIn
 from app.schemas.orders import CreateOrderSchema, ReadExtendedOrderSchema, ReadOrderBaseSchema, UpdateOrderSchema
 from app.schemas.users import ReadUserSchema
 from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase
@@ -32,6 +32,8 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
     dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def get_orders_list(
+    filters: Annotated[OrderFiltersSchema, Depends()],
+    sort_params: Annotated[OrderSortOrderSchema, Depends()],
     pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -40,7 +42,12 @@ async def get_orders_list(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(pagination_in=pagination_in, uow=uow),
+        data=await use_case.execute(
+            filters=filters,
+            sort_params=sort_params,
+            pagination_in=pagination_in,
+            uow=uow,
+        ),
     )
 
 

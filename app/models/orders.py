@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -18,6 +18,11 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         Numeric(10, 2),
         default=0,
         server_default="0",
+    )
+    is_paid: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
     )
 
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)

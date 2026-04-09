@@ -20,6 +20,7 @@ class OrderFactory(factory.Factory):
     status = "pending"
     waybill_number = None
     price_discount = 0.0
+    is_paid = False
 
     first_name = Faker("first_name")
     last_name = Faker("last_name")

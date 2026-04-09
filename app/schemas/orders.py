@@ -36,7 +36,7 @@ class OrderFields(BaseModel):
         min_length=1,
         max_length=50,
         title="First Name",
-        pattern=r"^[A-Za-zА-Яа-яІіЇїЄєҐґ\-' ]+$",
+        pattern=r"^[\p{L}' -]+$",
         examples=["Your First Name"],
     )
     last_name: str = Field(
@@ -44,7 +44,7 @@ class OrderFields(BaseModel):
         min_length=1,
         max_length=50,
         title="Last Name",
-        pattern=r"^[A-Za-zА-Яа-яІіЇїЄєҐґ\-' ]+$",
+        pattern=r"^[\p{L}' -]+$",
         examples=["Your Last Name"],
     )
     patronymic: Optional[str] = Field(
@@ -52,7 +52,7 @@ class OrderFields(BaseModel):
         min_length=1,
         max_length=50,
         title="Patronymic",
-        pattern=r"^[A-Za-zА-Яа-яІіЇїЄєҐґ\-' ]+$",
+        pattern=r"^[\p{L}' -]+$",
         examples=["Your Patronymic"],
     )
     phone_number: str = Field(
@@ -107,6 +107,7 @@ class BaseOrderSchema(OrderFields):
     created_at: datetime
     updated_at: datetime
     price_discount: float = Field(0, ge=0)
+    is_paid: bool = Field(default=False)
 
 
 class ReadOrderBaseSchema(BaseOrderSchema):
@@ -132,9 +133,70 @@ class CreateOrderWithUserSchema(OrderFields, UserIdField):
 
 class UpdateOrderSchema(BaseModel):
     status: Optional[str] = Field(
-        default="pending",
+        default=None,
         pattern="^(pending|processing|shipped|delivered|cancelled)$",
         description="Invalid order status",
     )
     waybill_number: Optional[str] = Field(None, max_length=30)
-    price_discount: float = Field(..., ge=0)
+    price_discount: Optional[float] = Field(None, ge=0)
+    is_paid: Optional[bool] = Field(default=None)
+
+    first_name: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        title="First Name",
+        pattern=r"^[\p{L}' -]+$",
+    )
+    last_name: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        title="Last Name",
+        pattern=r"^[\p{L}' -]+$",
+    )
+    patronymic: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        title="Patronymic",
+        pattern=r"^[\p{L}' -]+$",
+    )
+    phone_number: Optional[str] = Field(
+        default=None,
+        min_length=9,
+        max_length=19,
+        title="Phone Number",
+        pattern=r"^\d{9,19}$",
+    )
+    email: Optional[EmailStr] = Field(
+        default=None,
+        min_length=5,
+        max_length=255,
+        title="Email address of the user",
+    )
+    address: Optional[str] = Field(
+        default=None,
+        min_length=5,
+        max_length=200,
+        description="5-200 characters",
+    )
+    shipping_method: Optional[str] = Field(
+        default=None,
+        pattern="^(nova_poshta|ukrposhta|courier)$",
+        description="Invalid shipping method",
+    )
+    payment_method: Optional[str] = Field(
+        default=None,
+        pattern="^(cash|card|online)$",
+        description="Invalid payment method",
+    )
+
+    @field_validator("first_name", "last_name", "patronymic")
+    @classmethod
+    def validate_name_fields(cls, value):
+        if value is None:
+            return value
+        if value.strip() == "":
+            raise ValueError("Name field cannot be empty or whitespace only")
+        return value.title()

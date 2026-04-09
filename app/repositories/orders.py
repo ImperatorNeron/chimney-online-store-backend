@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import joinedload
 
 from app.models.orders import Order, OrderItem
@@ -18,6 +18,28 @@ class OrderRepository(BaseRepository):
 
     model = Order
 
+    def _apply_filters(self, query, filters: Optional[dict] = None):
+        if not filters:
+            return query
+
+        if filters.get("id") is not None:
+            return super()._apply_filters(query=query, filters=filters)
+
+        if filters.get("text"):
+            search_terms = str(filters.get("text")).split()
+            conditions = []
+
+            for term in search_terms:
+                conditions.append(self.model.first_name.ilike(f"%{term}%"))
+                conditions.append(self.model.last_name.ilike(f"%{term}%"))
+                conditions.append(self.model.patronymic.ilike(f"%{term}%"))
+                conditions.append(self.model.phone_number.ilike(f"%{term}%"))
+                conditions.append(self.model.email.ilike(f"%{term}%"))
+
+            query = query.where(or_(*conditions))
+
+        return query
+
     def _get_base_query(self):
         return (
             select(self.model)
@@ -26,7 +48,6 @@ class OrderRepository(BaseRepository):
                 .joinedload(OrderItem.product)
                 .joinedload(ProductVariation.product),
             )
-            .order_by(self.model.created_at.desc())  # TODO: hardcoded
         )
 
     async def all(  # noqa
