@@ -35,6 +35,8 @@ class OrderBaseReadMapper(BaseReadMapper[Order, ReadOrderBaseSchema]):
             price_discount=(
                 float(orm_obj.price_discount) if orm_obj.price_discount else 0.0
             ),
+            comment=orm_obj.comment,
+            internal_comment=orm_obj.internal_comment,
         )
 
 
@@ -76,7 +78,7 @@ class OrderItemReadMapper(OrderItemBaseReadMapper):
         base = OrderItemBaseReadMapper.to_dto(orm_obj)
         return ReadOrderItemSchema(
             **base.model_dump(),
-            product=ProductVariationReadMapper.to_dto(orm_obj.product),  # TODO: also change related models with mappers
+            product=ProductVariationReadMapper.to_dto(orm_obj.product),
         )
 
 

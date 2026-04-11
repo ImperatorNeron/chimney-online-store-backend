@@ -41,6 +41,9 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         default="pending",
     )
 
+    comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    internal_comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem",
         back_populates="order",

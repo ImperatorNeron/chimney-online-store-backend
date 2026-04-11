@@ -85,6 +85,7 @@ class OrderFields(BaseModel):
         pattern="^(cash|card|online)$",
         description="Invalid payment method",
     )
+    comment: Optional[str] = Field(default=None, max_length=500)
 
     @field_validator("first_name", "last_name", "patronymic")
     @classmethod
@@ -108,6 +109,7 @@ class BaseOrderSchema(OrderFields):
     updated_at: datetime
     price_discount: float = Field(0, ge=0)
     is_paid: bool = Field(default=False)
+    internal_comment: Optional[str] = Field(default=None, max_length=500)
 
 
 class ReadOrderBaseSchema(BaseOrderSchema):
@@ -191,6 +193,8 @@ class UpdateOrderSchema(BaseModel):
         pattern="^(cash|card|online)$",
         description="Invalid payment method",
     )
+    comment: Optional[str] = Field(default=None, max_length=500)
+    internal_comment: Optional[str] = Field(default=None, max_length=500)
 
     @field_validator("first_name", "last_name", "patronymic")
     @classmethod
