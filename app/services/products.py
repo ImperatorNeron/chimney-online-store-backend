@@ -10,7 +10,15 @@ from app.mappers.products import (
     ProductVariationCreateMapper,
     ProductVariationUpdateMapper,
 )
-from app.schemas.filters import FiltersSchema, PaginationIn, PriceRangeSchema, ProductFiltersSchema, SortOrderSchema
+from app.schemas.filters import (
+    FiltersSchema,
+    PaginationIn,
+    PriceRangeSchema,
+    ProductFiltersSchema,
+    SortOrderSchema,
+    VariationFiltersSchema,
+    VariationSortOrderSchema,
+)
 from app.schemas.products import (
     BaseUpdateVariationSchema,
     CreateProductVariationSchema,
@@ -67,8 +75,11 @@ class AbstractProductService(
     @abstractmethod
     async def get_product_variations(
         self,
-        product_id: int,
         uow: AbstractUnitOfWork,
+        product_id: int,
+        filters: Optional[VariationFiltersSchema] = None,
+        sort_params: Optional[VariationSortOrderSchema] = None,
+        pagination_in: Optional[PaginationIn] = None,
     ) -> list[ReadProductVariationSchema]: ...
 
     @abstractmethod
@@ -135,13 +146,20 @@ class ProductService(
 
     async def get_product_variations(
         self,
-        product_id: int,
         uow: AbstractUnitOfWork,
+        product_id: int,
+        filters: Optional[VariationFiltersSchema] = None,
+        sort_params: Optional[VariationSortOrderSchema] = None,
+        pagination_in: Optional[PaginationIn] = None,
     ) -> list[ReadProductVariationSchema]:
         await self._get_product_variants_validation(product_id=product_id, uow=uow)
-        # Just use to not write the same type
+        filters_dict = {"product_id": product_id}
+        if filters is not None:
+            filters_dict.update(filters.model_dump(exclude_none=True))
         return self.read_create_mapper.to_dto_list(
-            await uow.products.all(filters={"product_id": product_id}),
+            await self._repository(uow).all(
+                **self._prepare_list_params(filters=filters_dict, pagination_in=pagination_in, order_by=sort_params),
+            ),
         )
 
     async def get_popular_products(
@@ -165,8 +183,8 @@ class ProductService(
 
     async def _get_product_variants_validation(
         self,
-        product_id: int,
         uow: AbstractUnitOfWork,
+        product_id: int,
     ):
         if not await uow.unique_products.exists(id=product_id):
             raise ForeignKeyConstraintViolationException(

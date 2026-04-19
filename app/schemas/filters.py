@@ -19,14 +19,15 @@ class PaginationIn(BaseModel):
 
 
 class ProductFiltersSchema(BaseModel):
+    product_id: Optional[int] = Query(default=None)
     category_slug: Optional[str] = Query(default=None)
     text: Optional[str] = Query(default=None)
     min_price: Optional[float] = Query(default=None, ge=0)
     max_price: Optional[float] = Query(default=None, ge=0)
-    diameter: Optional[str] = Query(max_length=20, default=None)
-    length: Optional[str] = Query(max_length=20, default=None)
-    thickness: Optional[str] = Query(max_length=20, default=None)
-    angle: Optional[str] = Query(max_length=20, default=None)
+    diameter: Optional[str] = Query(max_length=40, default=None)
+    length: Optional[str] = Query(max_length=40, default=None)
+    thickness: Optional[str] = Query(max_length=40, default=None)
+    angle: Optional[str] = Query(max_length=40, default=None)
     metal_type: Optional[str] = Query(max_length=50, default=None)
 
     @field_validator("category_slug")
@@ -106,10 +107,10 @@ class UniqueProductFiltersSchema(BaseModel):
 
 
 class FiltersSchema(BaseModel):
-    diameter: list[str | None] = Query(max_length=20, default_factory=list)
-    length: list[str | None] = Query(max_length=20, default_factory=list)
-    thickness: list[str | None] = Query(max_length=20, default_factory=list)
-    angle: list[str | None] = Query(max_length=20, default_factory=list)
+    diameter: list[str | None] = Query(max_length=40, default_factory=list)
+    length: list[str | None] = Query(max_length=40, default_factory=list)
+    thickness: list[str | None] = Query(max_length=40, default_factory=list)
+    angle: list[str | None] = Query(max_length=40, default_factory=list)
     metal_type: list[str | None] = Query(max_length=50, default_factory=list)
 
 
@@ -120,3 +121,24 @@ class PriceRangeSchema(BaseModel):
 
 class CatalogFiltersSchema(FiltersSchema, PriceRangeSchema):
     pass
+
+
+class VariationFiltersSchema(BaseModel):
+    # We will uncomment this when do search
+    # text: Optional[str] = Query(default=None)     # noqa
+    diameter: Optional[str] = Query(max_length=40, default=None)
+    length: Optional[str] = Query(max_length=40, default=None)
+    thickness: Optional[str] = Query(max_length=40, default=None)
+    angle: Optional[str] = Query(max_length=40, default=None)
+    metal_type: Optional[str] = Query(max_length=50, default=None)
+
+
+class VariationSortOrderSchema(BaseModel):
+    field: str = Query(
+        default="price",
+        pattern="^(price|discount_percentage|diameter|length|thickness|angle|metal_type)$",
+    )
+    ordering: str = Query(
+        default="asc",
+        pattern="^(asc|desc)$",
+    )

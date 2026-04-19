@@ -78,7 +78,7 @@ class AbstractCount(ABC):
     async def count(
         self,
         uow: AbstractUnitOfWork,
-        filters: BaseModel | None = None,
+        filters: BaseModel | dict | None = None,
     ) -> int: ...
 
 
@@ -103,22 +103,12 @@ class RepositoryMixin:
 class Read(AbstractRead[DTOReadType], RepositoryMixin):
     read_mapper: Type[BaseReadMapper] = None
 
-    async def list_all(
-        self,
-        uow: AbstractUnitOfWork,
-        # TODO: We can add base classes, something like ducktyping
+    @staticmethod
+    def _prepare_list_params(
         filters: BaseModel | dict | None = None,
         pagination_in: BaseModel | None = None,
-        # TODO: better to recieve list
         order_by: BaseModel | None = None,
-    ) -> list[DTOReadType]:
-        await self._validate_list_all(
-            uow=uow,
-            filters=filters,
-            pagination_in=pagination_in,
-            order_by=order_by,
-        )
-        # TODO: we need to fix order_by, for now it is one field
+    ) -> dict:
         order_by_fields = []
         if order_by is not None:
             directioned_field = order_by.field
@@ -139,12 +129,29 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
             elif isinstance(filters, dict):
                 filters_dict = filters
 
+        return {
+            "filters": filters_dict,
+            "order_by": order_by_fields,
+            "limit": limit,
+            "offset": offset,
+        }
+
+    async def list_all(
+        self,
+        uow: AbstractUnitOfWork,
+        filters: BaseModel | dict | None = None,
+        pagination_in: BaseModel | None = None,
+        order_by: BaseModel | None = None,
+    ) -> list[DTOReadType]:
+        await self._validate_list_all(
+            uow=uow,
+            filters=filters,
+            pagination_in=pagination_in,
+            order_by=order_by,
+        )
         return self.read_mapper.to_dto_list(
             await self._repository(uow).all(
-                filters=filters_dict,
-                order_by=order_by_fields,
-                limit=limit,
-                offset=offset,
+                **self._prepare_list_params(filters, pagination_in, order_by),
             ),
         )
 
@@ -252,10 +259,16 @@ class Count(AbstractCount, RepositoryMixin):
     async def count(
         self,
         uow: AbstractUnitOfWork,
-        filters: BaseModel | None = None,
+        filters: BaseModel | dict | None = None,
     ) -> int:
+        filters_dict = None
+        if filters is not None:
+            if isinstance(filters, BaseModel):
+                filters_dict = filters.model_dump()
+            elif isinstance(filters, dict):
+                filters_dict = filters
         return await self._repository(uow).count(
-            **filters.model_dump() if filters is not None else {},
+            **filters_dict if filters_dict is not None else {},
         )
 
 

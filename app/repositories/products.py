@@ -95,6 +95,9 @@ class VariationProductRepository(BaseRepository):
         if not filters:
             return query
 
+        if filters.product_id:
+            query = query.where(self.model.product_id == filters.product_id)
+
         if filters.category_slug:
             category = aliased(Category)
 

@@ -14,6 +14,8 @@ from app.schemas.filters import (
     SortOrderSchema,
     UniqueProductFiltersSchema,
     UniqueProductSortOrderSchema,
+    VariationFiltersSchema,
+    VariationSortOrderSchema,
 )
 from app.schemas.products import (
     BaseCreateProductVariationSchema,
@@ -26,16 +28,12 @@ from app.schemas.products import (
     UpdateVariationSchema,
 )
 from app.use_cases.products.create import AbstractCreateProductUseCase
-from app.use_cases.products.fetch_absolute_one import (
-    AbstractFetchAbsoluteProductUseCase,
-)
+from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase
-from app.use_cases.products.unique.delete_unique import (
-    AbstractDeleteUniqueProductUseCase,
-)
+from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -150,6 +148,9 @@ async def get_products_recommendations(
 )
 async def fetch_absolute_product(
     product_slug: str,
+    filters: Annotated[VariationFiltersSchema, Depends()],
+    sort_params: Annotated[VariationSortOrderSchema, Depends()],
+    pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractFetchAbsoluteProductUseCase,
@@ -160,6 +161,9 @@ async def fetch_absolute_product(
         data=await use_case.execute(
             product_slug=product_slug,
             uow=uow,
+            filters=filters,
+            sort_params=sort_params,
+            pagination_in=pagination_in,
         ),
     )
 
