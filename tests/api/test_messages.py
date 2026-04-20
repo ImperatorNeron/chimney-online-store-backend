@@ -85,6 +85,56 @@ async def test_get_messages_list_success_with_filters(
 
 
 @pytest.mark.asyncio
+async def test_get_messages_list_success_with_text_only(
+    async_client,
+    mock_uow,
+    patch_uow,
+    patch_superuser,
+):
+    msg = MessageFactory.build(id=1, status="new", message="димохід нержавійка")
+    uow = mock_uow({"messages": {"all": [msg], "count": 1}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/messages/?text=димохід")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["items"][0]["id"] == 1
+
+    uow.messages.count.assert_awaited_once_with(status=None, text="димохід")
+    assert uow.messages.all.await_args.kwargs["filters"] == {
+        "status": None,
+        "text": "димохід",
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_messages_list_text_search_with_sorting(
+    async_client,
+    mock_uow,
+    patch_uow,
+    patch_superuser,
+):
+    msgs = [
+        MessageFactory.build(id=1, status="new", message="труба одностінна"),
+        MessageFactory.build(id=2, status="new", message="одностінна труба"),
+    ]
+    uow = mock_uow({"messages": {"all": msgs, "count": 2}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get(
+            "/api/v1/messages/?text=труба одностінна&field=created_at&ordering=desc",
+        )
+
+    assert response.status_code == 200
+    assert uow.messages.all.await_args.kwargs["filters"] == {
+        "status": None,
+        "text": "труба одностінна",
+    }
+    assert uow.messages.all.await_args.kwargs["order_by"] == ["-created_at"]
+
+
+@pytest.mark.asyncio
 async def test_get_messages_list_empty(
     async_client, mock_uow, patch_uow, patch_superuser,
 ):

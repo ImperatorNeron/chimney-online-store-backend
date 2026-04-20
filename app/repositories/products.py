@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from sqlalchemy import desc, distinct, func, or_, Select, select, Sequence
+from sqlalchemy import desc, distinct, func, Select, select, Sequence
 from sqlalchemy.orm import aliased, selectinload
 
 from app.core import constants
@@ -11,17 +11,28 @@ from app.models.orders import OrderItem
 from app.models.products import ProductVariation, UniqueProduct
 from app.schemas.filters import PaginationIn, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import ReadPreviewProductSchema
+from app.utils.search_mixin import RelevanceSearchMixin
 from app.utils.sql_repository import BaseRepository
 
 
 logger = logging.getLogger(__name__)
 
 
-class VariationProductRepository(BaseRepository):
+class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
     """Repository for performing CRUD operations on ProductVariation data."""
 
     model = ProductVariation
     all_models_default_preload = [selectinload(model.product).selectinload(UniqueProduct.images)]
+    search_ilike_fields = [UniqueProduct.name, UniqueProduct.description]
+    search_similarity_fields = [UniqueProduct.name, UniqueProduct.description]
+    search_similarity_threshold = 0.4
+
+    @staticmethod
+    def _digit_id_condition(term, _index):
+        """Extra condition: match numeric terms as variation id."""
+        if term.isdigit():
+            return [ProductVariation.id == int(term)]
+        return []
 
     async def list_product_previews(
         self,
@@ -118,21 +129,10 @@ class VariationProductRepository(BaseRepository):
             query = query.where(Category.id.in_(select(category_tree.c.id)))
 
         if filters.text and not filters.category_slug:
-            search_terms = filters.text.split()
-            conditions = []
-            for term in search_terms:
-                if term.isdigit():
-                    conditions.append(self.model.id == int(term))
-
-                conditions.extend(
-                    [
-                        func.similarity(UniqueProduct.name, term) >= 0.05,
-                        func.similarity(UniqueProduct.description, term) >= 0.05,
-                    ],
-                )
-
             query = query.join(self.model.product)
-            query = query.where(or_(*conditions))
+            query = self._apply_relevance_filter(
+                query, filters.text, self._digit_id_condition,
+            )
 
         if filters.min_price and filters.max_price:
             discounted_price = self.model.price * (
@@ -159,6 +159,8 @@ class VariationProductRepository(BaseRepository):
         query = select(self.model).options(*self.all_models_default_preload)
         query = query.add_columns(final_price_expr.label("final_price"))
         query = self._apply_custom_filters(query=query, filters=filters)
+
+        query = self._apply_relevance_ordering(query, self._digit_id_condition)
 
         if sort_params.field == "final_price":
             order_field = final_price_expr

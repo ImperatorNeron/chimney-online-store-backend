@@ -1,15 +1,17 @@
 from typing import Optional
 
-from sqlalchemy import func, or_
-
 from app.models.messages import Message
+from app.utils.search_mixin import RelevanceSearchMixin
 from app.utils.sql_repository import BaseRepository
 
 
-class MessageRepository(BaseRepository):
+class MessageRepository(RelevanceSearchMixin, BaseRepository):
     """Repository for performing CRUD operations on Message data."""
 
     model = Message
+    search_ilike_fields = [Message.user_name, Message.phone_number, Message.message]
+    search_similarity_fields = [Message.message]
+    search_similarity_threshold = 0.7
 
     def _apply_filters(self, query, filters: Optional[dict] = None):
         if not filters:
@@ -22,14 +24,10 @@ class MessageRepository(BaseRepository):
             query = query.where(self.model.status == filters.get("status"))
 
         if filters.get("text"):
-            search_terms = filters.get("text").split()
-            conditions = []
-
-            for term in search_terms:
-                conditions.append(self.model.user_name.ilike(f"%{term}%"))
-                conditions.append(self.model.phone_number.ilike(f"%{term}%"))
-                conditions.append(func.similarity(self.model.message, term) >= 0.1)
-
-            query = query.where(or_(*conditions))
+            query = self._apply_relevance_filter(query, filters["text"])
 
         return query
+
+    def _apply_ordering(self, query, order_by: list[str]):
+        query = self._apply_relevance_ordering(query)
+        return super()._apply_ordering(query, order_by)

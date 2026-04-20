@@ -41,6 +41,35 @@ async def test_get_products_list_success(async_client, mock_uow, patch_uow):
 
 
 @pytest.mark.asyncio
+async def test_get_products_list_with_text_search(async_client, mock_uow, patch_uow):
+    unique = UniqueProductFactory.build(id=1, slug="truba", name="Труба одностінна")
+    image = ProductImageFactory.build(id=1, product_id=1, file_path="uploads/truba/img.jpg", product=unique)
+    unique.images = [image]
+    variation = ProductVariationFactory.build(id=10, product_id=1, product=unique, price=100.0)
+
+    uow = mock_uow(
+        {
+            "products": {
+                "list_product_previews": [variation],
+                "count": 1,
+            },
+        },
+    )
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/products?text=труба")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["pagination"]["total"] == 1
+    assert payload["items"][0]["id"] == 10
+
+    uow.products.list_product_previews.assert_awaited_once()
+    call_kwargs = uow.products.list_product_previews.await_args.kwargs
+    assert call_kwargs["filters"].text == "труба"
+
+
+@pytest.mark.asyncio
 async def test_get_products_by_ids_success(async_client, mock_uow, patch_uow):
     unique = UniqueProductFactory.build(id=1, slug="u-1", name="Unique 1")
     unique.images = [ProductImageFactory.build(id=1, product_id=1, file_path="uploads/u-1/img.jpg", product=unique)]
@@ -90,6 +119,34 @@ async def test_get_unique_product_list_success(async_client, mock_uow, patch_uow
     assert payload["items"][0]["id"] == 1
     assert payload["items"][0]["slug"] == "u-1"
     assert payload["items"][0]["images"][0]["file_path"] == "uploads/u-1/img.jpg"
+
+
+@pytest.mark.asyncio
+async def test_get_unique_product_list_with_text_search(async_client, mock_uow, patch_uow):
+    unique = UniqueProductFactory.build(id=1, slug="truba", name="Труба одностінна")
+    unique.images = [ProductImageFactory.build(id=1, product_id=1, file_path="uploads/truba/img.jpg", product=unique)]
+
+    uow = mock_uow(
+        {
+            "unique_products": {
+                "all": [unique],
+                "count": 1,
+            },
+        },
+    )
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/products/unique?text=труба")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["pagination"]["total"] == 1
+    assert payload["items"][0]["id"] == 1
+
+    assert uow.unique_products.all.await_args.kwargs["filters"] == {
+        "category_id": None,
+        "text": "труба",
+    }
 
 
 @pytest.mark.asyncio
