@@ -143,10 +143,10 @@ async def get_products_recommendations(
 
 
 @router.get(
-    "/{product_slug}",
+    "/{product_slug}/variations",
     response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
 )
-async def fetch_absolute_product(
+async def fetch_absolute_product_with_variations(
     product_slug: str,
     filters: Annotated[VariationFiltersSchema, Depends()],
     sort_params: Annotated[VariationSortOrderSchema, Depends()],
@@ -164,6 +164,26 @@ async def fetch_absolute_product(
             filters=filters,
             sort_params=sort_params,
             pagination_in=pagination_in,
+        ),
+    )
+
+
+@router.get(
+    "/{product_slug}",
+    response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+)
+async def fetch_absolute_product(
+    product_slug: str,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchAbsoluteProductUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchAbsoluteProductUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            product_slug=product_slug,
+            uow=uow,
         ),
     )
 
