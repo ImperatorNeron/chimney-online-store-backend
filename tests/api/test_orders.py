@@ -176,17 +176,18 @@ async def test_get_orders_history_success(async_client, mock_uow, patch_uow, pat
     c1 = OrderItemFactory.build(id=3, order_id=2, product_id=11, quantity=1, price_at_order=50.0, product=v2)
     cancelled.items = [c1]
 
-    uow = mock_uow({"order": {"finished_orders_by_user_id": [delivered, cancelled]}})
+    uow = mock_uow({"order": {"finished_orders_by_user_id": [delivered, cancelled], "count": 2}})
 
     async with patch_uow(uow), patch_auth_user(user):
         response = await async_client.get("/api/v1/orders/history")
 
     assert response.status_code == 200
     payload = response.json()["data"]
-    assert len(payload) == 2
-    assert payload[0]["id"] == 1
-    assert payload[0]["total_quantity"] == 3
-    assert payload[0]["total_price"] == 200
+    assert payload["pagination"]["total"] == 2
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["id"] == 1
+    assert payload["items"][0]["total_quantity"] == 3
+    assert payload["items"][0]["total_price"] == 200
 
 
 @pytest.mark.asyncio
@@ -210,15 +211,16 @@ async def test_get_active_orders_success(async_client, mock_uow, patch_uow, patc
     s1 = OrderItemFactory.build(id=2, order_id=2, product_id=11, quantity=2, price_at_order=100.0, product=v2)
     shipped.items = [s1]
 
-    uow = mock_uow({"order": {"current_orders_by_user_id": [processing, shipped]}})
+    uow = mock_uow({"order": {"current_orders_by_user_id": [processing, shipped], "count": 2}})
 
     async with patch_uow(uow), patch_auth_user(user):
         response = await async_client.get("/api/v1/orders/active")
 
     assert response.status_code == 200
     payload = response.json()["data"]
-    assert len(payload) == 2
-    assert {o["status"] for o in payload} == {"processing", "shipped"}
+    assert payload["pagination"]["total"] == 2
+    assert len(payload["items"]) == 2
+    assert {o["status"] for o in payload["items"]} == {"processing", "shipped"}
 
 
 @pytest.mark.asyncio

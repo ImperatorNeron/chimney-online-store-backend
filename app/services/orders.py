@@ -34,6 +34,8 @@ class AbstractOrderService(
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
+        limit: int = None,
+        offset: int = None,
     ) -> list[ReadOrderSchema]: ...
 
     @abstractmethod
@@ -41,6 +43,8 @@ class AbstractOrderService(
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
+        limit: int = None,
+        offset: int = None,
     ) -> list[ReadOrderSchema]: ...
 
     @abstractmethod
@@ -81,18 +85,22 @@ class OrderService(
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
+        limit: int = None,
+        offset: int = None,
     ) -> list[ReadOrderSchema]:
         return self.read_mapper.to_dto_list(
-            await uow.order.finished_orders_by_user_id(user_id=user_id),
+            await uow.order.finished_orders_by_user_id(user_id=user_id, limit=limit, offset=offset),
         )
 
     async def get_active_orders(
         self,
         user_id: int,
         uow: AbstractUnitOfWork,
+        limit: int = None,
+        offset: int = None,
     ) -> list[ReadOrderSchema]:
         return self.read_mapper.to_dto_list(
-            await uow.order.current_orders_by_user_id(user_id=user_id),
+            await uow.order.current_orders_by_user_id(user_id=user_id, limit=limit, offset=offset),
         )
 
     async def get_total_price(

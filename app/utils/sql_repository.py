@@ -89,6 +89,8 @@ class BaseRepository(AbstractRepository):
                     query = query.where(column > value)
                 elif operator == "in":
                     query = query.where(column.in_(value))
+                elif operator == "notin":
+                    query = query.where(column.notin_(value))
             else:
                 query = query.where(getattr(self.model, field) == value)
         return query

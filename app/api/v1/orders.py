@@ -51,8 +51,9 @@ async def get_orders_list(
     )
 
 
-@router.get("/history", response_model=ApiResponseSchema[list[ReadExtendedOrderSchema]])
+@router.get("/history", response_model=ApiResponseSchema[ListPaginatedResponse[ReadExtendedOrderSchema]])
 async def get_orders_history(
+    pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
     use_case: Annotated[
@@ -61,12 +62,13 @@ async def get_orders_history(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(user_id=user.id, uow=uow),
+        data=await use_case.execute(user_id=user.id, pagination_in=pagination_in, uow=uow),
     )
 
 
-@router.get("/active", response_model=ApiResponseSchema[list[ReadExtendedOrderSchema]])
+@router.get("/active", response_model=ApiResponseSchema[ListPaginatedResponse[ReadExtendedOrderSchema]])
 async def get_active_orders(
+    pagination_in: Annotated[PaginationIn, Depends()],
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     user: Annotated[ReadUserSchema, Depends(get_current_active_auth_user)],
     use_case: Annotated[
@@ -75,7 +77,7 @@ async def get_active_orders(
     ],
 ):
     return ApiResponseSchema(
-        data=await use_case.execute(user_id=user.id, uow=uow),
+        data=await use_case.execute(user_id=user.id, pagination_in=pagination_in, uow=uow),
     )
 
 

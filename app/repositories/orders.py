@@ -19,6 +19,8 @@ class OrderRepository(BaseRepository):
 
     model = Order
 
+    _custom_filter_keys = {"text", "status", "shipping_method", "payment_method", "date_from", "date_to"}
+
     def _apply_filters(self, query, filters: Optional[dict] = None):
         if not filters:
             return query
@@ -50,6 +52,10 @@ class OrderRepository(BaseRepository):
         if filters.get("date_to"):
             date_to = datetime.strptime(filters["date_to"], "%Y-%m-%d") + timedelta(days=1)
             query = query.where(self.model.created_at < date_to)
+
+        remaining = {k: v for k, v in filters.items() if k not in self._custom_filter_keys and v is not None}
+        if remaining:
+            query = super()._apply_filters(query, remaining)
 
         return query
 
@@ -83,22 +89,30 @@ class OrderRepository(BaseRepository):
         return result.unique().scalars().all()
 
     # TODO: do 1 method with some enum flag
-    async def finished_orders_by_user_id(self, user_id: int):
+    async def finished_orders_by_user_id(self, user_id: int, limit: int = None, offset: int = None):
         stmt = self._get_base_query().where(
             and_(
                 self.model.user_id == user_id,
                 self.model.status.in_(["delivered", "cancelled"]),
             ),
-        )
+        ).order_by(self.model.created_at.desc())
+        if limit:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
         result = await self.session.execute(stmt)
         return result.unique().scalars().all()
 
-    async def current_orders_by_user_id(self, user_id: int):
+    async def current_orders_by_user_id(self, user_id: int, limit: int = None, offset: int = None):
         stmt = self._get_base_query().where(
             and_(
                 self.model.user_id == user_id,
                 self.model.status.notin_(["delivered", "cancelled"]),
             ),
-        )
+        ).order_by(self.model.created_at.desc())
+        if limit:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
         result = await self.session.execute(stmt)
         return result.unique().scalars().all()
