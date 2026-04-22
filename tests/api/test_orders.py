@@ -144,7 +144,14 @@ async def test_get_orders_list_success_with_text_search(
 
     assert response.status_code == 200
     uow.order.all.assert_awaited_once()
-    assert uow.order.all.await_args.kwargs["filters"] == {"text": "Ivan", "status": None, "shipping_method": None, "payment_method": None}
+    assert uow.order.all.await_args.kwargs["filters"] == {
+        "text": "Ivan",
+        "status": None,
+        "shipping_method": None,
+        "payment_method": None,
+        "date_from": None,
+        "date_to": None,
+    }
 
 
 @pytest.mark.asyncio

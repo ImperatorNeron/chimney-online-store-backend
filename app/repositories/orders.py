@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import and_, or_, select
@@ -41,6 +42,14 @@ class OrderRepository(BaseRepository):
         for field in ("status", "shipping_method", "payment_method"):
             if filters.get(field):
                 query = query.where(getattr(self.model, field) == filters[field])
+
+        if filters.get("date_from"):
+            date_from = datetime.strptime(filters["date_from"], "%Y-%m-%d")
+            query = query.where(self.model.created_at >= date_from)
+
+        if filters.get("date_to"):
+            date_to = datetime.strptime(filters["date_to"], "%Y-%m-%d") + timedelta(days=1)
+            query = query.where(self.model.created_at < date_to)
 
         return query
 
