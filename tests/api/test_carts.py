@@ -170,7 +170,7 @@ async def test_get_cart_authenticated_merges_session_cart_and_deletes_cookie(
         {
             "cart": {"get": None, "delete": None, "exists": True},
             "products": {"exists": True},
-            "cart_item": {"exists": False, "create": None, "increase_quantity": None},
+            "cart_item": {"exists": False, "create": None, "increase_quantity": None, "count": 1},
         },
     )
 
@@ -228,7 +228,7 @@ async def test_add_to_cart_success_creates_item_and_sets_cookie(
         {
             "cart": {"create": None, "exists": True},
             "products": {"exists": True},
-            "cart_item": {"exists": False, "create": None},
+            "cart_item": {"exists": False, "create": None, "count": 0},
         },
     )
     uow.cart.create = AsyncMock(side_effect=_cart_create_side_effect(cart_id=1))
@@ -371,3 +371,75 @@ async def test_remove_item_from_cart_success(async_client, mock_uow, patch_uow):
 
     assert response.status_code == 200
     assert response.content in (b"", b"null")
+
+
+@pytest.mark.asyncio
+async def test_merge_carts_caps_quantity_at_100(
+    async_client,
+    mock_uow,
+    patch_uow,
+):
+    """When merging, if combined quantity exceeds 100, it should be capped at
+    100."""
+    token_service = JWTTokenService()
+    access_token = await token_service.create_access_token(pk=1, username="user")
+
+    unique = UniqueProductFactory.build(id=1, slug="u-1", name="Unique 1")
+    unique.images = [
+        ProductImageFactory.build(id=1, product_id=1, file_path="uploads/u-1/img.jpg", product=unique),
+    ]
+    v1 = ProductVariationFactory.build(
+        id=10, product_id=1, product=unique, price=100.0, discount_percentage=0,
+    )
+
+    # user cart: v1 x 90
+    user_cart_item = CartItem(cart_id=1, product_id=10, quantity=90, product=v1)
+    user_cart_item.id = 1
+    user_cart = Cart(user_id=1)
+    user_cart.id = 1
+    user_cart.items = [user_cart_item]
+
+    # session cart: v1 x 50 (should only add 10 to reach cap of 100)
+    session_cart_item = CartItem(cart_id=2, product_id=10, quantity=50, product=v1)
+    session_cart_item.id = 2
+    session_cart = Cart(session_id="s" * 32)
+    session_cart.id = 2
+    session_cart.items = [session_cart_item]
+
+    uow = mock_uow(
+        {
+            "cart": {"get": None, "delete": None, "exists": True},
+            "cart_item": {"exists": True, "increase_quantity": None},
+        },
+    )
+
+    async def _cart_get(**kwargs):
+        if kwargs.get("user_id") == 1:
+            return user_cart
+        if kwargs.get("session_id") == "s" * 32:
+            return session_cart
+        raise ItemNotFoundException()
+
+    uow.cart.get = AsyncMock(side_effect=_cart_get)
+    uow.cart.delete = AsyncMock(return_value=None)
+
+    updated_item = CartItem(cart_id=1, product_id=10, quantity=100)
+    updated_item.id = 1
+    uow.cart_item.increase_quantity = AsyncMock(return_value=updated_item)
+
+    async with patch_uow(uow):
+        response = await async_client.get(
+            "/api/v1/cart",
+            headers={"Authorization": f"Bearer {access_token}"},
+            cookies={"cart_session_id": "s" * 32},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    # Should have capped: 90 + min(50, 100-90) = 90 + 10 = 100
+    assert payload["total_quantity"] == 100
+    assert payload["total_price"] == 10000  # 100 * 100.0
+    # increase_quantity called with quantity=10 (not 50)
+    uow.cart_item.increase_quantity.assert_awaited_once_with(
+        quantity=10, cart_item_id=1,
+    )

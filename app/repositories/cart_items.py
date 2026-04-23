@@ -26,7 +26,7 @@ class CartItemRepository(BaseRepository):
         return await self._adjust_quantity(
             cart_item_id,
             CartItem.quantity + quantity,
-            (CartItem.quantity + quantity <= 999),
+            (CartItem.quantity + quantity <= 100),
         )
 
     async def decrease_quantity(self, quantity: int, cart_item_id: int) -> CartItem:

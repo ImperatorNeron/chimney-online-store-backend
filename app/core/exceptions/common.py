@@ -292,6 +292,17 @@ class CustomPydanticValidationException(HTTPException):
         super().__init__(status_code=422, detail={"errors": errors})
 
 
+class CartLimitExceededException(BaseAppException):
+    """Raised when cart limits are exceeded."""
+
+    def __init__(self, detail="Перевищено ліміт корзини"):
+        super().__init__(
+            error_code="cart_limit_exceeded",
+            detail=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
 class EmptyCartException(BaseAppException):
     def __init__(self, meta: Optional[dict] = None):
         super().__init__(

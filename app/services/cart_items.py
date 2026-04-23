@@ -1,7 +1,11 @@
 from abc import abstractmethod
 from typing import Callable, Type
 
-from app.core.exceptions.common import ForeignKeyConstraintViolationException, ItemNotFoundException
+from app.core.exceptions.common import (
+    CartLimitExceededException,
+    ForeignKeyConstraintViolationException,
+    ItemNotFoundException,
+)
 from app.mappers.carts import CartItemCreateMapper, CartItemReadMapper
 from app.schemas.cart_items import CreateCartItemSchema, ReadCartItemSchema
 from app.services.base import AbstractCreate, AbstractDelete, Create, Delete
@@ -96,6 +100,12 @@ class CartItemService(
                 uow=uow,
             )
 
+        items_count = await uow.cart_item.count(cart_id=item_in.cart_id)
+        if items_count >= 100:
+            raise CartLimitExceededException(
+                detail="Корзина переповнена. Максимум 100 різних товарів.",
+            )
+
         return await super().create(item_in=item_in, uow=uow)
 
     async def _validate(
@@ -123,9 +133,14 @@ class CartItemService(
         if not await uow.cart_item.exists(id=cart_item_id, cart_id=cart_id):
             raise ItemNotFoundException()
 
-        cart_item = await action(
-            quantity=quantity,
-            cart_item_id=cart_item_id,
-        )
+        try:
+            cart_item = await action(
+                quantity=quantity,
+                cart_item_id=cart_item_id,
+            )
+        except ValueError:
+            raise CartLimitExceededException(
+                detail="Максимум 100 одиниць одного товару в корзині.",
+            )
 
         return self.read_mapper.to_dto(cart_item)
