@@ -40,6 +40,7 @@ from app.use_cases.faq.update import AbstractUpdateFAQUseCase, UpdateFAQUseCase
 from app.use_cases.like.create import AbstractCreateLikeUseCase, CreateLikeUseCase
 from app.use_cases.like.delete import AbstractDeleteLikeUseCase, DeleteLikeUseCase
 from app.use_cases.like.fetch_all import AbstractFetchLikesUseCase, FetchLikesUseCase
+from app.use_cases.like.fetch_liked_products import AbstractFetchLikedProductsUseCase, FetchLikedProductsUseCase
 from app.use_cases.messages.change_message_status import AbstractChangeMessageStatusUseCase, ChangeMessageStatusUseCase
 from app.use_cases.messages.create_messages import AbstractCreateMessageUseCase, CreateMessageUseCase
 from app.use_cases.messages.delete import AbstractDeleteMessageUseCase, DeleteMessageUseCase
@@ -113,6 +114,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractCreateLikeUseCase, CreateLikeUseCase)
     container.register(AbstractDeleteLikeUseCase, DeleteLikeUseCase)
     container.register(AbstractFetchLikesUseCase, FetchLikesUseCase)
+    container.register(AbstractFetchLikedProductsUseCase, FetchLikedProductsUseCase)
 
     # Message
     container.register(AbstractMessageService, MessageService)
