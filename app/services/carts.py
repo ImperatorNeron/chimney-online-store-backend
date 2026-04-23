@@ -38,4 +38,4 @@ class CartService(
         return sum(item.quantity for item in items)
 
     def get_total_price(self, items: list[ReadCartItemWithTotalPriceSchema]) -> float:
-        return round(sum(item.total_price for item in items), 2)
+        return round(sum(item.total_price for item in items))

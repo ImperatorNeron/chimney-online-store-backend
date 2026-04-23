@@ -95,7 +95,6 @@ class ProductVariationReadMapper(BaseReadMapper[ProductVariation, ReadProductSch
             price=orm_obj.price,
             discount_price=round(
                 orm_obj.price - orm_obj.price * orm_obj.discount_percentage / 100,
-                2,
             ),
             discount_percentage=orm_obj.discount_percentage,
             category_id=orm_obj.product.category_id,
@@ -118,8 +117,9 @@ class BaseProductVariationReadMapper(
             created_at=orm_obj.created_at,
             updated_at=orm_obj.updated_at,
             price=orm_obj.price,
-            discount_price=orm_obj.price
-            - (orm_obj.price * orm_obj.discount_percentage) / 100,
+            discount_price=round(
+                orm_obj.price - (orm_obj.price * orm_obj.discount_percentage) / 100,
+            ),
             discount_percentage=orm_obj.discount_percentage,
             diameter=orm_obj.diameter,
             length=orm_obj.length,
@@ -218,6 +218,6 @@ class PriceRangeReadMapper(BaseReadMapper[Model, PriceRangeSchema]):
     @staticmethod
     def to_dto(orm_obj: Model, **kwargs) -> PriceRangeSchema:
         return PriceRangeSchema(
-            min_price=round(orm_obj[0], 2) if orm_obj[0] is not None else 0,
-            max_price=round(orm_obj[1], 2) if orm_obj[1] is not None else 0,
+            min_price=round(orm_obj[0]) if orm_obj[0] is not None else 0,
+            max_price=round(orm_obj[1]) if orm_obj[1] is not None else 0,
         )

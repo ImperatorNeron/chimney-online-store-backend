@@ -107,10 +107,7 @@ class OrderService(
         self,
         order_items: list[ReadOrderItemSchema],
     ) -> float:
-        return round(
-            sum(item.price_at_order for item in order_items),
-            2,
-        )
+        return round(sum(item.price_at_order for item in order_items))
 
     async def get_total_quantity(
         self,
