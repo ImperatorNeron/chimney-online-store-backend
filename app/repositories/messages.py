@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Optional
 
 from app.models.messages import Message
@@ -25,6 +26,14 @@ class MessageRepository(RelevanceSearchMixin, BaseRepository):
 
         if filters.get("text"):
             query = self._apply_relevance_filter(query, filters["text"])
+
+        if filters.get("date_from"):
+            date_from = datetime.strptime(filters["date_from"], "%Y-%m-%d")
+            query = query.where(self.model.created_at >= date_from)
+
+        if filters.get("date_to"):
+            date_to = datetime.strptime(filters["date_to"], "%Y-%m-%d") + timedelta(days=1)
+            query = query.where(self.model.created_at < date_to)
 
         return query
 

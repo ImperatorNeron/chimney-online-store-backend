@@ -77,10 +77,12 @@ async def test_get_messages_list_success_with_filters(
     assert payload["data"]["pagination"]["total"] == 1
     assert payload["data"]["items"][0]["id"] == 1
 
-    uow.messages.count.assert_awaited_once_with(status="read", text="Call")
+    uow.messages.count.assert_awaited_once_with(status="read", text="Call", date_from=None, date_to=None)
     assert uow.messages.all.await_args.kwargs["filters"] == {
         "status": "read",
         "text": "Call",
+        "date_from": None,
+        "date_to": None,
     }
 
 
@@ -101,10 +103,12 @@ async def test_get_messages_list_success_with_text_only(
     payload = response.json()
     assert payload["data"]["items"][0]["id"] == 1
 
-    uow.messages.count.assert_awaited_once_with(status=None, text="димохід")
+    uow.messages.count.assert_awaited_once_with(status=None, text="димохід", date_from=None, date_to=None)
     assert uow.messages.all.await_args.kwargs["filters"] == {
         "status": None,
         "text": "димохід",
+        "date_from": None,
+        "date_to": None,
     }
 
 
@@ -130,6 +134,8 @@ async def test_get_messages_list_text_search_with_sorting(
     assert uow.messages.all.await_args.kwargs["filters"] == {
         "status": None,
         "text": "труба одностінна",
+        "date_from": None,
+        "date_to": None,
     }
     assert uow.messages.all.await_args.kwargs["order_by"] == ["-created_at"]
 

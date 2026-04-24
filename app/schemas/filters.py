@@ -69,6 +69,8 @@ class MessageSortOrderSchema(BaseModel):
 class MessageFiltersSchema(BaseModel):
     status: Optional[str] = Query(default=None, pattern="^(new|progress|read)$")
     text: Optional[str] = Query(default=None)
+    date_from: Optional[str] = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: Optional[str] = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class OrderSortOrderSchema(BaseModel):
