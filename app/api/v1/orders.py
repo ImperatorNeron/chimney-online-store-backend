@@ -12,12 +12,25 @@ from app.core.containers import get_container
 from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.carts import ReadFullCartSchema
-from app.schemas.filters import OrderFiltersSchema, OrderSortOrderSchema, PaginationIn
-from app.schemas.orders import CreateOrderSchema, ReadExtendedOrderSchema, ReadOrderBaseSchema, UpdateOrderSchema
+from app.schemas.filters import (
+    CustomerFiltersSchema,
+    CustomerSortOrderSchema,
+    OrderFiltersSchema,
+    OrderSortOrderSchema,
+    PaginationIn,
+)
+from app.schemas.orders import (
+    CreateOrderSchema,
+    ReadCustomerSchema,
+    ReadExtendedOrderSchema,
+    ReadOrderBaseSchema,
+    UpdateOrderSchema,
+)
 from app.schemas.users import ReadUserSchema
 from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase
 from app.use_cases.orders.create import AbstractCreateOrderUseCase
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase
+from app.use_cases.orders.fetch_customers import AbstractFetchCustomersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase
 from app.use_cases.orders.update import AbstractUpdateOrderUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
@@ -39,6 +52,31 @@ async def get_orders_list(
     use_case: Annotated[
         AbstractFetchOrdersUseCase,
         Depends(lambda: get_container().resolve(AbstractFetchOrdersUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            filters=filters,
+            sort_params=sort_params,
+            pagination_in=pagination_in,
+            uow=uow,
+        ),
+    )
+
+
+@router.get(
+    "/customers",
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadCustomerSchema]],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def get_customers_list(
+    filters: Annotated[CustomerFiltersSchema, Depends()],
+    sort_params: Annotated[CustomerSortOrderSchema, Depends()],
+    pagination_in: Annotated[PaginationIn, Depends()],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchCustomersUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchCustomersUseCase)),
     ],
 ):
     return ApiResponseSchema(

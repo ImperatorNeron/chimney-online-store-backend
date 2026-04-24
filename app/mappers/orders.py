@@ -1,9 +1,12 @@
+from typing import Any
+
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
 from app.mappers.products import ProductVariationReadMapper
 from app.models.orders import Order, OrderItem
 from app.schemas.orders import (
     CreateOrderItemSchema,
     CreateOrderSchema,
+    ReadCustomerSchema,
     ReadOrderBaseSchema,
     ReadOrderItemBaseSchema,
     ReadOrderItemSchema,
@@ -84,3 +87,21 @@ class OrderItemReadMapper(OrderItemBaseReadMapper):
 
 class OrderItemCreateMapper(BaseUpsertMapper[OrderItem, CreateOrderItemSchema]):
     pass
+
+
+# TODO: add better type than Any
+class CustomerReadMapper(BaseReadMapper[Any, ReadCustomerSchema]):
+
+    @staticmethod
+    def to_dto(orm_obj: Any) -> ReadCustomerSchema:
+        return ReadCustomerSchema(
+            phone_number=orm_obj.phone_number,
+            first_name=orm_obj.first_name or "",
+            last_name=orm_obj.last_name or "",
+            patronymic=orm_obj.patronymic,
+            email=orm_obj.email,
+            is_registered=orm_obj.user_id is not None,
+            orders_count=orm_obj.orders_count,
+            total_spent=round(orm_obj.total_spent),
+            last_order_at=orm_obj.last_order_at,
+        )

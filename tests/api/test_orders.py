@@ -540,3 +540,101 @@ async def test_create_order_authenticated_user_missing_returns_404(
         )
 
     assert response.status_code == 404
+
+
+# ==================== Customers ====================
+
+
+@pytest.mark.asyncio
+async def test_get_customers_list_success(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    uow = mock_uow({
+        "order": {
+            "get_customers": [
+                type(
+                    "Row", (), {
+                        "phone_number": "0961234567",
+                        "first_name": "Ivan",
+                        "last_name": "Ivanov",
+                        "patronymic": "Ivanovych",
+                        "email": "ivan@test.com",
+                        "user_id": 1,
+                        "orders_count": 3,
+                        "total_spent": 1500,
+                        "last_order_at": "2026-04-20T10:00:00",
+                    },
+                )(),
+            ], "get_customers_count": 1,
+        },
+    })
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/orders/customers")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["pagination"]["total"] == 1
+    assert len(payload["items"]) == 1
+    item = payload["items"][0]
+    assert item["phone_number"] == "0961234567"
+    assert item["first_name"] == "Ivan"
+    assert item["last_name"] == "Ivanov"
+    assert item["is_registered"] is True
+    assert item["orders_count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_get_customers_list_with_text_search(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    uow = mock_uow({"order": {"get_customers": [], "get_customers_count": 0}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/orders/customers?text=Ivan")
+
+    assert response.status_code == 200
+    uow.order.get_customers.assert_awaited_once()
+    call_kwargs = uow.order.get_customers.await_args.kwargs
+    assert call_kwargs["text"] == "Ivan"
+
+
+@pytest.mark.asyncio
+async def test_get_customers_list_with_filters(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    uow = mock_uow({"order": {"get_customers": [], "get_customers_count": 0}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get(
+            "/api/v1/orders/customers?is_registered=true&date_from=2026-01-01&date_to=2026-12-31",
+        )
+
+    assert response.status_code == 200
+    call_kwargs = uow.order.get_customers.await_args.kwargs
+    assert call_kwargs["is_registered"] == "true"
+    assert call_kwargs["date_from"] == "2026-01-01"
+    assert call_kwargs["date_to"] == "2026-12-31"
+
+
+@pytest.mark.asyncio
+async def test_get_customers_list_with_sorting(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    uow = mock_uow({"order": {"get_customers": [], "get_customers_count": 0}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get(
+            "/api/v1/orders/customers?field=orders_count&ordering=desc",
+        )
+
+    assert response.status_code == 200
+    call_kwargs = uow.order.get_customers.await_args.kwargs
+    assert call_kwargs["order_by"] == "orders_count"
+    assert call_kwargs["ordering"] == "desc"
+
+
+@pytest.mark.asyncio
+async def test_get_customers_list_unauthorized(async_client):
+    response = await async_client.get("/api/v1/orders/customers")
+    assert response.status_code == 401

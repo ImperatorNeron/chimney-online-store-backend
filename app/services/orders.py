@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from typing import Type
+from typing import Optional, Type
 
 from app.mappers.orders import (
+    CustomerReadMapper,
     OrderBaseReadMapper,
     OrderCreateMapper,
     OrderItemBaseReadMapper,
@@ -9,9 +10,11 @@ from app.mappers.orders import (
     OrderReadMapper,
     OrderUpdateMapper,
 )
+from app.schemas.filters import CustomerFiltersSchema, CustomerSortOrderSchema
 from app.schemas.orders import (
     CreateOrderItemSchema,
     CreateOrderSchema,
+    ReadCustomerSchema,
     ReadOrderBaseSchema,
     ReadOrderItemBaseSchema,
     ReadOrderItemSchema,
@@ -65,6 +68,20 @@ class AbstractOrderService(
         cart_items: list[CreateOrderItemSchema],
         uow: AbstractUnitOfWork,
     ) -> list[ReadOrderItemBaseSchema]: ...
+
+    @abstractmethod
+    async def get_customers(
+        self, uow: AbstractUnitOfWork,
+        filters: Optional[CustomerFiltersSchema] = None,
+        sort_params: Optional[CustomerSortOrderSchema] = None,
+        limit: int = 20, offset: int = 0,
+    ) -> list[ReadCustomerSchema]: ...
+
+    @abstractmethod
+    async def get_customers_count(
+        self, uow: AbstractUnitOfWork,
+        filters: Optional[CustomerFiltersSchema] = None,
+    ) -> int: ...
 
 
 class OrderService(
@@ -125,3 +142,26 @@ class OrderService(
                 data_list=OrderItemCreateMapper.to_model_list(items),
             ),
         )
+
+    async def get_customers(
+        self, uow: AbstractUnitOfWork,
+        filters: Optional[CustomerFiltersSchema] = None,
+        sort_params: Optional[CustomerSortOrderSchema] = None,
+        limit: int = 20, offset: int = 0,
+    ) -> list[ReadCustomerSchema]:
+        filters_dict = filters.model_dump() if filters else {}
+        order_by = sort_params.field if sort_params else "last_order_at"
+        ordering = sort_params.ordering if sort_params else "desc"
+        return CustomerReadMapper.to_dto_list(
+            await uow.order.get_customers(
+                limit=limit, offset=offset,
+                order_by=order_by, ordering=ordering,
+                **filters_dict,
+            ),
+        )
+
+    async def get_customers_count(
+        self, uow: AbstractUnitOfWork, filters: Optional[CustomerFiltersSchema] = None,
+    ) -> int:
+        filters_dict = filters.model_dump() if filters else {}
+        return await uow.order.get_customers_count(**filters_dict)

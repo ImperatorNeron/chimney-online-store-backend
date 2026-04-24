@@ -92,6 +92,25 @@ class OrderFiltersSchema(BaseModel):
     date_to: Optional[str] = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
+class CustomerSortOrderSchema(BaseModel):
+    field: str = Query(
+        default="last_order_at",
+        pattern="^(last_order_at|first_name|last_name|patronymic|"
+        "email|orders_count|total_spent|phone_number|is_registered)$",
+    )
+    ordering: str = Query(
+        default="desc",
+        pattern="^(asc|desc)$",
+    )
+
+
+class CustomerFiltersSchema(BaseModel):
+    text: Optional[str] = Query(default=None)
+    is_registered: Optional[str] = Query(default=None, pattern="^(true|false)$")
+    date_from: Optional[str] = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: Optional[str] = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
 class UniqueProductSortOrderSchema(BaseModel):
     field: str = Query(
         default="created_at",

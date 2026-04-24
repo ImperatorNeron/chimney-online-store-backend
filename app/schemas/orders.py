@@ -204,3 +204,15 @@ class UpdateOrderSchema(BaseModel):
         if value.strip() == "":
             raise ValueError("Name field cannot be empty or whitespace only")
         return value.title()
+
+
+class ReadCustomerSchema(BaseModel):
+    phone_number: str = Field(min_length=9, max_length=19, pattern=r"^\d{9,19}$")
+    first_name: str = Field(max_length=50)
+    last_name: str = Field(max_length=50)
+    patronymic: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[EmailStr] = Field(default=None, max_length=255)
+    is_registered: bool = False
+    orders_count: int = Field(ge=0)
+    total_spent: float = Field(ge=0)
+    last_order_at: datetime
