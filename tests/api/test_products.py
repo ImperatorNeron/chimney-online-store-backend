@@ -10,7 +10,11 @@ from tests.factories.products import (
     UniqueProductFactory,
 )
 
+from app.models.website_settings import WebSiteSettings
 from app.services.files import AbstractFileStorageService, LocalFileStorage, SupabaseFileStorage
+
+
+_default_ws = WebSiteSettings(id=1, manufacturer_discount=0, seller_markup=0)
 
 
 @pytest.mark.asyncio
@@ -26,6 +30,7 @@ async def test_get_products_list_success(async_client, mock_uow, patch_uow):
                 "list_product_previews": [variation],
                 "count": 1,
             },
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 
@@ -53,6 +58,7 @@ async def test_get_products_list_with_text_search(async_client, mock_uow, patch_
                 "list_product_previews": [variation],
                 "count": 1,
             },
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 
@@ -84,6 +90,7 @@ async def test_get_products_by_ids_success(async_client, mock_uow, patch_uow):
             "products": {
                 "all": variations,
             },
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 
@@ -181,6 +188,7 @@ async def test_get_products_recommendations_success(async_client, mock_uow, patc
             "products": {
                 "get_products_with_most_orders": [variation],
             },
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 
@@ -218,6 +226,7 @@ async def test_fetch_absolute_product_success(async_client, mock_uow, patch_uow)
             "categories": {
                 "get_category_hierarchy": category_chain,
             },
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 

@@ -6,6 +6,7 @@ from app.mappers.likes import LikeCreateMapper, LikeReadMapper
 from app.mappers.products import PreviewProductVariationReadMapper
 from app.schemas.likes import CreateLikeSchema, ReadLikeSchema
 from app.schemas.products import ReadPreviewProductSchema
+from app.schemas.website_settings import ReadWebSiteSettingsSchema
 from app.services.base import AbstractCount, AbstractCreate, AbstractDelete, AbstractRead, Count, Create, Delete, Read
 from app.utils.unit_of_work import AbstractUnitOfWork
 
@@ -22,6 +23,7 @@ class AbstractLikeService(
     @abstractmethod
     async def get_liked_products(
         self, user_id: int, uow: AbstractUnitOfWork, limit: int = 20, offset: int = 0,
+        website_settings: ReadWebSiteSettingsSchema | None = None,
     ) -> list[ReadPreviewProductSchema]: ...
 
 
@@ -43,11 +45,12 @@ class LikeService(
 
     async def get_liked_products(
         self, user_id: int, uow: AbstractUnitOfWork, limit: int = 20, offset: int = 0,
+        website_settings: ReadWebSiteSettingsSchema | None = None,
     ) -> list[ReadPreviewProductSchema]:
         products = await uow.like.get_liked_products(
             user_id=user_id, limit=limit, offset=offset,
         )
-        return PreviewProductVariationReadMapper.to_dto_list(products)
+        return PreviewProductVariationReadMapper.to_dto_list(products, website_settings=website_settings)
 
     async def _create_validation(
         self,

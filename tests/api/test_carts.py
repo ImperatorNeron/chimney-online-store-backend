@@ -6,7 +6,11 @@ from tests.factories.products import ProductImageFactory, ProductVariationFactor
 from app.core.exceptions.common import ItemNotFoundException
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
+from app.models.website_settings import WebSiteSettings
 from app.services.tokens import JWTTokenService
+
+
+_default_ws = WebSiteSettings(id=1, manufacturer_discount=0, seller_markup=0)
 
 
 def _cart_create_side_effect(cart_id: int = 1):
@@ -84,7 +88,7 @@ async def test_get_cart_anonymous_with_existing_cookie_fetches_cart_and_returns_
     cart.id = 1
     cart.items = [cart_item_1, cart_item_2]
 
-    uow = mock_uow({"cart": {"get": cart}})
+    uow = mock_uow({"cart": {"get": cart}, "website_settings": {"get_or_none": _default_ws}})
 
     async with patch_uow(uow):
         response = await async_client.get(
@@ -107,7 +111,7 @@ async def test_get_cart_anonymous_with_existing_cookie_fetches_cart_and_returns_
 async def test_get_cart_anonymous_cookie_cart_not_found_creates_new_cart(
     async_client, mock_uow, patch_uow,
 ):
-    uow = mock_uow({"cart": {"get": None, "create": None}})
+    uow = mock_uow({"cart": {"get": None, "create": None}, "website_settings": {"get_or_none": _default_ws}})
     uow.cart.get = AsyncMock(side_effect=ItemNotFoundException())
     uow.cart.create = AsyncMock(side_effect=_cart_create_side_effect(cart_id=1))
 
@@ -171,6 +175,7 @@ async def test_get_cart_authenticated_merges_session_cart_and_deletes_cookie(
             "cart": {"get": None, "delete": None, "exists": True},
             "products": {"exists": True},
             "cart_item": {"exists": False, "create": None, "increase_quantity": None, "count": 1},
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 
@@ -410,6 +415,7 @@ async def test_merge_carts_caps_quantity_at_100(
         {
             "cart": {"get": None, "delete": None, "exists": True},
             "cart_item": {"exists": True, "increase_quantity": None},
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 

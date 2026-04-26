@@ -84,7 +84,12 @@ class UniqueProductUpdateMapper(
 
 class ProductVariationReadMapper(BaseReadMapper[ProductVariation, ReadProductSchema]):
     @staticmethod
-    def to_dto(orm_obj: ProductVariation) -> ReadProductSchema:
+    def to_dto(orm_obj: ProductVariation, **kwargs) -> ReadProductSchema:
+        ws = kwargs.get("website_settings")
+        price = float(orm_obj.price)
+        if ws:
+            price = price * (1 - ws.manufacturer_discount / 100) * (1 + ws.seller_markup / 100)
+        discount_price = round(price - price * orm_obj.discount_percentage / 100)
         return ReadProductSchema(
             id=orm_obj.id,
             created_at=orm_obj.created_at,
@@ -92,10 +97,8 @@ class ProductVariationReadMapper(BaseReadMapper[ProductVariation, ReadProductSch
             name=orm_obj.product.name,
             slug=orm_obj.product.slug,
             description=orm_obj.product.description,
-            price=orm_obj.price,
-            discount_price=round(
-                orm_obj.price - orm_obj.price * orm_obj.discount_percentage / 100,
-            ),
+            price=round(price),
+            discount_price=discount_price,
             discount_percentage=orm_obj.discount_percentage,
             category_id=orm_obj.product.category_id,
             extra_attrs=orm_obj.extra_attrs,
@@ -111,15 +114,18 @@ class BaseProductVariationReadMapper(
     BaseReadMapper[ProductVariation, ReadProductVariationSchema],
 ):
     @staticmethod
-    def to_dto(orm_obj: ProductVariation) -> ReadProductVariationSchema:
+    def to_dto(orm_obj: ProductVariation, **kwargs) -> ReadProductVariationSchema:
+        ws = kwargs.get("website_settings")
+        price = float(orm_obj.price)
+        if ws:
+            price = price * (1 - ws.manufacturer_discount / 100) * (1 + ws.seller_markup / 100)
+        discount_price = round(price - (price * orm_obj.discount_percentage) / 100)
         return ReadProductVariationSchema(
             id=orm_obj.id,
             created_at=orm_obj.created_at,
             updated_at=orm_obj.updated_at,
-            price=orm_obj.price,
-            discount_price=round(
-                orm_obj.price - (orm_obj.price * orm_obj.discount_percentage) / 100,
-            ),
+            price=round(price),
+            discount_price=discount_price,
             discount_percentage=orm_obj.discount_percentage,
             diameter=orm_obj.diameter,
             length=orm_obj.length,
@@ -133,14 +139,14 @@ class PreviewProductVariationReadMapper(
     BaseReadMapper[ProductVariation, ReadPreviewProductSchema],
 ):
     @staticmethod
-    def to_dto(orm_obj: ProductVariation) -> ReadPreviewProductSchema:
+    def to_dto(orm_obj: ProductVariation, **kwargs) -> ReadPreviewProductSchema:
         preview = (
             ProductImageReadMapper.to_dto(orm_obj=orm_obj.product.images[0])
             if orm_obj.product.images
             else None
         )
         return ReadPreviewProductSchema(
-            **ProductVariationReadMapper.to_dto(orm_obj=orm_obj).model_dump(),
+            **ProductVariationReadMapper.to_dto(orm_obj=orm_obj, **kwargs).model_dump(),
             preview=preview,
         )
 
@@ -149,9 +155,9 @@ class FullProductVariationReadMapper(
     BaseReadMapper[ProductVariation, ReadFullProductSchema],
 ):
     @staticmethod
-    def to_dto(orm_obj: ProductVariation) -> ReadFullProductSchema:
+    def to_dto(orm_obj: ProductVariation, **kwargs) -> ReadFullProductSchema:
         return ReadFullProductSchema(
-            ProductVariationReadMapper.to_dto(orm_obj=orm_obj),
+            ProductVariationReadMapper.to_dto(orm_obj=orm_obj, **kwargs),
             images=ProductImageReadMapper.to_dto_list(orm_objs=orm_obj.product.images),
         )
 

@@ -9,7 +9,11 @@ from app.core.exceptions.common import ItemNotFoundException
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.orders import OrderItem
+from app.models.website_settings import WebSiteSettings
 from app.services.tokens import JWTTokenService
+
+
+_default_ws = WebSiteSettings(id=1, manufacturer_discount=0, seller_markup=0)
 
 
 def _build_variation(*, variation_id: int, unique_id: int, slug: str, price: float, discount_percentage: int):
@@ -332,6 +336,7 @@ async def test_create_order_success_anonymous_from_session_cart(
             "cart": {"get": cart, "delete": None},
             "order": {"create": created_order},
             "order_item": {"bulk_create": []},
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
     uow.order.create = AsyncMock(side_effect=_order_create)
@@ -454,6 +459,7 @@ async def test_create_order_authenticated_merges_session_cart_and_creates_for_us
             },
             "order": {"create": created_order},
             "order_item": {"bulk_create": []},
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
     uow.cart.get = AsyncMock(side_effect=_cart_get)
@@ -518,7 +524,13 @@ async def test_create_order_authenticated_user_missing_returns_404(
         item_in.items = []
         return item_in
 
-    uow = mock_uow({"users": {"get": None}, "cart": {"get": None, "create": None}})
+    uow = mock_uow(
+        {
+            "users": {"get": None},
+            "cart": {"get": None, "create": None},
+            "website_settings": {"get_or_none": _default_ws},
+        },
+    )
     uow.users.get = AsyncMock(side_effect=ItemNotFoundException())
     uow.cart.get = AsyncMock(side_effect=ItemNotFoundException())
     uow.cart.create = AsyncMock(side_effect=_cart_create)

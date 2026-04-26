@@ -17,6 +17,7 @@ from app.services.products import AbstractProductService, ProductService
 from app.services.tokens import AbstractJWTTokenService, JWTTokenService
 from app.services.unique_products import AbstractUniqueProductService, UniqueProductService
 from app.services.users import AbstractUserService, UserService
+from app.services.website_settings import AbstractWebSiteSettingsService, WebSiteSettingsService
 from app.use_cases.auth.login import LoginUserUseCase
 from app.use_cases.auth.refresh import RefreshTokenUseCase
 from app.use_cases.auth.registration import RegisterUserUseCase
@@ -62,6 +63,8 @@ from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProd
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase, FetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase, UpdateProductUseCase
 from app.use_cases.users.update import AbstractUpdateUserUseCase, UpdateUserUseCase
+from app.use_cases.website_settings.fetch import AbstractFetchWebSiteSettingsUseCase, FetchWebSiteSettingsUseCase
+from app.use_cases.website_settings.update import AbstractUpdateWebSiteSettingsUseCase, UpdateWebSiteSettingsUseCase
 
 
 @lru_cache(1)
@@ -152,5 +155,10 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchActiveOrdersUseCase, FetchActiveOrdersUseCase)
     container.register(AbstractUpdateOrderUseCase, UpdateOrderUseCase)
     container.register(AbstractFetchCustomersUseCase, FetchCustomersUseCase)
+
+    # WebSiteSettings
+    container.register(AbstractWebSiteSettingsService, WebSiteSettingsService)
+    container.register(AbstractFetchWebSiteSettingsUseCase, FetchWebSiteSettingsUseCase)
+    container.register(AbstractUpdateWebSiteSettingsUseCase, UpdateWebSiteSettingsUseCase)
 
     return container

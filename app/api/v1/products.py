@@ -164,6 +164,7 @@ async def fetch_absolute_product_with_variations(
             filters=filters,
             sort_params=sort_params,
             pagination_in=pagination_in,
+            apply_settings=False,
         ),
     )
 

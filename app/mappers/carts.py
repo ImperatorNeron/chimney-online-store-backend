@@ -29,12 +29,12 @@ class CartItemWithProductReadMapper(
     ],
 ):
     @staticmethod
-    def to_dto(orm_obj: CartItem) -> ReadCartItemWithProductSchema:
+    def to_dto(orm_obj: CartItem, **kwargs) -> ReadCartItemWithProductSchema:
         return ReadCartItemWithProductSchema(
             id=orm_obj.id,
             cart_id=orm_obj.cart_id,
             quantity=orm_obj.quantity,
-            product=PreviewProductVariationReadMapper.to_dto(orm_obj.product),
+            product=PreviewProductVariationReadMapper.to_dto(orm_obj.product, **kwargs),
         )
 
 
@@ -50,8 +50,8 @@ class CartReadMapper(BaseReadMapper[Cart, ReadCartSchema]):
 
 class CartWithItemsReadMapper(BaseReadMapper[Cart, ReadCartSchema]):
     @staticmethod
-    def to_dto(orm_obj: Cart) -> ReadCartSchema:
-        items = CartItemWithProductReadMapper.to_dto_list(orm_obj.items)
+    def to_dto(orm_obj: Cart, **kwargs) -> ReadCartSchema:
+        items = CartItemWithProductReadMapper.to_dto_list(orm_obj.items, **kwargs)
         return ReadCartSchema(id=orm_obj.id, items=items)
 
 

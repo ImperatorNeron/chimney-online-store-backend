@@ -10,6 +10,7 @@ from app.api.v1.messages import router as messages
 from app.api.v1.orders import router as orders
 from app.api.v1.products import router as products
 from app.api.v1.users import router as users
+from app.api.v1.website_settings import router as website_settings
 
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(http_bearer)])
@@ -22,3 +23,4 @@ router.include_router(router=carts)
 router.include_router(router=faqs)
 router.include_router(router=likes)
 router.include_router(router=orders)
+router.include_router(router=website_settings)

@@ -25,6 +25,7 @@ from app.schemas.products import (
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
 )
+from app.schemas.website_settings import ReadWebSiteSettingsSchema
 from app.services.base import (
     AbstractCount,
     AbstractCreate,
@@ -56,6 +57,7 @@ class AbstractProductService(
         sort_params: Optional[SortOrderSchema],
         uow: AbstractUnitOfWork,
         pagination_in: Optional[PaginationIn],
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadPreviewProductSchema]: ...
 
     @abstractmethod
@@ -80,6 +82,7 @@ class AbstractProductService(
         filters: Optional[VariationFiltersSchema] = None,
         sort_params: Optional[VariationSortOrderSchema] = None,
         pagination_in: Optional[PaginationIn] = None,
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadProductVariationSchema]: ...
 
     @abstractmethod
@@ -87,6 +90,7 @@ class AbstractProductService(
         self,
         uow: AbstractUnitOfWork,
         pagination_in: Optional[PaginationIn],
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadPreviewProductSchema]: ...
 
 
@@ -117,6 +121,7 @@ class ProductService(
         sort_params: Optional[SortOrderSchema],
         uow: AbstractUnitOfWork,
         pagination_in: Optional[PaginationIn],
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadPreviewProductSchema]:
         return self.read_mapper.to_dto_list(
             await uow.products.list_product_previews(
@@ -124,6 +129,7 @@ class ProductService(
                 filters=filters,
                 sort_params=sort_params,
             ),
+            website_settings=website_settings,
         )
 
     async def get_filters(
@@ -151,6 +157,7 @@ class ProductService(
         filters: Optional[VariationFiltersSchema] = None,
         sort_params: Optional[VariationSortOrderSchema] = None,
         pagination_in: Optional[PaginationIn] = None,
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadProductVariationSchema]:
         await self._get_product_variants_validation(product_id=product_id, uow=uow)
         filters_dict = {"product_id": product_id}
@@ -160,17 +167,20 @@ class ProductService(
             await self._repository(uow).all(
                 **self._prepare_list_params(filters=filters_dict, pagination_in=pagination_in, order_by=sort_params),
             ),
+            website_settings=website_settings,
         )
 
     async def get_popular_products(
         self,
         uow: AbstractUnitOfWork,
         pagination_in: Optional[PaginationIn],
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadPreviewProductSchema]:
         return PreviewProductVariationReadMapper.to_dto_list(
             await uow.products.get_products_with_most_orders(
                 pagination_in=pagination_in,
             ),
+            website_settings=website_settings,
         )
 
     async def _bulk_create_validation(

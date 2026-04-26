@@ -8,3 +8,4 @@ from app.models.orders import Order, OrderItem  # noqa
 from app.models.product_images import ProductImage  # noqa
 from app.models.products import ProductVariation, UniqueProduct  # noqa
 from app.models.users import User  # noqa
+from app.models.website_settings import WebSiteSettings  # noqa

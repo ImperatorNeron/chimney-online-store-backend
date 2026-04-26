@@ -12,6 +12,7 @@ from app.services.categories import AbstractCategoryService
 from app.services.product_images import AbstractProductImageService
 from app.services.products import AbstractProductService
 from app.services.unique_products import AbstractUniqueProductService
+from app.services.website_settings import AbstractWebSiteSettingsService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -22,9 +23,10 @@ class AbstractFetchAbsoluteProductUseCase(ABC):
         self,
         product_slug: str,
         uow: AbstractUnitOfWork,
-        filters: Optional[VariationFiltersSchema],
-        sort_params: Optional[VariationSortOrderSchema],
-        pagination_in: Optional[PaginationIn],
+        filters: Optional[VariationFiltersSchema] = None,
+        sort_params: Optional[VariationSortOrderSchema] = None,
+        pagination_in: Optional[PaginationIn] = None,
+        apply_settings: bool = True,
     ) -> ReadAbsoluteProductSchema: ...
 
 
@@ -35,6 +37,7 @@ class FetchAbsoluteProductUseCase(ABC):
     unique_product_service: AbstractUniqueProductService
     product_image_service: AbstractProductImageService
     category_service: AbstractCategoryService
+    settings_service: AbstractWebSiteSettingsService
 
     async def execute(
         self,
@@ -43,14 +46,18 @@ class FetchAbsoluteProductUseCase(ABC):
         filters: Optional[VariationFiltersSchema] = None,
         sort_params: Optional[VariationSortOrderSchema] = None,
         pagination_in: Optional[PaginationIn] = None,
+        apply_settings: bool = True,
     ) -> ReadAbsoluteProductSchema:
-        key_parts = f"{product_slug}:{filters}:{sort_params}:{pagination_in}"
+        key_parts = f"{product_slug}:{filters}:{sort_params}:{pagination_in}:{apply_settings}"
         key = f"product:{hashlib.sha256(key_parts.encode()).hexdigest()}"
         cached = await FastAPICache.get_backend().get(key)
         if cached:
             return ReadAbsoluteProductSchema.model_validate_json(cached)
 
         async with uow:
+            ws = None
+            if apply_settings:
+                ws = await self.settings_service.get_settings(uow=uow)
             unique_product = await self.unique_product_service.get_one(
                 uow=uow, conditions={"slug": product_slug},
             )
@@ -65,6 +72,7 @@ class FetchAbsoluteProductUseCase(ABC):
                 filters=filters,
                 sort_params=sort_params,
                 pagination_in=pagination_in,
+                website_settings=ws,
             )
 
             variation_total = await uow.products.count(product_id=unique_product.id)

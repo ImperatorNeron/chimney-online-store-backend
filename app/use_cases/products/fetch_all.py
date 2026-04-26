@@ -11,6 +11,7 @@ from app.schemas.api_response import ListPaginatedResponse
 from app.schemas.filters import PaginationIn, PaginationOut, ProductFiltersSchema, SortOrderSchema
 from app.schemas.products import ReadPreviewProductSchema
 from app.services.products import AbstractProductService
+from app.services.website_settings import AbstractWebSiteSettingsService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -30,6 +31,7 @@ class AbstractFetchProductsUseCase(ABC):
 class FetchProductsUseCase(AbstractFetchProductsUseCase):
 
     product_service: AbstractProductService
+    settings_service: AbstractWebSiteSettingsService
 
     async def execute(
         self,
@@ -51,11 +53,13 @@ class FetchProductsUseCase(AbstractFetchProductsUseCase):
             return ListPaginatedResponse.model_validate_json(cached)
 
         async with uow:
+            ws = await self.settings_service.get_settings(uow=uow)
             products = await self.product_service.list_product_previews(
                 filters=filters,
                 sort_params=sort_params,
                 pagination_in=pagination_in,
                 uow=uow,
+                website_settings=ws,
             )
             count = await self.product_service.count(uow=uow, filters=filters)
             result = ListPaginatedResponse(

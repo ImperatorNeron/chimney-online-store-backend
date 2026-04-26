@@ -14,6 +14,7 @@ from app.repositories.product_images import ProductImageRepository
 from app.repositories.products import VariationProductRepository
 from app.repositories.unique_products import UniqueProductRepository
 from app.repositories.users import UserRepository
+from app.repositories.website_settings import WebSiteSettingsRepository
 
 
 class AbstractUnitOfWork(ABC):
@@ -21,6 +22,7 @@ class AbstractUnitOfWork(ABC):
     repositories and database transactions."""
 
     users: Type[UserRepository]
+    website_settings: Type[WebSiteSettingsRepository]
     messages: Type[MessageRepository]
     categories: Type[CategoryRepository]
     products: Type[VariationProductRepository]
@@ -61,6 +63,7 @@ class BaseUnitOfWork(AbstractUnitOfWork):
         self.like = LikeRepository(session=self.session)
         self.order = OrderRepository(session=self.session)
         self.order_item = OrderItemRepository(session=self.session)
+        self.website_settings = WebSiteSettingsRepository(session=self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):

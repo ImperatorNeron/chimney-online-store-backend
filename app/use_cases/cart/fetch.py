@@ -5,6 +5,7 @@ from app.mappers.carts import CartItemWithTotalPriceReadMapper
 from app.schemas.carts import BaseCartSchema, ReadFullCartSchema
 from app.services.cart_items import AbstractCartItemService
 from app.services.carts import AbstractCartService
+from app.services.website_settings import AbstractWebSiteSettingsService
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -23,6 +24,7 @@ class FetchCartUseCase(AbstractFetchCartUseCase):
 
     cart_service: AbstractCartService
     cart_item_service: AbstractCartItemService
+    settings_service: AbstractWebSiteSettingsService
 
     # TODO: kwargs to explicit filtering
     async def execute(
@@ -31,7 +33,10 @@ class FetchCartUseCase(AbstractFetchCartUseCase):
         cart_identifiers: BaseCartSchema,
     ) -> ReadFullCartSchema:
         async with uow:
-            cart = await self.cart_service.get_one(conditions=cart_identifiers, uow=uow)
+            ws = await self.settings_service.get_settings(uow=uow)
+            cart = await self.cart_service.get_one_with_settings(
+                uow=uow, conditions=cart_identifiers, website_settings=ws,
+            )
             total_quantity = self.cart_service.get_total_quantity(cart.items)
             items_with_total_amount = CartItemWithTotalPriceReadMapper.to_dto_list(
                 cart.items,
