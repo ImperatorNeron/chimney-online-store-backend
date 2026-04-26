@@ -13,6 +13,7 @@ from app.schemas.products import (
     CreateProductVariationSchema,
     CreateUniqueProductSchema,
     FullUpdateVariationSchema,
+    ReadDiscountedAdminSchema,
     ReadFullProductSchema,
     ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
@@ -226,4 +227,18 @@ class PriceRangeReadMapper(BaseReadMapper[Model, PriceRangeSchema]):
         return PriceRangeSchema(
             min_price=round(orm_obj[0]) if orm_obj[0] is not None else 0,
             max_price=round(orm_obj[1]) if orm_obj[1] is not None else 0,
+        )
+
+
+class DiscountedAdminReadMapper(BaseReadMapper[Model, ReadDiscountedAdminSchema]):
+
+    @staticmethod
+    def to_dto(orm_obj, **kwargs) -> ReadDiscountedAdminSchema:
+        return ReadDiscountedAdminSchema(
+            variation_id=orm_obj.id,
+            name=orm_obj.name,
+            slug=orm_obj.slug,
+            price=float(orm_obj.price),
+            discount_percentage=orm_obj.discount_percentage,
+            sort_order=orm_obj.discount_sort_order,
         )

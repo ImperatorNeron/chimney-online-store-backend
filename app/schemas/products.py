@@ -177,3 +177,17 @@ class UpdateVariationSchema(BaseUpdateVariationSchema, IDSchema):
 
 class FullUpdateVariationSchema(BaseUpdateVariationSchema, IDSchema):
     product_id: int = Field(gt=0)
+
+
+class ReadDiscountedAdminSchema(BaseModel):
+    variation_id: int
+    name: str
+    slug: str
+    price: float
+    discount_percentage: int
+    sort_order: int | None = None
+
+
+class ReorderDiscountedItemSchema(BaseModel):
+    variation_id: int = Field(..., gt=0)
+    sort_order: int = Field(..., ge=0)

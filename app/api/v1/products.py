@@ -21,9 +21,11 @@ from app.schemas.products import (
     BaseCreateProductVariationSchema,
     CreateUniqueProductSchema,
     ReadAbsoluteProductSchema,
+    ReadDiscountedAdminSchema,
     ReadFiltersSchema,
     ReadFullUniqueProductSchema,
     ReadPreviewProductSchema,
+    ReorderDiscountedItemSchema,
     UpdateUniqueProductSchema,
     UpdateVariationSchema,
 )
@@ -31,8 +33,11 @@ from app.use_cases.products.create import AbstractCreateProductUseCase
 from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase
 from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCase
+from app.use_cases.products.fetch_discounted import AbstractFetchDiscountedProductsUseCase
+from app.use_cases.products.fetch_discounted_admin import AbstractFetchDiscountedAdminUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase
+from app.use_cases.products.reorder_discounted import AbstractReorderDiscountedUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
 from app.use_cases.products.update import AbstractUpdateProductUseCase
@@ -140,6 +145,54 @@ async def get_products_recommendations(
             pagination_in=pagination_in,
         ),
     )
+
+
+@router.get(
+    "/discounted",
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
+)
+async def get_discounted_products(
+    pagination_in: Annotated[PaginationIn, Depends()],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchDiscountedProductsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchDiscountedProductsUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(pagination_in=pagination_in, uow=uow),
+    )
+
+
+@router.get(
+    "/discounted/admin",
+    response_model=ApiResponseSchema[list[ReadDiscountedAdminSchema]],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def get_discounted_admin(
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchDiscountedAdminUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchDiscountedAdminUseCase)),
+    ],
+):
+    return ApiResponseSchema(data=await use_case.execute(uow=uow))
+
+
+@router.patch(
+    "/discounted/reorder",
+    response_model=None,
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def reorder_discounted(
+    items: list[ReorderDiscountedItemSchema],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractReorderDiscountedUseCase,
+        Depends(lambda: get_container().resolve(AbstractReorderDiscountedUseCase)),
+    ],
+):
+    await use_case.execute(items=items, uow=uow)
 
 
 @router.get(

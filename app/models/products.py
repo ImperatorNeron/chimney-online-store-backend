@@ -52,6 +52,7 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
         default=0,
         server_default="0",
     )
+    discount_sort_order: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     diameter: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     length: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)

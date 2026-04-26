@@ -4,6 +4,7 @@ from typing import Optional, Type
 from app.core.exceptions.common import ForeignKeyConstraintViolationException
 from app.mappers.products import (
     BaseProductVariationReadMapper,
+    DiscountedAdminReadMapper,
     PreviewProductVariationReadMapper,
     PriceRangeReadMapper,
     ProductFiltersReadMapper,
@@ -22,6 +23,7 @@ from app.schemas.filters import (
 from app.schemas.products import (
     BaseUpdateVariationSchema,
     CreateProductVariationSchema,
+    ReadDiscountedAdminSchema,
     ReadPreviewProductSchema,
     ReadProductVariationSchema,
 )
@@ -92,6 +94,23 @@ class AbstractProductService(
         pagination_in: Optional[PaginationIn],
         website_settings: Optional[ReadWebSiteSettingsSchema] = None,
     ) -> list[ReadPreviewProductSchema]: ...
+
+    @abstractmethod
+    async def get_discounted_products(
+        self,
+        uow: AbstractUnitOfWork,
+        limit: int,
+        offset: int,
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
+    ) -> list[ReadPreviewProductSchema]: ...
+
+    @abstractmethod
+    async def get_discounted_admin(self, uow: AbstractUnitOfWork) -> list[ReadDiscountedAdminSchema]: ...
+
+    @abstractmethod
+    async def update_discount_sort_order(
+        self, uow: AbstractUnitOfWork, variation_id: int, sort_order: int,
+    ) -> None: ...
 
 
 class ProductService(
@@ -181,6 +200,30 @@ class ProductService(
                 pagination_in=pagination_in,
             ),
             website_settings=website_settings,
+        )
+
+    async def get_discounted_products(
+        self,
+        uow: AbstractUnitOfWork,
+        limit: int,
+        offset: int,
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
+    ) -> list[ReadPreviewProductSchema]:
+        return PreviewProductVariationReadMapper.to_dto_list(
+            await uow.products.get_discounted_products(limit=limit, offset=offset),
+            website_settings=website_settings,
+        )
+
+    async def get_discounted_admin(self, uow: AbstractUnitOfWork) -> list[ReadDiscountedAdminSchema]:
+        return DiscountedAdminReadMapper.to_dto_list(
+            await self._repository(uow).get_discounted_admin(),
+        )
+
+    async def update_discount_sort_order(
+        self, uow: AbstractUnitOfWork, variation_id: int, sort_order: int,
+    ) -> None:
+        await self._repository(uow).update_discount_sort_order(
+            variation_id=variation_id, sort_order=sort_order,
         )
 
     async def _bulk_create_validation(

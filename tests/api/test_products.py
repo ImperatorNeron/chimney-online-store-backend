@@ -373,3 +373,161 @@ async def test_delete_unique_success(async_client, mock_uow, patch_uow, patch_su
 
     assert response.status_code == 200
     assert response.content in (b"", b"null")
+
+
+# ==================== Discounted Products ====================
+
+
+@pytest.mark.asyncio
+async def test_get_discounted_products_success(async_client, mock_uow, patch_uow):
+    unique = UniqueProductFactory.build(id=1, slug="u-1", name="Unique 1")
+    unique.images = [ProductImageFactory.build(id=1, product_id=1, file_path="uploads/u-1/img.jpg", product=unique)]
+    variation = ProductVariationFactory.build(
+        id=10, product_id=1, product=unique, price=200.0, discount_percentage=20,
+    )
+
+    uow = mock_uow(
+        {
+            "products": {
+                "get_discounted_products": [variation],
+                "count": 1,
+            },
+            "website_settings": {"get_or_none": _default_ws},
+        },
+    )
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/products/discounted")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["pagination"]["total"] == 1
+    assert payload["items"][0]["id"] == 10
+    assert payload["items"][0]["discount_percentage"] == 20
+    assert payload["items"][0]["discount_price"] == 160  # 200 - 20%
+
+
+@pytest.mark.asyncio
+async def test_get_discounted_products_empty(async_client, mock_uow, patch_uow):
+    uow = mock_uow(
+        {
+            "products": {
+                "get_discounted_products": [],
+                "count": 0,
+            },
+            "website_settings": {"get_or_none": _default_ws},
+        },
+    )
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/products/discounted")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["pagination"]["total"] == 0
+    assert payload["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_discounted_products_with_website_settings(async_client, mock_uow, patch_uow):
+    unique = UniqueProductFactory.build(id=1, slug="u-1", name="Unique 1")
+    unique.images = [ProductImageFactory.build(id=1, product_id=1, file_path="uploads/u-1/img.jpg", product=unique)]
+    variation = ProductVariationFactory.build(
+        id=10, product_id=1, product=unique, price=1000.0, discount_percentage=10,
+    )
+
+    ws = WebSiteSettings(id=1, manufacturer_discount=10, seller_markup=50)
+    uow = mock_uow(
+        {
+            "products": {
+                "get_discounted_products": [variation],
+                "count": 1,
+            },
+            "website_settings": {"get_or_none": ws},
+        },
+    )
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/products/discounted?offset=10")
+
+    assert response.status_code == 200
+    item = response.json()["data"]["items"][0]
+    # 1000 * 0.9 * 1.5 = 1350, then 10% discount: 1350 - 135 = 1215
+    assert item["price"] == 1350
+    assert item["discount_price"] == 1215
+
+
+@pytest.mark.asyncio
+async def test_get_discounted_admin_success(async_client, mock_uow, patch_uow, patch_superuser):
+    from types import SimpleNamespace
+
+    row = SimpleNamespace(
+        id=10, name="Unique 1", slug="u-1", price=200.0,
+        discount_percentage=20, discount_sort_order=0,
+    )
+
+    uow = mock_uow(
+        {
+            "products": {
+                "get_discounted_admin": [row],
+            },
+        },
+    )
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/products/discounted/admin")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert len(payload) == 1
+    assert payload[0]["variation_id"] == 10
+    assert payload[0]["name"] == "Unique 1"
+    assert payload[0]["discount_percentage"] == 20
+    assert payload[0]["sort_order"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_discounted_admin_unauthorized(async_client):
+    response = await async_client.get("/api/v1/products/discounted/admin")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_reorder_discounted_success(async_client, mock_uow, patch_uow, patch_superuser):
+    variation = ProductVariationFactory.build(id=10, discount_percentage=20, discount_sort_order=None)
+
+    async def _get_model(**kwargs):
+        return variation
+
+    uow = mock_uow({"products": {}})
+    uow.products._get_model = AsyncMock(side_effect=_get_model)
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/products/discounted/reorder",
+            json=[
+                {"variation_id": 10, "sort_order": 0},
+                {"variation_id": 11, "sort_order": 1},
+            ],
+        )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_reorder_discounted_unauthorized(async_client):
+    response = await async_client.patch(
+        "/api/v1/products/discounted/reorder",
+        json=[{"variation_id": 10, "sort_order": 0}],
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_reorder_discounted_validation_error(async_client, patch_superuser):
+    async with patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/products/discounted/reorder",
+            json=[{"variation_id": -1, "sort_order": 0}],
+        )
+    assert response.status_code == 422

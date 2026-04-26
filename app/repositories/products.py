@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from sqlalchemy import desc, distinct, func, Select, select, Sequence
+from sqlalchemy import case, desc, distinct, func, Select, select, Sequence
 from sqlalchemy.orm import aliased, selectinload
 
 from app.core import constants
@@ -175,3 +175,45 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         query = query.order_by(order_clause)
         query = query.limit(pagination_in.limit).offset(pagination_in.offset)
         return query
+
+    async def get_discounted_products(self, limit: int, offset: int) -> Sequence:
+        sort_expr = case(
+            (self.model.discount_sort_order.isnot(None), self.model.discount_sort_order),
+            else_=9999,
+        )
+        query = (
+            select(self.model)
+            .options(*self.all_models_default_preload)
+            .where(self.model.discount_percentage > 0)
+            .order_by(sort_expr, desc(self.model.discount_percentage))
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+    async def get_discounted_admin(self) -> Sequence:
+        sort_expr = case(
+            (self.model.discount_sort_order.isnot(None), self.model.discount_sort_order),
+            else_=9999,
+        )
+        query = (
+            select(
+                self.model.id,
+                self.model.price,
+                self.model.discount_percentage,
+                self.model.discount_sort_order,
+                UniqueProduct.name,
+                UniqueProduct.slug,
+            )
+            .join(UniqueProduct, self.model.product_id == UniqueProduct.id)
+            .where(self.model.discount_percentage > 0)
+            .order_by(sort_expr, desc(self.model.discount_percentage))
+        )
+        result = await self.session.execute(query)
+        return result.all()
+
+    async def update_discount_sort_order(self, variation_id: int, sort_order: int) -> None:
+        instance = await self._get_model(id=variation_id)
+        instance.discount_sort_order = sort_order
+        await self.session.flush()
