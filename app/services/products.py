@@ -105,6 +105,15 @@ class AbstractProductService(
     ) -> list[ReadPreviewProductSchema]: ...
 
     @abstractmethod
+    async def get_new_products(
+        self,
+        uow: AbstractUnitOfWork,
+        limit: int,
+        offset: int,
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
+    ) -> list[ReadPreviewProductSchema]: ...
+
+    @abstractmethod
     async def get_discounted_admin(self, uow: AbstractUnitOfWork) -> list[ReadDiscountedAdminSchema]: ...
 
     @abstractmethod
@@ -211,6 +220,18 @@ class ProductService(
     ) -> list[ReadPreviewProductSchema]:
         return PreviewProductVariationReadMapper.to_dto_list(
             await uow.products.get_discounted_products(limit=limit, offset=offset),
+            website_settings=website_settings,
+        )
+
+    async def get_new_products(
+        self,
+        uow: AbstractUnitOfWork,
+        limit: int,
+        offset: int,
+        website_settings: Optional[ReadWebSiteSettingsSchema] = None,
+    ) -> list[ReadPreviewProductSchema]:
+        return PreviewProductVariationReadMapper.to_dto_list(
+            await uow.products.get_new_products(limit=limit, offset=offset),
             website_settings=website_settings,
         )
 

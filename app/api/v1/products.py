@@ -36,6 +36,7 @@ from app.use_cases.products.fetch_by_ids import AbstractFetchProductsByIdsUseCas
 from app.use_cases.products.fetch_discounted import AbstractFetchDiscountedProductsUseCase
 from app.use_cases.products.fetch_discounted_admin import AbstractFetchDiscountedAdminUseCase
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
+from app.use_cases.products.fetch_new import AbstractFetchNewProductsUseCase
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase
 from app.use_cases.products.reorder_discounted import AbstractReorderDiscountedUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
@@ -144,6 +145,23 @@ async def get_products_recommendations(
             uow=uow,
             pagination_in=pagination_in,
         ),
+    )
+
+
+@router.get(
+    "/new",
+    response_model=ApiResponseSchema[ListPaginatedResponse[ReadPreviewProductSchema]],
+)
+async def get_new_products(
+    pagination_in: Annotated[PaginationIn, Depends()],
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchNewProductsUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchNewProductsUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(pagination_in=pagination_in, uow=uow),
     )
 
 

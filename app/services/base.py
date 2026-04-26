@@ -136,6 +136,7 @@ class Read(AbstractRead[DTOReadType], RepositoryMixin):
             "offset": offset,
         }
 
+    # TODO: add kwargs, it is related to product_service.get_new_products
     async def list_all(
         self,
         uow: AbstractUnitOfWork,

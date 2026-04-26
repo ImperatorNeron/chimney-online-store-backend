@@ -217,3 +217,15 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         instance = await self._get_model(id=variation_id)
         instance.discount_sort_order = sort_order
         await self.session.flush()
+
+    async def get_new_products(self, limit: int, offset: int) -> Sequence:
+        query = (
+            select(self.model)
+            .options(*self.all_models_default_preload)
+            .where(self.model.discount_percentage == 0)
+            .order_by(desc(self.model.created_at))
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(query)
+        return result.scalars().all()
