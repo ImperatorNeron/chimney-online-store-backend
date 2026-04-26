@@ -1,7 +1,6 @@
 from typing import Any
 
 from app.mappers.base import BaseReadMapper, BaseUpsertMapper
-from app.mappers.products import ProductVariationReadMapper
 from app.models.orders import Order, OrderItem
 from app.schemas.orders import (
     CreateOrderItemSchema,
@@ -81,7 +80,10 @@ class OrderItemReadMapper(OrderItemBaseReadMapper):
         base = OrderItemBaseReadMapper.to_dto(orm_obj)
         return ReadOrderItemSchema(
             **base.model_dump(),
-            product=ProductVariationReadMapper.to_dto(orm_obj.product),
+            product_name=orm_obj.product_name,
+            product_slug=orm_obj.product_slug,
+            product_image=orm_obj.product_image,
+            product_price=float(orm_obj.product_price),
         )
 
 

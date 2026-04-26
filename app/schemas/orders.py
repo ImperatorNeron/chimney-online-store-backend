@@ -3,8 +3,6 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.schemas.products import ReadProductSchema
-
 
 class OrderItemFields(BaseModel):
     order_id: int = Field(..., gt=0, description="Must be positive integer")
@@ -14,16 +12,24 @@ class OrderItemFields(BaseModel):
 
 class ReadOrderItemSchema(OrderItemFields):
     id: int = Field(..., description="Order item ID")  # noqa
-    product: ReadProductSchema
+    product_id: int | None = Field(None)
+    product_name: str = ""
+    product_slug: str = ""
+    product_image: str | None = None
+    product_price: float = 0
 
 
 class ReadOrderItemBaseSchema(OrderItemFields):
     id: int = Field(..., description="Order item ID")  # noqa
-    product_id: int = Field(..., gt=0, description="Must be positive integer")
+    product_id: int | None = Field(None)
 
 
 class CreateOrderItemSchema(OrderItemFields):
     product_id: int = Field(..., gt=0, description="Must be positive integer")
+    product_name: str = ""
+    product_slug: str = ""
+    product_image: str | None = None
+    product_price: float = 0
 
 
 class UserIdField(BaseModel):

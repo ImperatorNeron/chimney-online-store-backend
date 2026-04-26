@@ -67,7 +67,6 @@ class ProductVariation(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
     )
     order_items: Mapped[list["OrderItem"]] = relationship(
         back_populates="product",
-        cascade="all, delete-orphan",
     )
     likes: Mapped[list["Like"]] = relationship(
         back_populates="product",

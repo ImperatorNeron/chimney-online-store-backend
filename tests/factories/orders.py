@@ -43,6 +43,10 @@ class OrderItemFactory(factory.Factory):
     product_id = 1
     quantity = 1
     price_at_order = 10.0
+    product_name = "Test Product"
+    product_slug = "test-product"
+    product_image = None
+    product_price = 10.0
     order = None
     product = None
 

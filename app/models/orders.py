@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -52,18 +52,19 @@ class Order(BaseModel, IdIntPkMixin, UpdateCreateDateTimeMixin):
 
 
 class OrderItem(BaseModel, IdIntPkMixin):
-    __table_args__ = (
-        UniqueConstraint(
-            "order_id",
-            "product_id",
-            name="uq_orderitems_order_id_product_id",
-        ),
-    )
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("productvariations.id"))
+    product_id: Mapped[int | None] = mapped_column(
+        ForeignKey("productvariations.id", ondelete="SET NULL"), nullable=True,
+    )
 
     quantity: Mapped[int] = mapped_column(Integer)
     price_at_order: Mapped[float] = mapped_column(Numeric(10, 2))
+
+    product_name: Mapped[str] = mapped_column(String(200), server_default="")
+    product_slug: Mapped[str] = mapped_column(String(255), server_default="")
+    product_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    product_price: Mapped[float] = mapped_column(Numeric(10, 2), server_default="0")
+
     order: Mapped[Order] = relationship("Order", back_populates="items")
     product: Mapped["ProductVariation"] = relationship(
         "ProductVariation",
