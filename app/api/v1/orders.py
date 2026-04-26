@@ -29,6 +29,7 @@ from app.schemas.orders import (
 from app.schemas.users import ReadUserSchema
 from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase
 from app.use_cases.orders.create import AbstractCreateOrderUseCase
+from app.use_cases.orders.delete import AbstractDeleteOrderUseCase
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase
 from app.use_cases.orders.fetch_customers import AbstractFetchCustomersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase
@@ -117,6 +118,22 @@ async def get_active_orders(
     return ApiResponseSchema(
         data=await use_case.execute(user_id=user.id, pagination_in=pagination_in, uow=uow),
     )
+
+
+@router.delete(
+    "/{order_id}",
+    response_model=None,
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def delete_order(
+    order_id: int,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractDeleteOrderUseCase,
+        Depends(lambda: get_container().resolve(AbstractDeleteOrderUseCase)),
+    ],
+):
+    await use_case.execute(order_id=order_id, uow=uow)
 
 
 @router.patch(

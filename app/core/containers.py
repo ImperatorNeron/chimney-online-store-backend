@@ -49,6 +49,7 @@ from app.use_cases.messages.fetch_message import AbstractFetchMessageUseCase, Fe
 from app.use_cases.messages.fetch_messages import AbstractFetchMessagesUseCase, FetchMessagesUseCase
 from app.use_cases.orders.active import AbstractFetchActiveOrdersUseCase, FetchActiveOrdersUseCase
 from app.use_cases.orders.create import AbstractCreateOrderUseCase, CreateOrderUseCase
+from app.use_cases.orders.delete import AbstractDeleteOrderUseCase, DeleteOrderUseCase
 from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrdersUseCase
 from app.use_cases.orders.fetch_customers import AbstractFetchCustomersUseCase, FetchCustomersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
@@ -154,6 +155,7 @@ def _initialize_container() -> punq.Container:
     container.register(AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase)
     container.register(AbstractFetchActiveOrdersUseCase, FetchActiveOrdersUseCase)
     container.register(AbstractUpdateOrderUseCase, UpdateOrderUseCase)
+    container.register(AbstractDeleteOrderUseCase, DeleteOrderUseCase)
     container.register(AbstractFetchCustomersUseCase, FetchCustomersUseCase)
 
     # WebSiteSettings

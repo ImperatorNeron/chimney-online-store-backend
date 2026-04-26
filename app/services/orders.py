@@ -21,7 +21,18 @@ from app.schemas.orders import (
     ReadOrderSchema,
     UpdateOrderSchema,
 )
-from app.services.base import AbstractCount, AbstractCreate, AbstractRead, AbstractUpdate, Count, Create, Read, Update
+from app.services.base import (
+    AbstractCount,
+    AbstractCreate,
+    AbstractDelete,
+    AbstractRead,
+    AbstractUpdate,
+    Count,
+    Create,
+    Delete,
+    Read,
+    Update,
+)
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -29,6 +40,7 @@ class AbstractOrderService(
     AbstractRead[ReadOrderSchema],
     AbstractCreate[ReadOrderBaseSchema, CreateOrderSchema],
     AbstractUpdate[ReadOrderBaseSchema, UpdateOrderSchema],
+    AbstractDelete,
     AbstractCount,
 ):
 
@@ -89,6 +101,7 @@ class OrderService(
     Read[ReadOrderSchema],
     Create[ReadOrderBaseSchema, CreateOrderSchema],
     Update[ReadOrderBaseSchema, UpdateOrderSchema],
+    Delete,
     Count,
 ):
     repository_name: str = "order"
