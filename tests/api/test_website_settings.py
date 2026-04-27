@@ -79,7 +79,7 @@ async def test_catalog_product_price_with_zero_settings(async_client, mock_uow, 
 
 
 @pytest.mark.asyncio
-async def test_admin_variations_show_original_price(async_client, mock_uow, patch_uow):
+async def test_admin_variations_show_original_price(async_client, mock_uow, patch_uow, patch_superuser):
     """Admin /{slug}/variations endpoint shows original prices without
     settings."""
     unique = UniqueProductFactory.build(id=1, slug="u-1", name="Unique 1", category_id=10)
@@ -94,7 +94,7 @@ async def test_admin_variations_show_original_price(async_client, mock_uow, patc
         "website_settings": {"get_or_none": _ws(10, 50)},
     })
 
-    async with patch_uow(uow):
+    async with patch_uow(uow), patch_superuser():
         response = await async_client.get("/api/v1/products/u-1/variations")
 
     assert response.status_code == 200

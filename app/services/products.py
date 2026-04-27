@@ -117,6 +117,11 @@ class AbstractProductService(
     async def get_discounted_admin(self, uow: AbstractUnitOfWork) -> list[ReadDiscountedAdminSchema]: ...
 
     @abstractmethod
+    async def get_variation_filters(
+        self, uow: AbstractUnitOfWork, product_id: int,
+    ) -> FiltersSchema: ...
+
+    @abstractmethod
     async def update_discount_sort_order(
         self, uow: AbstractUnitOfWork, variation_id: int, sort_order: int,
     ) -> None: ...
@@ -245,6 +250,13 @@ class ProductService(
     ) -> None:
         await self._repository(uow).update_discount_sort_order(
             variation_id=variation_id, sort_order=sort_order,
+        )
+
+    async def get_variation_filters(
+        self, uow: AbstractUnitOfWork, product_id: int,
+    ) -> FiltersSchema:
+        return ProductFiltersReadMapper.to_dto(
+            await uow.products.fetch_variation_filters(product_id=product_id),
         )
 
     async def _bulk_create_validation(

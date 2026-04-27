@@ -375,6 +375,40 @@ async def test_delete_unique_success(async_client, mock_uow, patch_uow, patch_su
     assert response.content in (b"", b"null")
 
 
+@pytest.mark.asyncio
+async def test_fetch_variation_filters_success(async_client, mock_uow, patch_uow, patch_superuser):
+    unique = UniqueProductFactory.build(id=1, slug="u-1", name="Unique 1")
+
+    uow = mock_uow(
+        {
+            "unique_products": {
+                "exists": True,
+                "get": unique,
+            },
+            "products": {
+                "fetch_variation_filters": ProductFiltersRepoResultFactory.build(),
+            },
+        },
+    )
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.get("/api/v1/products/u-1/variations/filters")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["diameter"] == ["120"]
+    assert payload["length"] == ["250"]
+    assert payload["thickness"] == ["0.5"]
+    assert payload["angle"] == ["45"]
+    assert payload["metal_type"] == ["steel"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_variation_filters_unauthorized(async_client):
+    response = await async_client.get("/api/v1/products/u-1/variations/filters")
+    assert response.status_code == 401
+
+
 # ==================== Discounted Products ====================
 
 

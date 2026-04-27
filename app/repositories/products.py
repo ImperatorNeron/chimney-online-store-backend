@@ -218,6 +218,15 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         instance.discount_sort_order = sort_order
         await self.session.flush()
 
+    async def fetch_variation_filters(self, product_id: int) -> Model:
+        agg_cols = [
+            func.array_agg(distinct(getattr(ProductVariation, attr))).label(attr)
+            for attr in constants.FILTERS
+        ]
+        query = select(*agg_cols).where(self.model.product_id == product_id)
+        result = await self.session.execute(query)
+        return result.one()
+
     async def get_new_products(self, limit: int, offset: int) -> Sequence:
         query = (
             select(self.model)

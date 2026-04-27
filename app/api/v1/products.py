@@ -9,6 +9,7 @@ from app.core.containers import get_container
 from app.core.exceptions.common import CustomPydanticValidationException
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import (
+    FiltersSchema,
     PaginationIn,
     ProductFiltersSchema,
     SortOrderSchema,
@@ -38,6 +39,7 @@ from app.use_cases.products.fetch_discounted_admin import AbstractFetchDiscounte
 from app.use_cases.products.fetch_filters import AbstractFetchFiltersUseCase
 from app.use_cases.products.fetch_new import AbstractFetchNewProductsUseCase
 from app.use_cases.products.fetch_popular import AbstractFetchPopularProductsUseCase
+from app.use_cases.products.fetch_variation_filters import AbstractFetchVariationFiltersUseCase
 from app.use_cases.products.reorder_discounted import AbstractReorderDiscountedUseCase
 from app.use_cases.products.unique.delete_unique import AbstractDeleteUniqueProductUseCase
 from app.use_cases.products.unique.fetch_all import AbstractFetchUniqueProductsUseCase
@@ -214,8 +216,25 @@ async def reorder_discounted(
 
 
 @router.get(
+    "/{product_slug}/variations/filters",
+    response_model=ApiResponseSchema[FiltersSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def fetch_variation_filters(
+    product_slug: str,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractFetchVariationFiltersUseCase,
+        Depends(lambda: get_container().resolve(AbstractFetchVariationFiltersUseCase)),
+    ],
+):
+    return ApiResponseSchema(data=await use_case.execute(product_slug=product_slug, uow=uow))
+
+
+@router.get(
     "/{product_slug}/variations",
     response_model=ApiResponseSchema[ReadAbsoluteProductSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def fetch_absolute_product_with_variations(
     product_slug: str,
