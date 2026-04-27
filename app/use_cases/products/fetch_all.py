@@ -54,6 +54,17 @@ class FetchProductsUseCase(AbstractFetchProductsUseCase):
 
         async with uow:
             ws = await self.settings_service.get_settings(uow=uow)
+
+            # Convert client-facing prices back to raw DB prices
+            # TODO: check if it is good solution
+            if filters.min_price or filters.max_price:
+                multiplier = (1 - ws.manufacturer_discount / 100) * (1 + ws.seller_markup / 100)
+                if multiplier > 0:
+                    if filters.min_price:
+                        filters.min_price = filters.min_price / multiplier - 1
+                    if filters.max_price:
+                        filters.max_price = filters.max_price / multiplier + 1
+
             products = await self.product_service.list_product_previews(
                 filters=filters,
                 sort_params=sort_params,

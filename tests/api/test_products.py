@@ -164,6 +164,7 @@ async def test_fetch_filters_success(async_client, mock_uow, patch_uow):
                 "fetch_filters": ProductFiltersRepoResultFactory.build(),
                 "get_min_max_price": (10.0, 200.0),
             },
+            "website_settings": {"get_or_none": _default_ws},
         },
     )
 
