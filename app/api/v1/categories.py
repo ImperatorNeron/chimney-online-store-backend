@@ -1,6 +1,6 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi_cache.decorator import cache
 
 from app.api.v1.dependencies import get_current_active_auth_superuser
@@ -69,17 +69,22 @@ async def get_child_categories(
     dependencies=[Depends(get_current_active_auth_superuser)],
 )
 async def create_category(
-    category_in: CreateCategorySchema,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractCreateCategoryUseCase,
         Depends(lambda: get_container().resolve(AbstractCreateCategoryUseCase)),
     ],
+    name: str = Form(...),
+    slug: str = Form(...),
+    parent_id: Optional[int] = Form(None),
+    image: Optional[UploadFile] = File(None),
 ):
+    category_in = CreateCategorySchema(name=name, slug=slug, parent_id=parent_id)
     return ApiResponseSchema(
         data=await use_case.execute(
             category_in=category_in,
             uow=uow,
+            image=image,
         ),
     )
 
@@ -91,18 +96,25 @@ async def create_category(
 )
 async def update_category(
     category_id: int,
-    category_in: UpdateCategorySchema,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
         AbstractUpdateCategoryUseCase,
         Depends(lambda: get_container().resolve(AbstractUpdateCategoryUseCase)),
     ],
+    name: Optional[str] = Form(None),
+    slug: Optional[str] = Form(None),
+    parent_id: Optional[int] = Form(None),
+    parent_slug: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
 ):
+    category_in = UpdateCategorySchema(name=name, slug=slug, parent_id=parent_id)
     return ApiResponseSchema(
         data=await use_case.execute(
             category_id=category_id,
             category_in=category_in,
             uow=uow,
+            image=image,
+            parent_slug=parent_slug,
         ),
     )
 

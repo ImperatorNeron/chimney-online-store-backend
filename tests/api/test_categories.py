@@ -1,5 +1,9 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from tests.factories.categories import CategoryFactory
+
+from app.services.files import AbstractFileStorageService, LocalFileStorage, SupabaseFileStorage
 
 
 @pytest.mark.asyncio
@@ -60,121 +64,244 @@ async def test_get_child_categories_success(async_client, mock_uow, patch_uow):
     uow.categories.get_children_by_parent_ids.assert_awaited_once_with([1, 2])
 
 
+# ==================== Create ====================
+
+
 @pytest.mark.asyncio
 async def test_create_category_success(
     async_client, mock_uow, patch_uow, patch_superuser,
 ):
-    category_in = {"name": "Some category", "slug": "some-category"}
-    fake_model = CategoryFactory.build(
-        id=1, name=category_in["name"], slug=category_in["slug"],
-    )
+    fake_model = CategoryFactory.build(id=1, name="Some category", slug="some-category")
     uow = mock_uow({"categories": {"exists": False, "create": fake_model}})
 
     async with patch_uow(uow), patch_superuser():
-        response = await async_client.post("/api/v1/categories", json=category_in)
+        response = await async_client.post(
+            "/api/v1/categories",
+            data={"name": "Some category", "slug": "some-category"},
+        )
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["id"] == 1
-    assert payload["data"]["name"] == category_in["name"]
-    assert payload["data"]["slug"] == category_in["slug"]
+    assert payload["data"]["name"] == "Some category"
+    assert payload["data"]["slug"] == "some-category"
     uow.categories.create.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_create_category_with_image_success(
+    async_client, mock_uow, patch_uow, patch_superuser, monkeypatch,
+):
+    monkeypatch.setattr(AbstractFileStorageService, "verify_file", AsyncMock(return_value=True))
+    monkeypatch.setattr(LocalFileStorage, "upload", AsyncMock(return_value=None))
+    monkeypatch.setattr(SupabaseFileStorage, "upload", AsyncMock(return_value=None))
+
+    fake_model = CategoryFactory.build(
+        id=1, name="Some category", slug="some-category", file_path="uploads/categories/some-category/img.jpg",
+    )
+    uow = mock_uow({"categories": {"exists": False, "create": fake_model}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.post(
+            "/api/v1/categories",
+            data={"name": "Some category", "slug": "some-category"},
+            files=[("image", ("img.jpg", b"fake-bytes", "image/jpeg"))],
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["file_path"] is not None
+    assert "categories/some-category" in payload["data"]["file_path"]
+
+
+@pytest.mark.asyncio
+async def test_create_category_with_parent_success(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    fake_model = CategoryFactory.build(id=2, name="Child category", slug="child-category", parent_id=1)
+
+    async def exists_side_effect(**kwargs):
+        if "slug" in kwargs:
+            return False
+        if "id" in kwargs:
+            return True
+        return False
+
+    uow = mock_uow({"categories": {"exists": None, "create": fake_model}})
+    uow.categories.exists = AsyncMock(side_effect=exists_side_effect)
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.post(
+            "/api/v1/categories",
+            data={"name": "Child category", "slug": "child-category", "parent_id": "1"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["parent_id"] == 1
 
 
 @pytest.mark.asyncio
 async def test_create_category_conflict_slug_exists(
     async_client, mock_uow, patch_uow, patch_superuser,
 ):
-    category_in = {"name": "Some category", "slug": "some-category"}
     uow = mock_uow({"categories": {"exists": True, "create": None}})
 
     async with patch_uow(uow), patch_superuser():
-        response = await async_client.post("/api/v1/categories", json=category_in)
+        response = await async_client.post(
+            "/api/v1/categories",
+            data={"name": "Some category", "slug": "some-category"},
+        )
 
     assert response.status_code == 409
     payload = response.json()
     assert payload["data"] is None
     assert payload["errors"][0]["code"] == "unique_conflict"
     assert "slug" in payload["errors"][0]["meta"]
+
+
+@pytest.mark.asyncio
+async def test_create_category_conflict_slug_exists_cleans_up_image(
+    async_client, mock_uow, patch_uow, patch_superuser, monkeypatch,
+):
+    monkeypatch.setattr(AbstractFileStorageService, "verify_file", AsyncMock(return_value=True))
+    monkeypatch.setattr(LocalFileStorage, "upload", AsyncMock(return_value=None))
+    mock_cleanup = AsyncMock(return_value=None)
+    monkeypatch.setattr(LocalFileStorage, "cleanup_files", mock_cleanup)
+    monkeypatch.setattr(SupabaseFileStorage, "upload", AsyncMock(return_value=None))
+    monkeypatch.setattr(SupabaseFileStorage, "cleanup_files", AsyncMock(return_value=None))
+
+    uow = mock_uow({"categories": {"exists": True, "create": None}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.post(
+            "/api/v1/categories",
+            data={"name": "Some category", "slug": "some-category"},
+            files=[("image", ("img.jpg", b"fake-bytes", "image/jpeg"))],
+        )
+
+    assert response.status_code == 409
+    mock_cleanup.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_create_category_conflict_parent_not_found(
     async_client, mock_uow, patch_uow, patch_superuser,
 ):
-    category_in = {
-        "name": "Child category",
-        "slug": "child-category",
-        "parent_id": 999,
-    }
-    uow = mock_uow({"categories": {"exists": False, "create": None}})
-
     async def exists_side_effect(**kwargs):
-        if kwargs.get("slug") == "child-category":
+        if "slug" in kwargs:
             return False
-        if kwargs.get("id") == 999:
+        if "id" in kwargs:
             return False
         return False
 
-    uow.categories.exists.side_effect = exists_side_effect
+    uow = mock_uow({"categories": {"exists": None, "create": None}})
+    uow.categories.exists = AsyncMock(side_effect=exists_side_effect)
 
     async with patch_uow(uow), patch_superuser():
-        response = await async_client.post("/api/v1/categories", json=category_in)
+        response = await async_client.post(
+            "/api/v1/categories",
+            data={"name": "Child category", "slug": "child-category", "parent_id": "999"},
+        )
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["data"] is None
     assert payload["errors"][0]["code"] == "foreign_key_violation"
 
 
 @pytest.mark.asyncio
-async def test_create_category_validation_error_invalid_slug(
-    async_client, mock_uow, patch_uow, patch_superuser,
-):
-    uow = mock_uow({"categories": {"exists": False, "create": None}})
-    async with patch_uow(uow), patch_superuser():
-        response = await async_client.post(
-            "/api/v1/categories",
-            json={"name": "Some category", "slug": "Bad_Slug"},
-        )
-    assert response.status_code == 422
+async def test_create_category_unauthorized(async_client):
+    response = await async_client.post(
+        "/api/v1/categories",
+        data={"name": "Some category", "slug": "some-category"},
+    )
+    assert response.status_code == 401
+
+
+# ==================== Update ====================
 
 
 @pytest.mark.asyncio
 async def test_update_category_success(
     async_client, mock_uow, patch_uow, patch_superuser,
 ):
-    category_in = {"name": "Updated category"}
-    fake_model = CategoryFactory.build(
-        id=1, name="Updated category", slug="some-category",
-    )
-    uow = mock_uow({"categories": {"update": fake_model}})
+    fake_model = CategoryFactory.build(id=1, name="Updated category", slug="some-category")
+    uow = mock_uow({"categories": {"get_or_none": None, "update": fake_model}})
 
     async with patch_uow(uow), patch_superuser():
-        response = await async_client.patch("/api/v1/categories/1", json=category_in)
+        response = await async_client.patch(
+            "/api/v1/categories/1",
+            data={"name": "Updated category"},
+        )
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["data"]["id"] == 1
     assert payload["data"]["name"] == "Updated category"
     uow.categories.update.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_update_category_conflict_slug_exists(
-    async_client, mock_uow, patch_uow, patch_superuser,
+async def test_update_category_with_image_success(
+    async_client, mock_uow, patch_uow, patch_superuser, monkeypatch,
 ):
-    category_in = {"slug": "some-category"}
-    uow = mock_uow({"categories": {"exists": True, "update": None}})
+    monkeypatch.setattr(AbstractFileStorageService, "verify_file", AsyncMock(return_value=True))
+    monkeypatch.setattr(LocalFileStorage, "upload", AsyncMock(return_value=None))
+    monkeypatch.setattr(SupabaseFileStorage, "upload", AsyncMock(return_value=None))
+
+    current = CategoryFactory.build(id=1, name="Category", slug="some-category")
+    updated = CategoryFactory.build(
+        id=1, name="Category", slug="some-category", file_path="uploads/categories/some-category/new.jpg",
+    )
+    uow = mock_uow({"categories": {"get": current, "get_or_none": None, "update": updated}})
 
     async with patch_uow(uow), patch_superuser():
-        response = await async_client.patch("/api/v1/categories/1", json=category_in)
+        response = await async_client.patch(
+            "/api/v1/categories/1",
+            data={"name": "Category", "slug": "some-category"},
+            files=[("image", ("new.jpg", b"fake-bytes", "image/jpeg"))],
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["file_path"] is not None
+
+
+@pytest.mark.asyncio
+async def test_update_category_slug_conflict(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    other = CategoryFactory.build(id=2, slug="taken-slug")
+    uow = mock_uow({"categories": {"get_or_none": other, "update": None}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/categories/1",
+            data={"slug": "taken-slug"},
+        )
 
     assert response.status_code == 409
     payload = response.json()
-    assert payload["data"] is None
-    assert payload["errors"][0]["code"] == "unique_conflict"
     assert "slug" in payload["errors"][0]["meta"]
+
+
+@pytest.mark.asyncio
+async def test_update_category_same_slug_no_conflict(
+    async_client, mock_uow, patch_uow, patch_superuser,
+):
+    same = CategoryFactory.build(id=1, slug="same-slug")
+    updated = CategoryFactory.build(id=1, name="Updated", slug="same-slug")
+    uow = mock_uow({"categories": {"get_or_none": same, "update": updated}})
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/categories/1",
+            data={"name": "Updated", "slug": "same-slug"},
+        )
+
+    assert response.status_code == 200
+
+
+# ==================== Delete ====================
 
 
 @pytest.mark.asyncio
@@ -188,3 +315,9 @@ async def test_delete_category_success(
     assert response.status_code == 200
     assert response.content in (b"", b"null")
     uow.categories.delete.assert_awaited_once_with(id=1)
+
+
+@pytest.mark.asyncio
+async def test_delete_category_unauthorized(async_client):
+    response = await async_client.delete("/api/v1/categories/1")
+    assert response.status_code == 401

@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 import aiofiles
+import aiofiles.os
 import magic
 from fastapi import UploadFile
 
@@ -25,15 +26,11 @@ class AbstractFileStorageService(ABC):
 
     @abstractmethod
     async def upload(self, file: UploadFile, path: str) -> str:
-        """
-        Upload file and return public URL
-        """
+        """Upload file and return public URL."""
 
     @abstractmethod
     async def cleanup_files(self, files: list) -> None:
-        """
-        Delete files from storage
-        """
+        """Delete files from storage."""
 
     # TODO: maybe think about moving methods below to apart service or mixin
     async def __mime_type_check(self, file: UploadFile) -> None:
@@ -78,7 +75,7 @@ class LocalFileStorage(AbstractFileStorageService):
     # TODO: check if try/except is needed
     async def upload(self, file: UploadFile, path: str) -> str:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        
+
         async with aiofiles.open(path, "wb") as f:
             while chunk := await file.read(8192):
                 await f.write(chunk)
@@ -86,7 +83,8 @@ class LocalFileStorage(AbstractFileStorageService):
     async def cleanup_files(self, files: list) -> None:
         for file in files:
             try:
-                await aiofiles.os.remove(file.file_path)
+                remove_file = file if isinstance(file, str) else file.file_path
+                await aiofiles.os.remove(remove_file)
             except (FileNotFoundError, PermissionError, OSError) as e:
                 logger.error("Failed to create product: %s", e, exc_info=True)
 
@@ -105,8 +103,9 @@ class SupabaseFileStorage(AbstractFileStorageService):
     async def cleanup_files(self, files: list) -> None:
         for file in files:
             try:
+                remove_file = file if isinstance(file, str) else file.file_path
                 supabase_client.storage.from_(settings.bucket.name).remove(
-                    [file.file_path]
+                    [remove_file],
                 )
             except Exception as e:
                 logger.error("Failed to delete images: %s", e, exc_info=True)

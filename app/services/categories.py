@@ -75,16 +75,17 @@ class CategoryService(AbstractCategoryService, CRUDService):
     async def _update_validation(
         self,
         *args,
+        item_id: int,
         item_in: UpdateCategorySchema,
         uow: AbstractUnitOfWork,
         **kwargs,
     ):
-        if item_in.slug is not None and await uow.categories.exists(
-            slug=item_in.slug,
-        ):
-            raise UniqueConstraintViolationsException(
-                {"slug": "Категорія з цим url вже існує."},
-            )
+        if item_in.slug is not None:
+            existing = await uow.categories.get_or_none(slug=item_in.slug)
+            if existing and existing.id != item_id:
+                raise UniqueConstraintViolationsException(
+                    {"slug": "Категорія з цим url вже існує."},
+                )
         if item_in.parent_id is not None and not await uow.categories.exists(
             id=item_in.parent_id,
         ):
