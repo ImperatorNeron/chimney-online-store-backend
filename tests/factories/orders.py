@@ -30,6 +30,8 @@ class OrderFactory(factory.Factory):
     address = Faker("street_address")
     shipping_method = "nova_poshta"
     payment_method = "cash"
+    comment = None
+    internal_comment = None
 
     items = factory.LazyFunction(list)
 

@@ -10,6 +10,7 @@ from app.schemas.orders import (
     ReadOrderItemBaseSchema,
     ReadOrderItemSchema,
     ReadOrderSchema,
+    UpdateOrderItemQuantitySchema,
     UpdateOrderSchema,
 )
 
@@ -88,6 +89,10 @@ class OrderItemReadMapper(OrderItemBaseReadMapper):
 
 
 class OrderItemCreateMapper(BaseUpsertMapper[OrderItem, CreateOrderItemSchema]):
+    pass
+
+
+class OrderItemUpdateMapper(BaseUpsertMapper[OrderItem, UpdateOrderItemQuantitySchema]):
     pass
 
 

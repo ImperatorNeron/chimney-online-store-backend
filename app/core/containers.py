@@ -11,6 +11,7 @@ from app.services.faq import AbstractFAQService, FAQService
 from app.services.files import AbstractFileStorageService, LocalFileStorage, SupabaseFileStorage
 from app.services.likes import AbstractLikeService, LikeService
 from app.services.messages import AbstractMessageService, MessageService
+from app.services.order_items import AbstractOrderItemService, OrderItemService
 from app.services.orders import AbstractOrderService, OrderService
 from app.services.product_images import AbstractProductImageService, ProductImageService
 from app.services.products import AbstractProductService, ProductService
@@ -54,6 +55,7 @@ from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase, FetchOrde
 from app.use_cases.orders.fetch_customers import AbstractFetchCustomersUseCase, FetchCustomersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase
 from app.use_cases.orders.update import AbstractUpdateOrderUseCase, UpdateOrderUseCase
+from app.use_cases.orders.update_items import AbstractUpdateOrderItemsUseCase, UpdateOrderItemsUseCase
 from app.use_cases.products.create import AbstractCreateProductUseCase, CreateProductUseCase
 from app.use_cases.products.fetch_absolute_one import AbstractFetchAbsoluteProductUseCase, FetchAbsoluteProductUseCase
 from app.use_cases.products.fetch_all import AbstractFetchProductsUseCase, FetchProductsUseCase
@@ -169,11 +171,13 @@ def _initialize_container() -> punq.Container:
 
     # Order
     container.register(AbstractOrderService, OrderService)
+    container.register(AbstractOrderItemService, OrderItemService)
     container.register(AbstractFetchOrdersUseCase, FetchOrdersUseCase)
     container.register(AbstractCreateOrderUseCase, CreateOrderUseCase)
     container.register(AbstractFetchOrdersHistoryUseCase, FetchOrdersHistoryUseCase)
     container.register(AbstractFetchActiveOrdersUseCase, FetchActiveOrdersUseCase)
     container.register(AbstractUpdateOrderUseCase, UpdateOrderUseCase)
+    container.register(AbstractUpdateOrderItemsUseCase, UpdateOrderItemsUseCase)
     container.register(AbstractDeleteOrderUseCase, DeleteOrderUseCase)
     container.register(AbstractFetchCustomersUseCase, FetchCustomersUseCase)
 

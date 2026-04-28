@@ -212,6 +212,21 @@ class UpdateOrderSchema(BaseModel):
         return value.title()
 
 
+class UpdateOrderItemAction(BaseModel):
+    item_id: int = Field(..., gt=0)
+    action: str = Field(..., pattern="^(update_quantity|delete)$")
+    quantity: Optional[int] = Field(None, ge=1)
+
+
+class UpdateOrderItemsSchema(BaseModel):
+    items: list[UpdateOrderItemAction] = Field(..., min_length=1)
+
+
+class UpdateOrderItemQuantitySchema(BaseModel):
+    quantity: int = Field(..., ge=1)
+    price_at_order: float = Field(..., gt=0)
+
+
 class ReadCustomerSchema(BaseModel):
     phone_number: str = Field(min_length=9, max_length=19, pattern=r"^\d{9,19}$")
     first_name: str = Field(max_length=50)

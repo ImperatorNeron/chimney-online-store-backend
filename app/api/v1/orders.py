@@ -24,6 +24,7 @@ from app.schemas.orders import (
     ReadCustomerSchema,
     ReadExtendedOrderSchema,
     ReadOrderBaseSchema,
+    UpdateOrderItemsSchema,
     UpdateOrderSchema,
 )
 from app.schemas.users import ReadUserSchema
@@ -34,6 +35,7 @@ from app.use_cases.orders.fetch_all import AbstractFetchOrdersUseCase
 from app.use_cases.orders.fetch_customers import AbstractFetchCustomersUseCase
 from app.use_cases.orders.history import AbstractFetchOrdersHistoryUseCase
 from app.use_cases.orders.update import AbstractUpdateOrderUseCase
+from app.use_cases.orders.update_items import AbstractUpdateOrderItemsUseCase
 from app.utils.unit_of_work import AbstractUnitOfWork, UnitOfWork
 
 
@@ -154,6 +156,29 @@ async def update_order_info(
         data=await use_case.execute(
             order_id=order_id,
             order_in=order_in,
+            uow=uow,
+        ),
+    )
+
+
+@router.patch(
+    "/{order_id}/items",
+    response_model=ApiResponseSchema[ReadExtendedOrderSchema],
+    dependencies=[Depends(get_current_active_auth_superuser)],
+)
+async def update_order_items(
+    order_id: int,
+    items_in: UpdateOrderItemsSchema,
+    uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
+    use_case: Annotated[
+        AbstractUpdateOrderItemsUseCase,
+        Depends(lambda: get_container().resolve(AbstractUpdateOrderItemsUseCase)),
+    ],
+):
+    return ApiResponseSchema(
+        data=await use_case.execute(
+            order_id=order_id,
+            items_in=items_in,
             uow=uow,
         ),
     )

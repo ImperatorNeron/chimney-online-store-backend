@@ -95,6 +95,11 @@ class AbstractOrderService(
         filters: Optional[CustomerFiltersSchema] = None,
     ) -> int: ...
 
+    @abstractmethod
+    async def get_order_with_items(
+        self, order_id: int, uow: AbstractUnitOfWork,
+    ) -> ReadOrderSchema: ...
+
 
 class OrderService(
     AbstractOrderService,
@@ -178,3 +183,10 @@ class OrderService(
     ) -> int:
         filters_dict = filters.model_dump() if filters else {}
         return await uow.order.get_customers_count(**filters_dict)
+
+    async def get_order_with_items(
+        self, order_id: int, uow: AbstractUnitOfWork,
+    ) -> ReadOrderSchema:
+        return self.read_mapper.to_dto(
+            await uow.order.get_with_items(order_id=order_id),
+        )

@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import joinedload
 
+from app.core.exceptions.common import ItemNotFoundException
 from app.models.orders import Order, OrderItem
 from app.models.products import ProductVariation
 from app.models.users import User
@@ -120,6 +121,14 @@ class OrderRepository(BaseRepository):
             stmt = stmt.offset(offset)
         result = await self.session.execute(stmt)
         return result.unique().scalars().all()
+
+    async def get_with_items(self, order_id: int):
+        stmt = self._get_base_query().where(self.model.id == order_id)
+        result = await self.session.execute(stmt)
+        order = result.unique().scalars().first()
+        if not order:
+            raise ItemNotFoundException()
+        return order
 
     async def get_customers(
         self, limit: int = 20, offset: int = 0,

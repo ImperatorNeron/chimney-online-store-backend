@@ -554,6 +554,127 @@ async def test_create_order_authenticated_user_missing_returns_404(
     assert response.status_code == 404
 
 
+# ==================== Update Order Items ====================
+
+
+@pytest.mark.asyncio
+async def test_update_order_items_update_quantity_success(async_client, mock_uow, patch_uow, patch_superuser):
+    v1 = _build_variation(variation_id=10, unique_id=1, slug="u-1", price=100.0, discount_percentage=0)
+
+    i1 = OrderItemFactory.build(
+        id=1,
+        order_id=1,
+        product_id=10,
+        quantity=1,
+        price_at_order=100.0,
+        product_price=100.0,
+        product=v1,
+    )
+
+    order_before = OrderFactory.build(id=1, status="pending")
+    order_before.items = [i1]
+
+    i1_updated = OrderItemFactory.build(
+        id=1,
+        order_id=1,
+        product_id=10,
+        quantity=3,
+        price_at_order=300.0,
+        product_price=100.0,
+        product=v1,
+    )
+    order_after = OrderFactory.build(id=1, status="pending")
+    order_after.items = [i1_updated]
+
+    uow = mock_uow({
+        "order": {"get_with_items": None},
+        "order_item": {"update": i1_updated},
+    })
+    uow.order.get_with_items = AsyncMock(side_effect=[order_before, order_after])
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/orders/1/items",
+            json={"items": [{"item_id": 1, "action": "update_quantity", "quantity": 3}]},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["items"][0]["quantity"] == 3
+    assert payload["items"][0]["price_at_order"] == 300
+    assert payload["total_price"] == 300
+    assert payload["total_quantity"] == 3
+
+
+@pytest.mark.asyncio
+async def test_update_order_items_cannot_delete_last_item(async_client, mock_uow, patch_uow, patch_superuser):
+    v1 = _build_variation(variation_id=10, unique_id=1, slug="u-1", price=100.0, discount_percentage=0)
+
+    order = OrderFactory.build(id=1, status="pending")
+    i1 = OrderItemFactory.build(
+        id=1,
+        order_id=1,
+        product_id=10,
+        quantity=1,
+        price_at_order=100.0,
+        product_price=100.0,
+        product=v1,
+    )
+    order.items = [i1]
+
+    uow = mock_uow({
+        "order": {"get_with_items": order},
+        "order_item": {},
+    })
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/orders/1/items",
+            json={"items": [{"item_id": 1, "action": "delete"}]},
+        )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_order_items_item_not_found(async_client, mock_uow, patch_uow, patch_superuser):
+    v1 = _build_variation(variation_id=10, unique_id=1, slug="u-1", price=100.0, discount_percentage=0)
+
+    order = OrderFactory.build(id=1, status="pending")
+    i1 = OrderItemFactory.build(
+        id=1,
+        order_id=1,
+        product_id=10,
+        quantity=1,
+        price_at_order=100.0,
+        product_price=100.0,
+        product=v1,
+    )
+    order.items = [i1]
+
+    uow = mock_uow({
+        "order": {"get_with_items": order},
+        "order_item": {},
+    })
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/orders/1/items",
+            json={"items": [{"item_id": 999, "action": "delete"}]},
+        )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_order_items_unauthorized(async_client):
+    response = await async_client.patch(
+        "/api/v1/orders/1/items",
+        json={"items": [{"item_id": 1, "action": "delete"}]},
+    )
+    assert response.status_code == 401
+
+
 # ==================== Customers ====================
 
 
