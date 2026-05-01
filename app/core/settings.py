@@ -69,7 +69,7 @@ class ImageSettings(BaseModel):
 
 
 class LoggingSettings(BaseModel):
-    log_dir: Path = BASE_DIR / "logs"
+    log_dir: Path = BASE_DIR.parent / "uploads" / "logs"
     log_file_name: str = "app.log"
     log_level: str = "INFO"
 
