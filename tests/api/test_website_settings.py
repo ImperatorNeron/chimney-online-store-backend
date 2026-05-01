@@ -4,8 +4,8 @@ from tests.factories.products import ProductImageFactory, ProductVariationFactor
 from app.models.website_settings import WebSiteSettings
 
 
-def _ws(discount: float, markup: float):
-    return WebSiteSettings(id=1, manufacturer_discount=discount, seller_markup=markup)
+def _ws(discount: float, markup: float, **kwargs):
+    return WebSiteSettings(id=1, manufacturer_discount=discount, seller_markup=markup, **kwargs)
 
 
 def _make_variation(price: float, discount_percentage: int = 0):
@@ -148,4 +148,94 @@ async def test_update_website_settings_unauthorized(async_client):
         "/api/v1/website-settings",
         json={"manufacturer_discount": 10},
     )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_public_website_settings_no_auth_required(async_client, mock_uow, patch_uow):
+    ws = _ws(
+        10, 20, phone="+380991234567", email="test@example.com",
+        address="м. Луцьк", work_schedule="Пн-Пт: 9:00-18:00",
+        telegram_url="https://t.me/test", facebook_url="https://facebook.com/test",
+    )
+
+    uow = mock_uow({"website_settings": {"get_or_none": ws}})
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/website-settings/public")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["phone"] == "+380991234567"
+    assert data["email"] == "test@example.com"
+    assert data["address"] == "м. Луцьк"
+    assert data["work_schedule"] == "Пн-Пт: 9:00-18:00"
+    assert data["telegram_url"] == "https://t.me/test"
+    assert data["facebook_url"] == "https://facebook.com/test"
+    assert data["manufacturer_discount"] == 10
+    assert data["seller_markup"] == 20
+
+
+@pytest.mark.asyncio
+async def test_get_public_website_settings_with_null_fields(async_client, mock_uow, patch_uow):
+    ws = _ws(0, 0)
+
+    uow = mock_uow({"website_settings": {"get_or_none": ws}})
+
+    async with patch_uow(uow):
+        response = await async_client.get("/api/v1/website-settings/public")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["phone"] is None
+    assert data["email"] is None
+    assert data["address"] is None
+    assert data["work_schedule"] is None
+    assert data["telegram_url"] is None
+    assert data["facebook_url"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_website_settings_with_contact_fields(async_client, mock_uow, patch_uow, patch_superuser):
+    updated = _ws(
+        10, 20, phone="+380501234567", email="info@shop.com",
+        address="м. Київ", work_schedule="Пн-Сб: 9:00-19:00",
+        telegram_url="https://t.me/shop", facebook_url="https://facebook.com/shop",
+    )
+
+    uow = mock_uow({
+        "website_settings": {
+            "get_or_none": _ws(0, 0),
+            "update": updated,
+        },
+    })
+
+    async with patch_uow(uow), patch_superuser():
+        response = await async_client.patch(
+            "/api/v1/website-settings",
+            json={
+                "manufacturer_discount": 10,
+                "seller_markup": 20,
+                "phone": "+380501234567",
+                "email": "info@shop.com",
+                "address": "м. Київ",
+                "work_schedule": "Пн-Сб: 9:00-19:00",
+                "telegram_url": "https://t.me/shop",
+                "facebook_url": "https://facebook.com/shop",
+            },
+        )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["phone"] == "+380501234567"
+    assert data["email"] == "info@shop.com"
+    assert data["address"] == "м. Київ"
+    assert data["work_schedule"] == "Пн-Сб: 9:00-19:00"
+    assert data["telegram_url"] == "https://t.me/shop"
+    assert data["facebook_url"] == "https://facebook.com/shop"
+
+
+@pytest.mark.asyncio
+async def test_get_website_settings_unauthorized(async_client):
+    response = await async_client.get("/api/v1/website-settings")
     assert response.status_code == 401

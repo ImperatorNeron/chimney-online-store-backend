@@ -10,6 +10,12 @@ class WebSiteSettingsReadMapper(BaseReadMapper[WebSiteSettings, ReadWebSiteSetti
         return ReadWebSiteSettingsSchema(
             manufacturer_discount=float(orm_obj.manufacturer_discount),
             seller_markup=float(orm_obj.seller_markup),
+            phone=orm_obj.phone,
+            email=orm_obj.email,
+            address=orm_obj.address,
+            work_schedule=orm_obj.work_schedule,
+            telegram_url=orm_obj.telegram_url,
+            facebook_url=orm_obj.facebook_url,
         )
 
 
