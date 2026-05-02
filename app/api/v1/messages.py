@@ -20,7 +20,7 @@ router = APIRouter(prefix="/messages", tags=["Messages"])
 
 
 @router.get(
-    "/",
+    "",
     summary="Get list of messages",
     response_model=ApiResponseSchema[ListPaginatedResponse[ReadMessageSchema]],
     dependencies=[Depends(get_current_active_auth_superuser)],
@@ -69,7 +69,7 @@ async def get_message(
 
 
 @router.post(
-    "/",
+    "",
     response_model=ApiResponseSchema[ReadMessageSchema],
     summary="Create new message",
 )
