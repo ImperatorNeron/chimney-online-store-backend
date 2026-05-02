@@ -32,7 +32,9 @@ def create_app() -> FastAPI:
     logger.info("Starting application setup...")
     application = FastAPI(
         title="Chimney online shop API",
-        docs_url="/api/docs",
+        docs_url="/api/docs" if settings.environment != "prod" else None,
+        redoc_url="/api/docs" if settings.environment != "prod" else None,
+        openapi_url="/api/docs" if settings.environment != "prod" else None,
         default_response_class=ORJSONResponse,
         debug=settings.environment != "prod",
         lifespan=lifespan,
@@ -49,18 +51,19 @@ def create_app() -> FastAPI:
 
     if settings.environment != "prod":
         try:
-            from fastapi.staticfiles import StaticFiles
             from pathlib import Path
-            
+
+            from fastapi.staticfiles import StaticFiles
+
             upload_dir = Path("uploads")
             upload_dir.mkdir(parents=True, exist_ok=True)
-            
+
             application.mount(
-                "/media", 
+                "/media",
                 StaticFiles(directory=upload_dir),
                 name="media",
             )
-            logger.info(f"Development mode: Static files mounted from 'uploads/' → /media")
+            logger.info("Development mode: Static files mounted from 'uploads/' → /media")
         except Exception as e:
             logger.error(f"Failed to mount static files in development mode: {e}")
     else:
