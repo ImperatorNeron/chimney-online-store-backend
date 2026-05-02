@@ -7,6 +7,13 @@ PORT="${PORT:-8000}"
 WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
 WAIT_FOR_DB="${WAIT_FOR_DB:-0}"
 
+echo "=== DEBUG ENV ==="
+echo "APP_CONFIG__ENVIRONMENT = '${APP_CONFIG__ENVIRONMENT}'"
+echo "RUN_MIGRATIONS = '${RUN_MIGRATIONS}'"
+echo "ENVIRONMENT (derived) = '${ENVIRONMENT}'"
+echo "Length of RUN_MIGRATIONS: ${#RUN_MIGRATIONS}"
+echo "================="
+
 wait_for_port() {
     local host=$1
     local port=$2
