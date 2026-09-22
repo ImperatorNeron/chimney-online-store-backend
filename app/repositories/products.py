@@ -86,7 +86,9 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         return result.scalars().all()
 
     async def count(self, **filters: Any) -> int:
-        query = select(func.count()).select_from(self.model)
+        # Count distinct PRODUCTS (one card per product), not variations.
+        query = select(func.count(distinct(self.model.product_id)))
+        query = query.select_from(self.model)
         query = self._apply_custom_filters(
             query=query, filters=ProductFiltersSchema(**filters),
         )
@@ -193,23 +195,64 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         pagination_in: PaginationIn,
     ) -> Select:
         final_price_expr = self.model.price * (1 - self.model.discount_percentage / 100)
+
+        # Base filtered set of variations (relevance filter joins UniqueProduct).
+        base = select(self.model.id.label("variation_id"))
+        base = base.add_columns(self.model.product_id.label("product_id"))
+        base = base.add_columns(final_price_expr.label("final_price"))
+        base = self._apply_custom_filters(query=base, filters=filters)
+
+        is_search = bool(filters and filters.text and not filters.category_slug)
+
+        if is_search:
+            main_rank, word_rank = self._build_relevance_score(
+                filters.text, self._attr_conditions,
+            )
+            base = base.add_columns(
+                main_rank.label("main_rank"),
+                word_rank.label("word_rank"),
+            )
+
+        base = base.subquery("filtered")
+
+        # Pick ONE representative variation per product (one card per product).
+        # For search: the best-matching (lowest rank) variation of each product.
+        # Otherwise: the cheapest variation as the representative.
+        rep = select(base.c.variation_id)
+        if is_search:
+            rep = rep.distinct(base.c.product_id).order_by(
+                base.c.product_id,
+                base.c.main_rank.asc(),
+                base.c.word_rank.asc(),
+                base.c.final_price.asc(),
+            )
+        else:
+            rep = rep.distinct(base.c.product_id).order_by(
+                base.c.product_id,
+                base.c.final_price.asc(),
+            )
+        rep_ids = rep.subquery("rep")
+
+        # Final query: full variation rows for the chosen representatives only.
         query = select(self.model).options(*self.all_models_default_preload)
         query = query.add_columns(final_price_expr.label("final_price"))
-        query = self._apply_custom_filters(query=query, filters=filters)
+        query = query.where(self.model.id.in_(select(rep_ids.c.variation_id)))
 
-        query = self._apply_relevance_ordering(query, self._attr_conditions)
-
-        if sort_params.field == "final_price":
-            order_field = final_price_expr
+        # Order the resulting cards.
+        if is_search:
+            query = query.join(self.model.product)
+            main_rank, word_rank = self._build_relevance_score(
+                filters.text, self._attr_conditions,
+            )
+            query = query.order_by(main_rank.asc(), word_rank.asc())
         else:
-            order_field = getattr(self.model, sort_params.field)
+            if sort_params.field == "final_price":
+                order_field = final_price_expr
+            else:
+                order_field = getattr(self.model, sort_params.field)
+            order_clause = order_field.asc() if sort_params.ordering == "asc" else order_field.desc()
+            query = query.order_by(order_clause)
 
-        if sort_params.ordering == "asc":
-            order_clause = order_field.asc()
-        else:
-            order_clause = order_field.desc()
-
-        query = query.order_by(order_clause)
         query = query.limit(pagination_in.limit).offset(pagination_in.offset)
         return query
 
