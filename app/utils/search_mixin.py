@@ -30,6 +30,21 @@ class RelevanceSearchMixin:
         sim_fields = cls.search_similarity_fields
         threshold = cls.search_similarity_threshold
 
+        # Per-term "found anywhere" condition: the term matches ANY ilike field
+        # OR any extra (attribute) condition. This lets a query span several
+        # columns, e.g. "труба 800 нерж" → name~труба, diameter~800, metal~нерж.
+        def term_found_anywhere(term, index):
+            conds = [col.ilike(f"%{term}%") for col in ilike_fields]
+            if extra_conditions_fn:
+                conds.extend(extra_conditions_fn(term, index))
+            return or_(*conds)
+
+        # Level 5 (best): every term is found in SOME field (cross-field match).
+        all_terms_found = and_(
+            *[term_found_anywhere(t, i) for i, t in enumerate(terms)],
+        )
+
+        # Level 10: all terms present in a SINGLE ilike field.
         all_words_conditions = []
         for col in ilike_fields:
             all_words_conditions.append(
@@ -40,13 +55,13 @@ class RelevanceSearchMixin:
                 all_words_conditions.extend(extra_conditions_fn(term, None))
         all_words_match = or_(*all_words_conditions)
 
-        word_cases = []
+        # Tie-breaker: count how many distinct terms matched somewhere; more
+        # matched terms rank higher. word_rank = 30 - matched_count.
+        match_count = None
         for i, term in enumerate(terms):
-            term_conditions = [col.ilike(f"%{term}%") for col in ilike_fields]
-            if extra_conditions_fn:
-                term_conditions.extend(extra_conditions_fn(term, i))
-            word_cases.append((or_(*term_conditions), literal(20 + i)))
-        word_rank = case(*word_cases, else_=literal(30))
+            hit = case((term_found_anywhere(term, i), literal(1)), else_=literal(0))
+            match_count = hit if match_count is None else (match_count + hit)
+        word_rank = (literal(30) - match_count) if match_count is not None else literal(30)
 
         sim_conditions = []
         for term in terms:
@@ -61,6 +76,7 @@ class RelevanceSearchMixin:
         word_similarity_match = or_(*wsim_conditions) if wsim_conditions else literal(False)
 
         main_rank = case(
+            (all_terms_found, literal(5)),
             (all_words_match, literal(10)),
             (similarity_match, literal(40)),
             (word_similarity_match, literal(50)),

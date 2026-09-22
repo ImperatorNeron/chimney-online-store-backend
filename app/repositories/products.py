@@ -27,12 +27,49 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
     search_similarity_fields = [UniqueProduct.name, UniqueProduct.description]
     search_similarity_threshold = 0.4
 
+    # dimension/attribute fields searched for numeric terms
+    _numeric_attr_fields = ("diameter", "length", "thickness", "angle")
+
     @staticmethod
-    def _digit_id_condition(term, _index):
-        """Extra condition: match numeric terms as variation id."""
-        if term.isdigit():
-            return [ProductVariation.id == int(term)]
-        return []
+    def _is_numeric_term(term: str) -> bool:
+        """True for integer or decimal terms: 800, 0.5, 1,0, 45.0."""
+        return term.replace(",", ".").replace(".", "", 1).isdigit()
+
+    @classmethod
+    def _attr_conditions(cls, term, _index):
+        """Extra search conditions matching a term against variation
+        attributes.
+
+        - numeric terms (integer OR decimal: "800", "0.5", "1,0") match the
+          dimension fields diameter/length/thickness/angle. Both the raw term
+          and a "N.0" normalized form are tried, because values are stored in
+          mixed formats (e.g. length "0.5"/"1"/"1.0", angle "90.0", diameter
+          "800/860"). A plain integer term also matches a variation id.
+        - any term matches metal_type (so "нерж" hits "нержавіюча сталь").
+
+        This lets a query like "труба 800 нерж" line up name↔труба,
+        diameter↔800, metal_type↔нерж and rank as a full cross-field match.
+
+        """
+        conditions = [ProductVariation.metal_type.ilike(f"%{term}%")]
+
+        if cls._is_numeric_term(term):
+            norm = term.replace(",", ".")
+            # candidate substrings to look for in the stored value
+            needles = {norm}
+            # match integer "1" against stored "1.0", and "1.0" against "1"
+            if "." in norm:
+                needles.add(norm.rstrip("0").rstrip("."))  # 1.0 -> 1
+            else:
+                needles.add(f"{norm}.0")                    # 1   -> 1.0
+            for field in cls._numeric_attr_fields:
+                col = getattr(ProductVariation, field)
+                for needle in needles:
+                    conditions.append(col.ilike(f"%{needle}%"))
+            if term.isdigit():
+                conditions.append(ProductVariation.id == int(term))
+
+        return conditions
 
     async def list_product_previews(
         self,
@@ -131,7 +168,7 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         if filters.text and not filters.category_slug:
             query = query.join(self.model.product)
             query = self._apply_relevance_filter(
-                query, filters.text, self._digit_id_condition,
+                query, filters.text, self._attr_conditions,
             )
 
         if filters.min_price and filters.max_price:
@@ -160,7 +197,7 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
         query = query.add_columns(final_price_expr.label("final_price"))
         query = self._apply_custom_filters(query=query, filters=filters)
 
-        query = self._apply_relevance_ordering(query, self._digit_id_condition)
+        query = self._apply_relevance_ordering(query, self._attr_conditions)
 
         if sort_params.field == "final_price":
             order_field = final_price_expr
