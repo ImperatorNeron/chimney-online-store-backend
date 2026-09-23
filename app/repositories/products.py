@@ -87,12 +87,14 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
 
     async def count(self, **filters: Any) -> int:
         # Count distinct PRODUCTS (one card per product), not variations.
+        parsed = ProductFiltersSchema(**filters)
         query = select(func.count(distinct(self.model.product_id)))
         query = query.select_from(self.model)
-        query = self._apply_custom_filters(
-            query=query, filters=ProductFiltersSchema(**filters),
-        )
-        return (await self.session.execute(query)).scalar_one()
+        query = self._apply_custom_filters(query=query, filters=parsed)
+        total = (await self.session.execute(query)).scalar_one()
+        # For search, results are capped at the top 24, so report at most 24.
+        is_search = bool(parsed.text and not parsed.category_slug)
+        return min(total, 24) if is_search else total
 
     async def fetch_filters(
         self,
@@ -253,7 +255,9 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
             order_clause = order_field.asc() if sort_params.ordering == "asc" else order_field.desc()
             query = query.order_by(order_clause)
 
-        query = query.limit(pagination_in.limit).offset(pagination_in.offset)
+        # For search, cap results at the top 24 most-relevant cards.
+        limit = min(pagination_in.limit, 24) if is_search else pagination_in.limit
+        query = query.limit(limit).offset(pagination_in.offset)
         return query
 
     async def get_discounted_products(self, limit: int, offset: int) -> Sequence:
