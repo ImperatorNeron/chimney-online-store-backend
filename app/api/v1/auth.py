@@ -59,7 +59,9 @@ async def login(
     "/refresh",
     response_model=TokenInfoSchema,
 )
+@limiter.limit("20/minute")
 async def refresh(
+    request: Request,
     user: Annotated[ReadUserSchema, Depends(get_current_auth_user_for_refresh)],
     container: Annotated[Container, Depends(get_container)],
 ):

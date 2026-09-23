@@ -10,6 +10,7 @@ from app.schemas.users import CreateUserSchema, ReadUserSchema, RegisterUserSche
 from app.services.auth import AbstractAuthService
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
+from app.utils.pii import mask_email, mask_generic, mask_phone
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -29,8 +30,8 @@ class RegisterUserUseCase:
     ) -> ReadUserSchema:
 
         logger.info(
-            f"RegisterUserUseCase: start registration for username={user_in.username}, "
-            f"email={user_in.email}, phone={user_in.phone_number}",
+            f"RegisterUserUseCase: start registration for username={mask_generic(user_in.username)}, "
+            f"email={mask_email(user_in.email)}, phone={mask_phone(user_in.phone_number)}",
         )
 
         async with uow:
@@ -44,7 +45,7 @@ class RegisterUserUseCase:
 
             if user_by_username:
                 logger.warning(
-                    f"Registration failed: username '{user_in.username}' already exists",
+                    f"Registration failed: username '{mask_generic(user_in.username)}' already exists",
                 )
                 raise UsernameAlreadyExistsException(
                     meta={"username": user_in.username},
@@ -57,7 +58,7 @@ class RegisterUserUseCase:
                 )
                 if user_by_email:
                     logger.warning(
-                        f"Registration failed: email '{user_in.email}' already exists",
+                        f"Registration failed: email '{mask_email(user_in.email)}' already exists",
                     )
                     raise EmailAlreadyExistsException(meta={"email": user_in.email})
 
@@ -69,7 +70,7 @@ class RegisterUserUseCase:
 
                 if user_by_phone_number:
                     logger.warning(
-                        f"Registration failed: phone number '{user_in.phone_number}' already exists",
+                        f"Registration failed: phone number '{mask_phone(user_in.phone_number)}' already exists",
                     )
                     raise PhoneNumberAlreadyExistsException(
                         meta={"phone_number": user_in.phone_number},
@@ -86,7 +87,8 @@ class RegisterUserUseCase:
             )
 
             logger.info(
-                f"Registration successful: user_id={user.id}, username={user.username}, email={user.email}",
+                f"Registration successful: user_id={user.id}, "
+                f"username={mask_generic(user.username)}, email={mask_email(user.email)}",
             )
 
             return user

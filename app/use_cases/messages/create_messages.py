@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from app.schemas.messages import CreateMessageSchema, ReadMessageSchema
 from app.services.messages import AbstractMessageService
+from app.utils.pii import mask_generic, mask_phone
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -30,8 +31,8 @@ class CreateMessageUseCase(AbstractCreateMessageUseCase):
         uow: AbstractUnitOfWork,
     ) -> ReadMessageSchema:
         logger.info(
-            f"CreateMessageUseCase: create message registration for username={message_in.user_name}, "
-            f"phone={message_in.phone_number}",
+            f"CreateMessageUseCase: create message for username={mask_generic(message_in.user_name)}, "
+            f"phone={mask_phone(message_in.phone_number)}",
         )
 
         async with uow:

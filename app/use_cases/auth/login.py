@@ -9,6 +9,7 @@ from app.schemas.tokens import TokenInfoSchema
 from app.schemas.users import LoginUserSchema
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
+from app.utils.pii import mask_generic
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -27,12 +28,12 @@ class LoginUserUseCase:
         uow: AbstractUnitOfWork,
         user_in: LoginUserSchema,
     ) -> TokenInfoSchema:
-        logger.info(f"Login attempt for user: {user_in.username}")
+        logger.info(f"Login attempt for user: {mask_generic(user_in.username)}")
         async with uow:
             user = await self.user_service.get_user_by_username(uow, user_in.username)
 
             if not user:
-                logger.warning(f"Login failed: user '{user_in.username}' not found")
+                logger.warning(f"Login failed: user '{mask_generic(user_in.username)}' not found")
                 raise InvalidCredentialsException()
 
             if not self.token_service.validate_password(
@@ -40,7 +41,7 @@ class LoginUserUseCase:
                 user.hashed_password,
             ):
                 logger.warning(
-                    f"Login failed: invalid password for user '{user_in.username}'",
+                    f"Login failed: invalid password for user '{mask_generic(user_in.username)}'",
                 )
                 raise InvalidCredentialsException()
 
@@ -48,7 +49,8 @@ class LoginUserUseCase:
             response.set_cookie(
                 key="refresh_token",
                 value=await self.token_service.create_refresh_token(pk=user.id),
-                max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60,
+                # days -> seconds: days * 24h * 60m * 60s (was missing the * 60 -> cookie died in ~12h)
+                max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60 * 60,
                 secure=settings.session.session_secure,
                 httponly=settings.session.session_httponly,
                 samesite=settings.session.same_site,
@@ -58,5 +60,5 @@ class LoginUserUseCase:
                 pk=user.id,
                 username=user.username,
             )
-            logger.info(f"Login successful for user '{user.username}'")
+            logger.info(f"Login successful for user '{mask_generic(user.username)}'")
             return TokenInfoSchema(access_token=access_token)

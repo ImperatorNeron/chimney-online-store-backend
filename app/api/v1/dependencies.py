@@ -197,7 +197,8 @@ async def _get_user_cart_or_create_new(
         return await fetch_cart.execute(uow=uow, cart_identifiers=cart_identifiers)
     except ItemNotFoundException:
         logger.info(
-            "Cart not found, creating new one: %s", cart_identifiers.model_dump(),
+            "Cart not found, creating new one (user_id=%s)",
+            cart_identifiers.user_id,
         )
         cart = await create_cart.execute(
             uow=uow,
