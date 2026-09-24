@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -88,6 +88,26 @@ class SupabaseBucket(BaseModel):
     name: str
 
 
+class S3Bucket(BaseModel):
+    """Railway (or any S3-compatible) object storage credentials.
+
+    All optional so the app still boots in supabase/local mode. Required
+    only when STORAGE_BACKEND=s3. Values map to Railway's bucket
+    variables:     endpoint          <- ENDPOINT           (e.g.
+    https://t3.storageapi.dev)
+    access_key_id     <- ACCESS_KEY_ID
+    secret_access_key <- SECRET_ACCESS_KEY
+    bucket            <- BUCKET             (unique S3 name, NOT display name)
+    region            <- REGION             (e.g. "auto")
+
+    """
+    endpoint: Optional[str] = None
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
+    bucket: Optional[str] = None
+    region: str = "auto"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env",),
@@ -101,6 +121,11 @@ class Settings(BaseSettings):
     database: DatabaseSettings
     allow_origins: str
     bucket: SupabaseBucket
+    # Which storage backend to use: "supabase" (default), "s3" (Railway), or
+    # "local" (disk). If unset, falls back to the environment-based default in
+    # the DI container (local in dev, supabase in prod).
+    storage_backend: Optional[Literal["supabase", "s3", "local"]] = None
+    s3: S3Bucket = S3Bucket()
     auth_jwt: AuthJWT = AuthJWT()
     session: SessionSettings = SessionSettings()
     images: ImageSettings = ImageSettings()

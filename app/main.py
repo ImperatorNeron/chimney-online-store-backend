@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.routers import router as api_router
+from app.api.v1.media import router as media_router
 from app.core.exceptions.base import BaseAppException
 from app.core.exceptions.common import UniqueConstraintViolationsException
 from app.core.exceptions.handlers import base_exception_handler, rate_limit_handler, unique_constraint_handler
@@ -82,6 +83,8 @@ def create_app() -> FastAPI:
     )
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     application.include_router(router=api_router)
+    # Media proxy (S3 backend) — served at /media/* directly (nginx routes it here).
+    application.include_router(router=media_router)
     logger.info("API routers included.")
     logger.info("Application setup complete.")
     return application
