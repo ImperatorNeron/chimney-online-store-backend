@@ -246,7 +246,14 @@ class VariationProductRepository(RelevanceSearchMixin, BaseRepository):
             main_rank, word_rank = self._build_relevance_score(
                 filters.text, self._attr_conditions,
             )
-            query = query.order_by(main_rank.asc(), word_rank.asc())
+            order = [main_rank.asc(), word_rank.asc()]
+            sim = self._relevance_similarity(filters.text)
+            if sim is not None:
+                # Closer trigram match first, then shorter name (a product whose
+                # whole name is the query beats one where it's just one word).
+                order.append(sim.desc())
+            order.append(func.length(UniqueProduct.name).asc())
+            query = query.order_by(*order)
         else:
             if sort_params.field == "final_price":
                 order_field = final_price_expr
