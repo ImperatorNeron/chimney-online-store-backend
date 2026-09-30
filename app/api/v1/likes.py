@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.api.v1.dependencies import get_current_active_auth_user
 from app.core.containers import get_container
+from app.core.limiter import limiter
 from app.schemas.api_response import ApiResponseSchema, ListPaginatedResponse
 from app.schemas.filters import PaginationIn
 from app.schemas.likes import CreateLikeSchema, ReadLikeSchema
@@ -62,7 +63,9 @@ async def get_likes_list(
     "",
     response_model=ApiResponseSchema[ReadLikeSchema],
 )
+@limiter.limit("60/minute")
 async def create_like(
+    request: Request,
     product_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[
@@ -83,7 +86,9 @@ async def create_like(
 
 
 @router.delete("/{product_id}")
+@limiter.limit("60/minute")
 async def delete_like(
+    request: Request,
     product_id: int,
     uow: Annotated[AbstractUnitOfWork, Depends(UnitOfWork)],
     use_case: Annotated[

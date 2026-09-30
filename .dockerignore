@@ -1,12 +1,47 @@
+# Keep the image to CODE ONLY. Secrets/keys/envs are provided at RUNTIME,
+# never baked into the image.
+
+# ---- VCS / editor ----
 .git
-__pycache__
+.gitignore
+.idea
+.vscode
+
+# ---- Secrets & keys (CRITICAL: never ship JWT private keys) ----
 .env
-.env.template
+.env.*
+!.env.template
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.pfx
+certificates/
+app/certificates/
+
+# ---- Python caches / venv / tests ----
+__pycache__
+**/__pycache__
 *.pyc
-docker_compose/
+*.pyo
+.venv
+venv/
+env/
 .pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+tests/
 .sconsign.dblite
+
+# ---- Local data / logs / uploads ----
 *.log
-logs/         
-app/logs/  
 **/*.log
+logs/
+app/logs/
+uploads/
+app/uploads/
+images/
+
+# ---- Compose / local tooling ----
+docker_compose/

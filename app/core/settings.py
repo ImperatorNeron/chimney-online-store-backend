@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -56,8 +56,8 @@ class SessionSettings(BaseModel):
     session_expire_seconds: int = 30 * 24 * 3600
     urlsafe_token_length: int = 32
     session_key: str = "cart_session_id"
-    session_httponly: bool = True
-    session_secure: bool | None = True
+    session_httponly: bool | None = None
+    session_secure: bool | None = None
     same_site: str = "lax"
 
 
@@ -82,10 +82,30 @@ class CacheSettings(BaseModel):
     expire: int = 0
 
 
-class SupabaseBucket(BaseModel):
-    supabase_url: str
-    supabase_key: str
-    name: str
+# class SupabaseBucket(BaseModel):
+#     supabase_url: str
+#     supabase_key: str
+#     name: str
+
+
+class S3Bucket(BaseModel):
+    """Railway (or any S3-compatible) object storage credentials.
+
+    All optional so the app still boots in supabase/local mode. Required
+    only when STORAGE_BACKEND=s3. Values map to Railway's bucket
+    variables:     endpoint          <- ENDPOINT           (e.g.
+    https://t3.storageapi.dev)
+    access_key_id     <- ACCESS_KEY_ID
+    secret_access_key <- SECRET_ACCESS_KEY
+    bucket            <- BUCKET             (unique S3 name, NOT display name)
+    region            <- REGION             (e.g. "auto")
+
+    """
+    endpoint: Optional[str] = None
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
+    bucket: Optional[str] = None
+    region: str = "auto"
 
 
 class Settings(BaseSettings):
@@ -100,7 +120,12 @@ class Settings(BaseSettings):
     api_version_prefix: str = "/api/v1"
     database: DatabaseSettings
     allow_origins: str
-    bucket: SupabaseBucket
+    # bucket: SupabaseBucket
+    # Which storage backend to use: "supabase" (default), "s3" (Railway), or
+    # "local" (disk). If unset, falls back to the environment-based default in
+    # the DI container (local in dev, supabase in prod).
+    storage_backend: Optional[Literal["supabase", "s3", "local"]] = None
+    s3: S3Bucket = S3Bucket()
     auth_jwt: AuthJWT = AuthJWT()
     session: SessionSettings = SessionSettings()
     images: ImageSettings = ImageSettings()
@@ -108,8 +133,11 @@ class Settings(BaseSettings):
     cache: CacheSettings = CacheSettings()
 
     def model_post_init(self, __context: object) -> None:
+        is_prod = self.environment == "prod"
         if self.session.session_secure is None:
-            self.session.session_secure = self.environment == "prod"
+            self.session.session_secure = is_prod
+        if self.session.session_httponly is None:
+            self.session.session_httponly = is_prod
 
 
 settings = Settings()

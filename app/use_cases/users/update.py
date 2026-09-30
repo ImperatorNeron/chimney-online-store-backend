@@ -6,6 +6,7 @@ from app.core.exceptions.common import EmailAlreadyExistsException, PhoneNumberA
 from app.schemas.users import ReadUserSchema, UpdateUserSchema, UserUpdateWithPasswordSchema
 from app.services.tokens import AbstractJWTTokenService
 from app.services.users import AbstractUserService
+from app.utils.pii import mask_email
 from app.utils.unit_of_work import AbstractUnitOfWork
 
 
@@ -50,7 +51,7 @@ class UpdateUserUseCase(AbstractUpdateUserUseCase):
 
                 if user_by_email and user_by_email.id != user_id:
                     logger.warning(
-                        f"Email '{user_in.email}' already used by another user",
+                        f"Email '{mask_email(user_in.email)}' already used by another user",
                     )
                     raise EmailAlreadyExistsException()
 

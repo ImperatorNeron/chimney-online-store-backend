@@ -8,7 +8,7 @@ from app.services.cart_items import AbstractCartItemService, CartItemService
 from app.services.carts import AbstractCartService, CartService
 from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.faq import AbstractFAQService, FAQService
-from app.services.files import AbstractFileStorageService, LocalFileStorage, SupabaseFileStorage
+from app.services.files import AbstractFileStorageService, LocalFileStorage, S3FileStorage
 from app.services.likes import AbstractLikeService, LikeService
 from app.services.messages import AbstractMessageService, MessageService
 from app.services.order_items import AbstractOrderItemService, OrderItemService
@@ -92,10 +92,19 @@ def get_container() -> punq.Container:
 def _initialize_container() -> punq.Container:
     container = punq.Container()
 
-    if settings.environment != "prod":
-        container.register(AbstractFileStorageService, LocalFileStorage)
+    # Storage backend selection:
+    #   explicit STORAGE_BACKEND wins (supabase | s3 | local),
+    #   else fall back to the old behavior (local in non-prod, supabase in prod).
+    backend = settings.storage_backend
+    if backend is None:
+        backend = "supabase" if settings.environment == "prod" else "local"
+
+    if backend == "s3":
+        container.register(AbstractFileStorageService, S3FileStorage)
+    # elif backend == "supabase":
+        # container.register(AbstractFileStorageService, SupabaseFileStorage)
     else:
-        container.register(AbstractFileStorageService, SupabaseFileStorage)
+        container.register(AbstractFileStorageService, LocalFileStorage)
 
     # Auth
     container.register(AbstractAuthService, AuthService)
