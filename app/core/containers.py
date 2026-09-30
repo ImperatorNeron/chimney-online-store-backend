@@ -8,7 +8,7 @@ from app.services.cart_items import AbstractCartItemService, CartItemService
 from app.services.carts import AbstractCartService, CartService
 from app.services.categories import AbstractCategoryService, CategoryService
 from app.services.faq import AbstractFAQService, FAQService
-from app.services.files import AbstractFileStorageService, LocalFileStorage, S3FileStorage, SupabaseFileStorage
+from app.services.files import AbstractFileStorageService, LocalFileStorage, S3FileStorage
 from app.services.likes import AbstractLikeService, LikeService
 from app.services.messages import AbstractMessageService, MessageService
 from app.services.order_items import AbstractOrderItemService, OrderItemService
@@ -101,8 +101,8 @@ def _initialize_container() -> punq.Container:
 
     if backend == "s3":
         container.register(AbstractFileStorageService, S3FileStorage)
-    elif backend == "supabase":
-        container.register(AbstractFileStorageService, SupabaseFileStorage)
+    # elif backend == "supabase":
+        # container.register(AbstractFileStorageService, SupabaseFileStorage)
     else:
         container.register(AbstractFileStorageService, LocalFileStorage)
 

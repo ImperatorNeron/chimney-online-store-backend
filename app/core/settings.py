@@ -82,10 +82,10 @@ class CacheSettings(BaseModel):
     expire: int = 0
 
 
-class SupabaseBucket(BaseModel):
-    supabase_url: str
-    supabase_key: str
-    name: str
+# class SupabaseBucket(BaseModel):
+#     supabase_url: str
+#     supabase_key: str
+#     name: str
 
 
 class S3Bucket(BaseModel):
@@ -120,7 +120,7 @@ class Settings(BaseSettings):
     api_version_prefix: str = "/api/v1"
     database: DatabaseSettings
     allow_origins: str
-    bucket: SupabaseBucket
+    # bucket: SupabaseBucket
     # Which storage backend to use: "supabase" (default), "s3" (Railway), or
     # "local" (disk). If unset, falls back to the environment-based default in
     # the DI container (local in dev, supabase in prod).

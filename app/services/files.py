@@ -16,7 +16,7 @@ from app.core.exceptions.common import (
     UnsupportedMediaException,
 )
 from app.core.settings import settings
-from app.core.supabase import supabase_client
+# from app.core.supabase import supabase_client
 
 
 logger = logging.getLogger(__name__)
@@ -89,27 +89,27 @@ class LocalFileStorage(AbstractFileStorageService):
                 logger.error("Failed to create product: %s", e, exc_info=True)
 
 
-class SupabaseFileStorage(AbstractFileStorageService):
+# class SupabaseFileStorage(AbstractFileStorageService):
 
-    async def upload(self, file: UploadFile, path: str) -> str:
-        try:
-            contents = await file.read()
-            supabase_client.storage.from_(settings.bucket.name).upload(path, contents)
-            return path
-        except Exception as e:
-            logger.error("Failed to upload images: %s", e, exc_info=True)
-            raise FileUploadException()
+#     async def upload(self, file: UploadFile, path: str) -> str:
+#         try:
+#             contents = await file.read()
+#             supabase_client.storage.from_(settings.bucket.name).upload(path, contents)
+#             return path
+#         except Exception as e:
+#             logger.error("Failed to upload images: %s", e, exc_info=True)
+#             raise FileUploadException()
 
-    async def cleanup_files(self, files: list) -> None:
-        for file in files:
-            try:
-                remove_file = file if isinstance(file, str) else file.file_path
-                supabase_client.storage.from_(settings.bucket.name).remove(
-                    [remove_file],
-                )
-            except Exception as e:
-                logger.error("Failed to delete images: %s", e, exc_info=True)
-                raise FileDeletionException()
+#     async def cleanup_files(self, files: list) -> None:
+#         for file in files:
+#             try:
+#                 remove_file = file if isinstance(file, str) else file.file_path
+#                 supabase_client.storage.from_(settings.bucket.name).remove(
+#                     [remove_file],
+#                 )
+#             except Exception as e:
+#                 logger.error("Failed to delete images: %s", e, exc_info=True)
+#                 raise FileDeletionException()
 
 
 class S3FileStorage(AbstractFileStorageService):
