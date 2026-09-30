@@ -16,7 +16,7 @@ from app.core.exceptions.common import (
     UnsupportedMediaException,
 )
 from app.core.settings import settings
-from app.core.supabase import supabase_client
+# from app.core.supabase import supabase_client
 
 
 logger = logging.getLogger(__name__)
@@ -89,24 +89,87 @@ class LocalFileStorage(AbstractFileStorageService):
                 logger.error("Failed to create product: %s", e, exc_info=True)
 
 
-class SupabaseFileStorage(AbstractFileStorageService):
+# class SupabaseFileStorage(AbstractFileStorageService):
+
+#     async def upload(self, file: UploadFile, path: str) -> str:
+#         try:
+#             contents = await file.read()
+#             supabase_client.storage.from_(settings.bucket.name).upload(path, contents)
+#             return path
+#         except Exception as e:
+#             logger.error("Failed to upload images: %s", e, exc_info=True)
+#             raise FileUploadException()
+
+#     async def cleanup_files(self, files: list) -> None:
+#         for file in files:
+#             try:
+#                 remove_file = file if isinstance(file, str) else file.file_path
+#                 supabase_client.storage.from_(settings.bucket.name).remove(
+#                     [remove_file],
+#                 )
+#             except Exception as e:
+#                 logger.error("Failed to delete images: %s", e, exc_info=True)
+#                 raise FileDeletionException()
+
+
+class S3FileStorage(AbstractFileStorageService):
+    """S3-compatible storage (Railway Buckets).
+
+    Buckets are PRIVATE, so files are served back to clients through a
+    backend proxy route (see the /media endpoint), not via public URLs.
+
+    """
 
     async def upload(self, file: UploadFile, path: str) -> str:
+        from starlette.concurrency import run_in_threadpool
+
+        from app.core.s3 import get_s3_client
+
         try:
             contents = await file.read()
-            supabase_client.storage.from_(settings.bucket.name).upload(path, contents)
+            client = get_s3_client()
+            await run_in_threadpool(
+                client.put_object,
+                Bucket=settings.s3.bucket,
+                Key=path,
+                Body=contents,
+                ContentType=file.content_type or 'application/octet-stream',
+            )
             return path
         except Exception as e:
-            logger.error("Failed to upload images: %s", e, exc_info=True)
+            logger.error("Failed to upload image to S3: %s", e, exc_info=True)
             raise FileUploadException()
 
     async def cleanup_files(self, files: list) -> None:
+        from starlette.concurrency import run_in_threadpool
+
+        from app.core.s3 import get_s3_client
+
+        client = get_s3_client()
         for file in files:
             try:
-                remove_file = file if isinstance(file, str) else file.file_path
-                supabase_client.storage.from_(settings.bucket.name).remove(
-                    [remove_file],
+                key = file if isinstance(file, str) else file.file_path
+                await run_in_threadpool(
+                    client.delete_object, Bucket=settings.s3.bucket, Key=key,
                 )
             except Exception as e:
-                logger.error("Failed to delete images: %s", e, exc_info=True)
+                logger.error("Failed to delete image from S3: %s", e, exc_info=True)
                 raise FileDeletionException()
+
+    async def get_object(self, key: str):
+        """Fetch an object for the media proxy.
+
+        Returns (body_bytes, content_type).
+
+        """
+        from starlette.concurrency import run_in_threadpool
+
+        from app.core.s3 import get_s3_client
+
+        client = get_s3_client()
+        obj = await run_in_threadpool(
+            client.get_object, Bucket=settings.s3.bucket, Key=key,
+        )
+        body = await run_in_threadpool(obj['Body'].read)
+        content_type = obj.get('ContentType', 'application/octet-stream')
+        return body, content_type

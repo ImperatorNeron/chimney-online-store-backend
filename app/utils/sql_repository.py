@@ -240,8 +240,16 @@ class BaseRepository(AbstractRepository):
         await self.session.delete(instance)
 
     async def bulk_delete(self, **filters: Any):
+        # Guard: refuse an unfiltered bulk delete. Without a WHERE clause
+        # this would wipe the ENTIRE table (that was a real bug that deleted
+        # every product image). Callers must always pass filters.
+        if not filters:
+            raise ValueError("bulk_delete requires at least one filter")
         query = delete(self.model)
-        self._apply_filters(query, filters)
+        # NOTE: _apply_filters returns a NEW query with the WHERE applied;
+        # it must be reassigned (the previous code dropped the result and
+        # executed an unfiltered DELETE).
+        query = self._apply_filters(query, filters)
         await self.session.execute(query)
         await self.session.flush()
 

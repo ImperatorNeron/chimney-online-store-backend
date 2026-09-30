@@ -7,12 +7,16 @@ from fastapi.responses import ORJSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.routers import router as api_router
+from app.api.v1.media import router as media_router
 from app.core.exceptions.base import BaseAppException
 from app.core.exceptions.common import UniqueConstraintViolationsException
 from app.core.exceptions.handlers import base_exception_handler, rate_limit_handler, unique_constraint_handler
+from app.core.limiter import limiter
 from app.core.logging_config import setup_logging
+from app.core.middleware import RequestLoggingMiddleware
 from app.core.settings import settings
 
 
@@ -30,16 +34,20 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     logger.info("Starting application setup...")
+    is_prod = settings.environment == "prod"
     application = FastAPI(
         title="Chimney online shop API",
-        docs_url="/api/docs" if settings.environment != "prod" else None,
-        redoc_url="/api/docs" if settings.environment != "prod" else None,
-        openapi_url="/api/docs" if settings.environment != "prod" else None,
+        # Docs/OpenAPI disabled in prod so admin API surface is not public.
+        docs_url=None if is_prod else "/api/docs",
+        redoc_url=None if is_prod else "/api/redoc",
+        openapi_url=None if is_prod else "/api/openapi.json",
         default_response_class=ORJSONResponse,
-        debug=settings.environment != "prod",
+        debug=not is_prod,
         lifespan=lifespan,
     )
-
+    application.state.limiter = limiter
+    application.add_middleware(SlowAPIMiddleware)
+    application.add_middleware(RequestLoggingMiddleware)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allow_origins.split(","),
@@ -57,7 +65,6 @@ def create_app() -> FastAPI:
 
             upload_dir = Path("uploads")
             upload_dir.mkdir(parents=True, exist_ok=True)
-
             application.mount(
                 "/media",
                 StaticFiles(directory=upload_dir),
@@ -76,6 +83,8 @@ def create_app() -> FastAPI:
     )
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     application.include_router(router=api_router)
+    # Media proxy (S3 backend) — served at /media/* directly (nginx routes it here).
+    application.include_router(router=media_router)
     logger.info("API routers included.")
     logger.info("Application setup complete.")
     return application
